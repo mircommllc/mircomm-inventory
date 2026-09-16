@@ -505,7 +505,8 @@ function renderInventoryTable(data, filter='') {
       <div class="table-header">
         <div class="table-title">Products</div>
         <input class="search-input" placeholder="Search name, barcode, category…" id="inv-search"
-          oninput="renderInventoryTable(stockData, this.value.toLowerCase())" value="${filter}">
+          oninput="renderInventoryTable(stockData, this.value.toLowerCase())"
+          onkeydown="handleInvSearchKey(event)" value="${filter}">
       </div>
       <table>
         <thead><tr><th>Barcode</th><th>Name</th><th>Category</th><th>Price</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
@@ -532,6 +533,26 @@ function renderInventoryTable(data, filter='') {
         </tbody>
       </table>
     </div>`;
+
+  // Restore focus + cursor position so fast barcode scanner input isn't cut off
+  // by the table re-rendering on every keystroke.
+  const searchInput = document.getElementById('inv-search');
+  if (searchInput && document.activeElement !== searchInput) {
+    searchInput.focus();
+    const len = searchInput.value.length;
+    searchInput.setSelectionRange(len, len);
+  }
+}
+
+// Barcode scanners send an Enter/Return keystroke after the code.
+// If the scanned code matches an existing product exactly, jump straight
+// into Edit so quantity can be adjusted right away.
+function handleInvSearchKey(e) {
+  if (e.key !== 'Enter') return;
+  const val = e.target.value.trim();
+  if (!val) return;
+  const match = stockData.find(p => String(p.Barcode) === val);
+  if (match) { editProduct(match.Barcode); }
 }
 
 function editProduct(barcode) {
@@ -591,8 +612,8 @@ function renderReceive() {
         <input class="form-input" id="rc-cat" list="cat-list" placeholder="e.g. Screen Protectors">
         <datalist id="cat-list">
           <option value="Screen Protectors"><option value="Cases"><option value="Chargers">
-          <option value="Cables"><option value="Earbuds"><option value="Accessories">
-          <option value="SIM Cards"><option value="Other">
+          <option value="Cables"><option value="Earbuds"><option value="Speaker"><option value="Earphones">
+          <option value="Accessories"><option value="SIM Cards"><option value="Other">
         </datalist>
       </div>
       <div class="form-row">
