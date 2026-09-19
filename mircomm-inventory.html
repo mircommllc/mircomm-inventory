@@ -223,6 +223,22 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .receipt-preview { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.8; white-space: pre-wrap; }
+  .receipt-brand { text-align: center; margin-bottom: 10px; }
+  .receipt-logo { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .receipt-brand-sub { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .receipt-policy { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border);
+    font-size: 10px; color: var(--muted); line-height: 1.5; text-align: center; white-space: pre-wrap; }
+  @media print {
+    html, body { background: #fff !important; }
+    body > *:not(#print-receipt) { display: none !important; }
+    #print-receipt { display: block !important; width: 100%; padding: 24px; background: #fff !important; }
+    #print-receipt, #print-receipt * { color: #000 !important; }
+    .receipt-logo { -webkit-text-fill-color: #000 !important; background: none !important; }
+    .receipt-preview, .receipt-policy { border: none !important; background: #fff !important; }
+    @page { margin: 10mm; }
+  }
   .page-title { font-family: var(--font-display); font-size: 24px; font-weight: 800; margin-bottom: 6px; }
   .page-subtitle { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
   .store-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
@@ -303,6 +319,9 @@
 <!-- TOAST -->
 <div class="toast-container" id="toast-container"></div>
 
+<!-- PRINT-ONLY RECEIPT (kept outside the fixed modal so print isn't clipped to the modal's on-screen box) -->
+<div id="print-receipt" style="display:none"></div>
+
 <!-- MODAL -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
   <div class="modal"><div id="modal-content"></div></div>
@@ -339,7 +358,15 @@ let cart = [];
 let discountAmt = 0;
 let discountDesc = '';
 let paymentMethod = 'cash';
+let pendingCustomer = null;
+let pendingSpectrumAccount = null;
 const TAX_RATE = 0.0825;
+
+// Edit this text to change the return policy printed on every receipt.
+const RETURN_POLICY = `Returns accepted within 14 days with original receipt.
+Accessories must be unopened/unused. No returns on SIM cards or activated devices.
+Devoluciones aceptadas dentro de 14 días con recibo original.
+Accesorios deben estar sin abrir/usar. No se aceptan devoluciones en SIM cards o equipos activados.`;
 
 // ─── LOGIN ────────────────────────────────────────────────────────────
 function selectEmployee(name) {
@@ -505,7 +532,8 @@ function renderInventoryTable(data, filter='') {
       <div class="table-header">
         <div class="table-title">Products</div>
         <input class="search-input" placeholder="Search name, barcode, category…" id="inv-search"
-          oninput="renderInventoryTable(stockData, this.value.toLowerCase())" value="${filter}">
+          oninput="renderInventoryTable(stockData, this.value.toLowerCase())"
+          onkeydown="handleInvSearchKey(event)" value="${filter}">
       </div>
       <table>
         <thead><tr><th>Barcode</th><th>Name</th><th>Category</th><th>Price</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
@@ -532,6 +560,26 @@ function renderInventoryTable(data, filter='') {
         </tbody>
       </table>
     </div>`;
+
+  // Restore focus + cursor position so fast barcode scanner input isn't cut off
+  // by the table re-rendering on every keystroke.
+  const searchInput = document.getElementById('inv-search');
+  if (searchInput && document.activeElement !== searchInput) {
+    searchInput.focus();
+    const len = searchInput.value.length;
+    searchInput.setSelectionRange(len, len);
+  }
+}
+
+// Barcode scanners send an Enter/Return keystroke after the code.
+// If the scanned code matches an existing product exactly, jump straight
+// into Edit so quantity can be adjusted right away.
+function handleInvSearchKey(e) {
+  if (e.key !== 'Enter') return;
+  const val = e.target.value.trim();
+  if (!val) return;
+  const match = stockData.find(p => String(p.Barcode) === val);
+  if (match) { editProduct(match.Barcode); }
 }
 
 function editProduct(barcode) {
@@ -576,13 +624,30 @@ async function confirmDelete(barcode) {
 }
 
 // ─── RECEIVE STOCK (MANAGER ONLY) ─────────────────────────────────────
+let receiveType = 'accessory'; // 'accessory' | 'phone' | 'sim'
+
 function renderReceive() {
   if (!isManager) { showPage('pos'); return; }
   const el = document.getElementById('content');
   el.innerHTML = `
     <div class="page-title">📥 Receive Stock</div>
     <div class="page-subtitle">Add or restock products at Palmhurst</div>
-    <div style="max-width:480px">
+    <div class="action-row">
+      <button class="btn ${receiveType==='accessory'?'btn-primary':'btn-ghost'} btn-sm" onclick="setReceiveType('accessory')">🎧 Accesorio</button>
+      <button class="btn ${receiveType==='phone'?'btn-primary':'btn-ghost'} btn-sm" onclick="setReceiveType('phone')">📱 Teléfono</button>
+      <button class="btn ${receiveType==='sim'?'btn-primary':'btn-ghost'} btn-sm" onclick="setReceiveType('sim')">💳 SIM Card</button>
+    </div>
+    <div id="receive-form-area" style="max-width:480px"></div>`;
+  renderReceiveForm();
+}
+
+function setReceiveType(t) { receiveType = t; renderReceive(); }
+
+function renderReceiveForm() {
+  const el = document.getElementById('receive-form-area');
+
+  if (receiveType === 'accessory') {
+    el.innerHTML = `
       <div class="form-group"><label class="form-label">Barcode / SKU</label>
         <div class="scan-input-wrap"><input class="form-input" id="rc-barcode" placeholder="Scan or type barcode…" onblur="autofillFromStock()"></div>
       </div>
@@ -591,8 +656,8 @@ function renderReceive() {
         <input class="form-input" id="rc-cat" list="cat-list" placeholder="e.g. Screen Protectors">
         <datalist id="cat-list">
           <option value="Screen Protectors"><option value="Cases"><option value="Chargers">
-          <option value="Cables"><option value="Earbuds"><option value="Accessories">
-          <option value="SIM Cards"><option value="Other">
+          <option value="Cables"><option value="Earbuds"><option value="Speaker"><option value="Earphones">
+          <option value="Accessories"><option value="Other">
         </datalist>
       </div>
       <div class="form-row">
@@ -600,9 +665,58 @@ function renderReceive() {
         <div class="form-group"><label class="form-label">Min Qty Alert</label><input class="form-input" id="rc-min" type="number" value="5"></div>
       </div>
       <div class="form-group"><label class="form-label">Qty Received</label><input class="form-input" id="rc-qty" type="number" value="1"></div>
-      <button class="btn btn-primary btn-full" onclick="submitReceive()">📥 Receive into Palmhurst</button>
-    </div>`;
+      <button class="btn btn-primary btn-full" onclick="submitReceive()">📥 Receive into Palmhurst</button>`;
+
+  } else if (receiveType === 'phone') {
+    el.innerHTML = `
+      <div class="form-group"><label class="form-label">Marca</label>
+        <select class="form-input form-select" id="ph-brand" onchange="toggleOtherField('ph-brand','ph-brand-other')">
+          <option value="">— Seleccionar —</option>
+          <option>iPhone</option><option>Samsung</option><option>Motorola</option><option value="Otro">Otro</option>
+        </select>
+        <input class="form-input" id="ph-brand-other" placeholder="Especifica marca" style="display:none;margin-top:8px">
+      </div>
+      <div class="form-group"><label class="form-label">Modelo</label>
+        <input class="form-input" id="ph-model" list="model-list" placeholder="Ej. iPhone 8, Galaxy A15, Moto Stylus">
+        <datalist id="model-list">
+          <option value="iPhone 8"><option value="Galaxy A15"><option value="Galaxy A16"><option value="Moto Stylus">
+        </datalist>
+      </div>
+      <div class="form-group"><label class="form-label">IMEI</label>
+        <div class="scan-input-wrap"><input class="form-input" id="ph-imei" placeholder="Escanea o escribe el IMEI…"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Precio ($)</label><input class="form-input" id="ph-price" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Fecha de recepción</label><input class="form-input" id="ph-date" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="submitPhone()">📥 Agregar Teléfono</button>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px">Cada IMEI queda como su propia unidad en inventario (cantidad 1). Al vender o regalar uno, desaparece de esta lista automáticamente.</p>`;
+
+  } else if (receiveType === 'sim') {
+    el.innerHTML = `
+      <div class="form-group"><label class="form-label">Compañía</label>
+        <select class="form-input form-select" id="sim-carrier" onchange="toggleOtherField('sim-carrier','sim-carrier-other')">
+          <option value="">— Seleccionar —</option>
+          <option>Spectrum</option><option>AT&T</option><option>Gen Mobile</option><option>Simple Mobile</option><option>Ultra Mobile</option><option value="Otro">Otro</option>
+        </select>
+        <input class="form-input" id="sim-carrier-other" placeholder="Especifica compañía" style="display:none;margin-top:8px">
+      </div>
+      <div class="form-group"><label class="form-label">Serial / ICCID</label>
+        <div class="scan-input-wrap"><input class="form-input" id="sim-serial" placeholder="Escanea o escribe el serial…"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Precio ($)</label><input class="form-input" id="sim-price" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Fecha de recepción</label><input class="form-input" id="sim-date" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="submitSim()">📥 Agregar SIM Card</button>`;
+  }
 }
+
+function toggleOtherField(selectId, otherId) {
+  const otherEl = document.getElementById(otherId);
+  otherEl.style.display = document.getElementById(selectId).value === 'Otro' ? 'block' : 'none';
+}
+
 function autofillFromStock() {
   const barcode = document.getElementById('rc-barcode').value.trim();
   if (!barcode || !stockData.length) return;
@@ -630,6 +744,44 @@ async function submitReceive() {
   } catch(e) { toast(e.message,'error'); }
 }
 
+async function submitPhone() {
+  const brandSel = document.getElementById('ph-brand').value;
+  const brand = brandSel === 'Otro' ? document.getElementById('ph-brand-other').value.trim() : brandSel;
+  const model = document.getElementById('ph-model').value.trim();
+  const imei = document.getElementById('ph-imei').value.trim();
+  const price = document.getElementById('ph-price').value;
+  const date = document.getElementById('ph-date').value;
+  if (!brand || !model || !imei) { toast('Marca, modelo e IMEI son obligatorios.','error'); return; }
+  try {
+    await apiPost({ action:'receiveSerializedItem', store:currentStore,
+      barcode: imei, name: `${brand} ${model}`, category: 'Phone',
+      brand, model, price, dateReceived: date });
+    toast(`✓ ${brand} ${model} agregado al inventario.`,'success');
+    // Keep brand/model/price for the next unit of the same batch; just clear + refocus the IMEI field
+    document.getElementById('ph-imei').value = '';
+    document.getElementById('ph-imei').focus();
+    stockData = [];
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function submitSim() {
+  const carrierSel = document.getElementById('sim-carrier').value;
+  const carrier = carrierSel === 'Otro' ? document.getElementById('sim-carrier-other').value.trim() : carrierSel;
+  const serial = document.getElementById('sim-serial').value.trim();
+  const price = document.getElementById('sim-price').value;
+  const date = document.getElementById('sim-date').value;
+  if (!carrier || !serial) { toast('Compañía y serial son obligatorios.','error'); return; }
+  try {
+    await apiPost({ action:'receiveSerializedItem', store:currentStore,
+      barcode: serial, name: `${carrier} SIM Card`, category: 'SIM Card',
+      carrier, price, dateReceived: date });
+    toast(`✓ SIM ${carrier} agregada al inventario.`,'success');
+    document.getElementById('sim-serial').value = '';
+    document.getElementById('sim-serial').focus();
+    stockData = [];
+  } catch(e) { toast(e.message,'error'); }
+}
+
 // ─── POS (ALL USERS) ──────────────────────────────────────────────────
 async function renderPOS() {
   const el = document.getElementById('content');
@@ -644,7 +796,7 @@ async function renderPOS() {
 
 function renderPOSLayout() {
   const el = document.getElementById('content');
-  const subtotal = cart.reduce((s,i) => s + i.price*i.qty, 0);
+  const subtotal = cart.reduce((s,i) => s + (i.gift ? 0 : i.price*i.qty), 0);
   const discount = Math.min(discountAmt, subtotal);
   const taxable = subtotal - discount;
   const tax = taxable * TAX_RATE;
@@ -657,7 +809,7 @@ function renderPOSLayout() {
       <div>
         <div class="action-row">
           <div class="scan-input-wrap" style="flex:1">
-            <input class="form-input" id="pos-search" placeholder="Search or scan barcode to add…" oninput="renderProductGrid(this.value)">
+            <input class="form-input" id="pos-search" placeholder="Search or scan barcode to add…" oninput="renderProductGrid(this.value)" onkeydown="handlePosSearchKey(event)">
           </div>
         </div>
         <div id="product-grid"></div>
@@ -671,13 +823,17 @@ function renderPOSLayout() {
               <div class="cart-item">
                 <div style="flex:1">
                   <div class="cart-item-name">${item.name}</div>
-                  <div class="cart-item-price">$${(item.price*item.qty).toFixed(2)}</div>
+                  <div class="cart-item-price">${item.gift ? '<span style="color:var(--yellow)">🎁 Regalo</span>' : `$${(item.price*item.qty).toFixed(2)}`}</div>
                 </div>
+                ${item.category === 'Phone' ? `
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer;white-space:nowrap">
+                  <input type="checkbox" ${item.gift?'checked':''} onchange="toggleGift(${i}, this.checked)"> Regalar
+                </label>` : `
                 <div class="qty-ctrl">
                   <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
                   <span class="qty-val">${item.qty}</span>
                   <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
-                </div>
+                </div>`}
                 <button class="remove-item" onclick="removeFromCart(${i})">✕</button>
               </div>`).join('')}
           </div>
@@ -697,10 +853,10 @@ function renderPOSLayout() {
             ${discount>0?`<div class="total-row" style="color:var(--green)"><span>Discount</span><span>-$${discount.toFixed(2)}</span></div>`:''}
             <div class="total-row"><span>Tax (8.25%)</span><span>$${tax.toFixed(2)}</span></div>
             <div class="total-row grand"><span>Total</span><span>$${total.toFixed(2)}</span></div>
-            <button class="btn btn-primary btn-full" style="margin-top:12px" ${cart.length===0?'disabled':''} onclick="completeSale()">
+            <button class="btn btn-primary btn-full" style="margin-top:12px" ${cart.length===0?'disabled':''} onclick="openCustomerModal()">
               ✓ Complete Sale · $${total.toFixed(2)}
             </button>
-            <button class="btn btn-ghost btn-full" style="margin-top:8px" ${cart.length===0?'disabled':''} onclick="cart=[];discountAmt=0;discountDesc='';renderPOSLayout()">
+            <button class="btn btn-ghost btn-full" style="margin-top:8px" ${cart.length===0?'disabled':''} onclick="cart=[];discountAmt=0;discountDesc='';pendingCustomer=null;pendingSpectrumAccount=null;renderPOSLayout()">
               🗑 Clear Cart
             </button>
           </div>
@@ -732,6 +888,17 @@ function renderProductGrid(filter) {
   </div>`;
 }
 
+// For a barcode-scanned phone/SIM (or any exact-match SKU) at checkout: scanning
+// its actual unit adds THAT specific unit, rather than relying on the grid where
+// several units of the same phone model look identical.
+function handlePosSearchKey(e) {
+  if (e.key !== 'Enter') return;
+  const val = e.target.value.trim();
+  if (!val) return;
+  const match = stockData.find(p => String(p.Barcode) === val);
+  if (match) { addToCart(match.Barcode); e.target.value=''; renderProductGrid(''); }
+}
+
 function addToCart(barcode) {
   const p = stockData.find(x => String(x.Barcode) === String(barcode));
   if (!p) return;
@@ -741,8 +908,12 @@ function addToCart(barcode) {
     if (existing.qty >= maxQty) { toast(`Only ${maxQty} in stock.`, 'error'); return; }
     existing.qty++;
   } else {
-    cart.push({ barcode: String(p.Barcode), name: p.Name, price: parseFloat(p.Price||0), qty: 1 });
+    cart.push({ barcode: String(p.Barcode), name: p.Name, price: parseFloat(p.Price||0), qty: 1, category: p.Category||'', gift: false });
   }
+  renderPOSLayout();
+}
+function toggleGift(i, checked) {
+  cart[i].gift = checked;
   renderPOSLayout();
 }
 function changeQty(i, delta) {
@@ -755,9 +926,136 @@ function changeQty(i, delta) {
 function removeFromCart(i) { cart.splice(i,1); renderPOSLayout(); }
 function updateCartTotals() { renderPOSLayout(); }
 
-async function completeSale() {
+// ─── CUSTOMER INFO (collected on every sale) ──────────────────────────
+function openCustomerModal() {
   if (!cart.length) return;
-  const subtotal = cart.reduce((s,i) => s + i.price*i.qty, 0);
+  const hasGift = cart.some(i => i.gift);
+  openModal(`
+    <div class="modal-title">🧾 Datos del Cliente <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-group">
+      <label class="form-label">Teléfono *</label>
+      <input class="form-input" id="cu-phone" type="tel" inputmode="numeric" placeholder="(956) 000-0000" maxlength="14"
+        onblur="lookupCustomer()" oninput="formatPhoneInput(this)">
+      <div id="cu-lookup-status" style="font-size:12px;margin-top:6px;color:var(--muted)"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nombre *</label>
+      <input class="form-input" id="cu-name" placeholder="Nombre completo">
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="cu-email" type="email" placeholder="correo@ejemplo.com"></div>
+      <div class="form-group"><label class="form-label">Fecha de nacimiento</label><input class="form-input" id="cu-dob" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Carrier actual</label>
+        <select class="form-input form-select" id="cu-carrier">
+          <option value="">— Seleccionar —</option>
+          <option>Spectrum</option><option>AT&T</option><option>Viasat</option>
+          <option>Otro</option><option>Ninguno</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Código postal</label><input class="form-input" id="cu-zip" maxlength="5" inputmode="numeric" placeholder="78573"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">¿Cómo nos conoció?</label>
+        <select class="form-input form-select" id="cu-referral">
+          <option value="">— Seleccionar —</option>
+          <option>Facebook</option><option>Google</option><option>Referido</option>
+          <option>Pasó por la tienda</option><option>OSA / Partner</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Idioma preferido</label>
+        <select class="form-input form-select" id="cu-language">
+          <option value="Español">Español</option><option value="English">English</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="cu-consent" style="width:16px;height:16px">
+      <label for="cu-consent" style="font-size:12px;color:var(--muted)">Acepta recibir promociones por SMS/correo</label>
+    </div>
+    ${hasGift ? `
+    <div style="border-top:1px dashed var(--border);margin:16px 0;padding-top:14px">
+      <div class="form-label" style="color:var(--yellow)">🎁 Teléfono regalado — requiere línea de Spectrum</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nombre en la cuenta *</label><input class="form-input" id="cu-spectrum-name" placeholder="Nombre del titular"></div>
+        <div class="form-group"><label class="form-label">Número de cuenta *</label><input class="form-input" id="cu-spectrum-account" placeholder="Número de cuenta Spectrum"></div>
+      </div>
+    </div>` : ''}
+    <div id="cu-error" style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px"></div>
+    <button class="btn btn-primary btn-full" onclick="confirmCustomerAndSale()">Confirmar Venta</button>
+  `);
+}
+
+function formatPhoneInput(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,10);
+  if (v.length >= 7) v = `(${v.slice(0,3)}) ${v.slice(3,6)}-${v.slice(6)}`;
+  else if (v.length >= 4) v = `(${v.slice(0,3)}) ${v.slice(3)}`;
+  else if (v.length > 0) v = `(${v}`;
+  el.value = v;
+}
+
+async function lookupCustomer() {
+  const phone = document.getElementById('cu-phone').value.replace(/\D/g,'');
+  const statusEl = document.getElementById('cu-lookup-status');
+  if (phone.length < 10) { statusEl.textContent = ''; return; }
+  statusEl.textContent = 'Buscando…'; statusEl.style.color = 'var(--muted)';
+  try {
+    const r = await apiGet({ action:'getCustomer', store:currentStore, phone });
+    if (r.found) {
+      document.getElementById('cu-name').value = r.customer.Name || '';
+      document.getElementById('cu-email').value = r.customer.Email || '';
+      document.getElementById('cu-dob').value = r.customer.DOB || '';
+      document.getElementById('cu-carrier').value = r.customer.Carrier || '';
+      document.getElementById('cu-zip').value = r.customer.Zip || '';
+      document.getElementById('cu-referral').value = r.customer.ReferralSource || '';
+      document.getElementById('cu-language').value = r.customer.Language || 'Español';
+      document.getElementById('cu-consent').checked = String(r.customer.Consent).toLowerCase() === 'yes';
+      statusEl.innerHTML = `↺ Cliente recurrente — ${r.customer.Visits||0} compra(s) previas`;
+      statusEl.style.color = 'var(--green)';
+    } else {
+      statusEl.textContent = '✦ Cliente nuevo';
+      statusEl.style.color = 'var(--cyan)';
+    }
+  } catch(e) { statusEl.textContent = ''; }
+}
+
+function confirmCustomerAndSale() {
+  const phone = document.getElementById('cu-phone').value.replace(/\D/g,'');
+  const name = document.getElementById('cu-name').value.trim();
+  const errEl = document.getElementById('cu-error');
+  if (phone.length < 10) { errEl.textContent = 'Ingresa un teléfono válido (10 dígitos).'; return; }
+  if (!name) { errEl.textContent = 'El nombre es obligatorio.'; return; }
+
+  const hasGift = cart.some(i => i.gift);
+  pendingSpectrumAccount = null;
+  if (hasGift) {
+    const spName = document.getElementById('cu-spectrum-name').value.trim();
+    const spAccount = document.getElementById('cu-spectrum-account').value.trim();
+    if (!spName || !spAccount) {
+      errEl.textContent = 'El teléfono regalado requiere nombre y número de cuenta de Spectrum.';
+      return;
+    }
+    pendingSpectrumAccount = { name: spName, account: spAccount };
+  }
+
+  pendingCustomer = {
+    phone, name,
+    email: document.getElementById('cu-email').value.trim(),
+    dob: document.getElementById('cu-dob').value,
+    carrier: document.getElementById('cu-carrier').value,
+    zip: document.getElementById('cu-zip').value.trim(),
+    referral: document.getElementById('cu-referral').value,
+    language: document.getElementById('cu-language').value,
+    consent: document.getElementById('cu-consent').checked
+  };
+  closeModal();
+  completeSale();
+}
+
+async function completeSale() {
+  if (!cart.length || !pendingCustomer) return;
+  const subtotal = cart.reduce((s,i) => s + (i.gift ? 0 : i.price*i.qty), 0);
   const discount = Math.min(discountAmt, subtotal);
   const taxable = subtotal - discount;
   const tax = taxable * TAX_RATE;
@@ -767,22 +1065,33 @@ async function completeSale() {
   try {
     const r = await apiPost({ action:'recordSale', store:currentStore,
       employee: currentUser, payment: paymentMethod,
-      items: cart, subtotal, discountAmount: discount, discountDesc, tax, total });
+      items: cart, subtotal, discountAmount: discount, discountDesc, tax, total,
+      customer: pendingCustomer,
+      spectrumAccountName: pendingSpectrumAccount ? pendingSpectrumAccount.name : '',
+      spectrumAccountNumber: pendingSpectrumAccount ? pendingSpectrumAccount.account : '' });
     toast(`Sale ${r.saleId} complete! $${total.toFixed(2)}`, 'success');
-    showReceipt(r.saleId, cart, subtotal, discount, discountDesc, tax, total, paymentMethod);
-    cart=[]; discountAmt=0; discountDesc=''; stockData=[];
+    showReceipt(r.saleId, cart, subtotal, discount, discountDesc, tax, total, paymentMethod, pendingCustomer);
+    cart=[]; discountAmt=0; discountDesc=''; stockData=[]; pendingCustomer=null; pendingSpectrumAccount=null;
   } catch(e) { toast(e.message,'error'); }
 }
 
-function showReceipt(saleId, items, subtotal, discount, discountDesc, tax, total, payment) {
-  const now = new Date();
-  const lines = items.map(i => `  ${i.name.padEnd(24,' ')} x${i.qty}  $${(i.price*i.qty).toFixed(2)}`).join('\n');
-  openModal(`
-    <div class="modal-title">🧾 Receipt <button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="receipt-preview">MirComm Palmhurst
-4415 N. Conway Ave. Ste. 180
+function receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer, now) {
+  const lines = items.map(i => {
+    let line = `  ${i.name.padEnd(24,' ')} x${i.qty}  ${i.gift ? 'REGALO' : '$'+(i.price*i.qty).toFixed(2)}`;
+    if (i.category === 'Phone')    line += `\n    IMEI: ${i.barcode}`;
+    if (i.category === 'SIM Card') line += `\n    Serial: ${i.barcode}`;
+    return line;
+  }).join('\n');
+  return `
+    <div class="receipt-brand">
+      <div class="receipt-logo">MirComm</div>
+      <div class="receipt-brand-sub">Palmhurst</div>
+    </div>
+    <div class="receipt-preview">4415 N. Conway Ave. Ste. 180
+Palmhurst, TX 78573
+(956) 603-6505
 ${now.toLocaleString()}
-Sale ID: ${saleId}  |  Rep: ${currentUser}
+Sale ID: ${saleId}  |  Rep: ${currentUser}${customer&&customer.name?`\nCliente: ${customer.name}`:''}
 ────────────────────────────────
 ${lines}
 ────────────────────────────────
@@ -791,8 +1100,23 @@ Tax (8.25%):     $${tax.toFixed(2)}
 TOTAL:           $${total.toFixed(2)}
 Payment:         ${payment.toUpperCase()}
 ────────────────────────────────
-Thank you for choosing MirComm!
-    </div>
+Thank you for choosing MirComm!</div>
+    <div class="receipt-policy">${RETURN_POLICY.replace(/\n/g,'<br>')}</div>`;
+}
+
+function showReceipt(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer) {
+  const now = new Date();
+  const content = receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer, now);
+
+  // Populate the print-only container — a plain top-level element, not nested
+  // inside the fixed-position modal, so Chrome's print engine renders it in
+  // normal document flow instead of clipping it to the modal's on-screen box.
+  const printEl = document.getElementById('print-receipt');
+  if (printEl) printEl.innerHTML = content;
+
+  openModal(`
+    <div class="modal-title">🧾 Receipt <button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${content}
     <div style="margin-top:14px;display:flex;gap:10px">
       <button class="btn btn-ghost" style="flex:1" onclick="window.print()">🖨 Print</button>
       <button class="btn btn-primary" style="flex:1" onclick="closeModal();renderPOS()">New Sale</button>
