@@ -339,6 +339,7 @@ let cart = [];
 let discountAmt = 0;
 let discountDesc = '';
 let paymentMethod = 'cash';
+let pendingCustomer = null;
 const TAX_RATE = 0.0825;
 
 // ─── LOGIN ────────────────────────────────────────────────────────────
@@ -718,10 +719,10 @@ function renderPOSLayout() {
             ${discount>0?`<div class="total-row" style="color:var(--green)"><span>Discount</span><span>-$${discount.toFixed(2)}</span></div>`:''}
             <div class="total-row"><span>Tax (8.25%)</span><span>$${tax.toFixed(2)}</span></div>
             <div class="total-row grand"><span>Total</span><span>$${total.toFixed(2)}</span></div>
-            <button class="btn btn-primary btn-full" style="margin-top:12px" ${cart.length===0?'disabled':''} onclick="completeSale()">
+            <button class="btn btn-primary btn-full" style="margin-top:12px" ${cart.length===0?'disabled':''} onclick="openCustomerModal()">
               ✓ Complete Sale · $${total.toFixed(2)}
             </button>
-            <button class="btn btn-ghost btn-full" style="margin-top:8px" ${cart.length===0?'disabled':''} onclick="cart=[];discountAmt=0;discountDesc='';renderPOSLayout()">
+            <button class="btn btn-ghost btn-full" style="margin-top:8px" ${cart.length===0?'disabled':''} onclick="cart=[];discountAmt=0;discountDesc='';pendingCustomer=null;renderPOSLayout()">
               🗑 Clear Cart
             </button>
           </div>
@@ -776,8 +777,113 @@ function changeQty(i, delta) {
 function removeFromCart(i) { cart.splice(i,1); renderPOSLayout(); }
 function updateCartTotals() { renderPOSLayout(); }
 
-async function completeSale() {
+// ─── CUSTOMER INFO (collected on every sale) ──────────────────────────
+function openCustomerModal() {
   if (!cart.length) return;
+  openModal(`
+    <div class="modal-title">🧾 Datos del Cliente <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-group">
+      <label class="form-label">Teléfono *</label>
+      <input class="form-input" id="cu-phone" type="tel" inputmode="numeric" placeholder="(956) 000-0000" maxlength="14"
+        onblur="lookupCustomer()" oninput="formatPhoneInput(this)">
+      <div id="cu-lookup-status" style="font-size:12px;margin-top:6px;color:var(--muted)"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nombre *</label>
+      <input class="form-input" id="cu-name" placeholder="Nombre completo">
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="cu-email" type="email" placeholder="correo@ejemplo.com"></div>
+      <div class="form-group"><label class="form-label">Fecha de nacimiento</label><input class="form-input" id="cu-dob" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Carrier actual</label>
+        <select class="form-input form-select" id="cu-carrier">
+          <option value="">— Seleccionar —</option>
+          <option>Spectrum</option><option>AT&T</option><option>Viasat</option>
+          <option>Otro</option><option>Ninguno</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Código postal</label><input class="form-input" id="cu-zip" maxlength="5" inputmode="numeric" placeholder="78573"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">¿Cómo nos conoció?</label>
+        <select class="form-input form-select" id="cu-referral">
+          <option value="">— Seleccionar —</option>
+          <option>Facebook</option><option>Google</option><option>Referido</option>
+          <option>Pasó por la tienda</option><option>OSA / Partner</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Idioma preferido</label>
+        <select class="form-input form-select" id="cu-language">
+          <option value="Español">Español</option><option value="English">English</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="cu-consent" style="width:16px;height:16px">
+      <label for="cu-consent" style="font-size:12px;color:var(--muted)">Acepta recibir promociones por SMS/correo</label>
+    </div>
+    <div id="cu-error" style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px"></div>
+    <button class="btn btn-primary btn-full" onclick="confirmCustomerAndSale()">Confirmar Venta</button>
+  `);
+}
+
+function formatPhoneInput(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,10);
+  if (v.length >= 7) v = `(${v.slice(0,3)}) ${v.slice(3,6)}-${v.slice(6)}`;
+  else if (v.length >= 4) v = `(${v.slice(0,3)}) ${v.slice(3)}`;
+  else if (v.length > 0) v = `(${v}`;
+  el.value = v;
+}
+
+async function lookupCustomer() {
+  const phone = document.getElementById('cu-phone').value.replace(/\D/g,'');
+  const statusEl = document.getElementById('cu-lookup-status');
+  if (phone.length < 10) { statusEl.textContent = ''; return; }
+  statusEl.textContent = 'Buscando…'; statusEl.style.color = 'var(--muted)';
+  try {
+    const r = await apiGet({ action:'getCustomer', store:currentStore, phone });
+    if (r.found) {
+      document.getElementById('cu-name').value = r.customer.Name || '';
+      document.getElementById('cu-email').value = r.customer.Email || '';
+      document.getElementById('cu-dob').value = r.customer.DOB || '';
+      document.getElementById('cu-carrier').value = r.customer.Carrier || '';
+      document.getElementById('cu-zip').value = r.customer.Zip || '';
+      document.getElementById('cu-referral').value = r.customer.ReferralSource || '';
+      document.getElementById('cu-language').value = r.customer.Language || 'Español';
+      document.getElementById('cu-consent').checked = String(r.customer.Consent).toLowerCase() === 'yes';
+      statusEl.innerHTML = `↺ Cliente recurrente — ${r.customer.Visits||0} compra(s) previas`;
+      statusEl.style.color = 'var(--green)';
+    } else {
+      statusEl.textContent = '✦ Cliente nuevo';
+      statusEl.style.color = 'var(--cyan)';
+    }
+  } catch(e) { statusEl.textContent = ''; }
+}
+
+function confirmCustomerAndSale() {
+  const phone = document.getElementById('cu-phone').value.replace(/\D/g,'');
+  const name = document.getElementById('cu-name').value.trim();
+  const errEl = document.getElementById('cu-error');
+  if (phone.length < 10) { errEl.textContent = 'Ingresa un teléfono válido (10 dígitos).'; return; }
+  if (!name) { errEl.textContent = 'El nombre es obligatorio.'; return; }
+  pendingCustomer = {
+    phone, name,
+    email: document.getElementById('cu-email').value.trim(),
+    dob: document.getElementById('cu-dob').value,
+    carrier: document.getElementById('cu-carrier').value,
+    zip: document.getElementById('cu-zip').value.trim(),
+    referral: document.getElementById('cu-referral').value,
+    language: document.getElementById('cu-language').value,
+    consent: document.getElementById('cu-consent').checked
+  };
+  closeModal();
+  completeSale();
+}
+
+async function completeSale() {
+  if (!cart.length || !pendingCustomer) return;
   const subtotal = cart.reduce((s,i) => s + i.price*i.qty, 0);
   const discount = Math.min(discountAmt, subtotal);
   const taxable = subtotal - discount;
@@ -788,14 +894,15 @@ async function completeSale() {
   try {
     const r = await apiPost({ action:'recordSale', store:currentStore,
       employee: currentUser, payment: paymentMethod,
-      items: cart, subtotal, discountAmount: discount, discountDesc, tax, total });
+      items: cart, subtotal, discountAmount: discount, discountDesc, tax, total,
+      customer: pendingCustomer });
     toast(`Sale ${r.saleId} complete! $${total.toFixed(2)}`, 'success');
-    showReceipt(r.saleId, cart, subtotal, discount, discountDesc, tax, total, paymentMethod);
-    cart=[]; discountAmt=0; discountDesc=''; stockData=[];
+    showReceipt(r.saleId, cart, subtotal, discount, discountDesc, tax, total, paymentMethod, pendingCustomer);
+    cart=[]; discountAmt=0; discountDesc=''; stockData=[]; pendingCustomer=null;
   } catch(e) { toast(e.message,'error'); }
 }
 
-function showReceipt(saleId, items, subtotal, discount, discountDesc, tax, total, payment) {
+function showReceipt(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer) {
   const now = new Date();
   const lines = items.map(i => `  ${i.name.padEnd(24,' ')} x${i.qty}  $${(i.price*i.qty).toFixed(2)}`).join('\n');
   openModal(`
@@ -803,7 +910,7 @@ function showReceipt(saleId, items, subtotal, discount, discountDesc, tax, total
     <div class="receipt-preview">MirComm Palmhurst
 4415 N. Conway Ave. Ste. 180
 ${now.toLocaleString()}
-Sale ID: ${saleId}  |  Rep: ${currentUser}
+Sale ID: ${saleId}  |  Rep: ${currentUser}${customer&&customer.name?`\nCliente: ${customer.name}`:''}
 ────────────────────────────────
 ${lines}
 ────────────────────────────────
