@@ -223,6 +223,22 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .receipt-preview { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.8; white-space: pre-wrap; }
+  .receipt-brand { text-align: center; margin-bottom: 10px; }
+  .receipt-logo { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .receipt-brand-sub { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .receipt-policy { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border);
+    font-size: 10px; color: var(--muted); line-height: 1.5; text-align: center; white-space: pre-wrap; }
+  @media print {
+    body * { visibility: hidden; }
+    .receipt-print-area, .receipt-print-area * { visibility: visible; }
+    .receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 24px; background: #fff !important; }
+    .receipt-print-area, .receipt-print-area * { color: #000 !important; }
+    .receipt-logo { -webkit-text-fill-color: #000 !important; background: none !important; }
+    .receipt-preview, .receipt-policy { border: none !important; background: #fff !important; }
+    @page { margin: 10mm; }
+  }
   .page-title { font-family: var(--font-display); font-size: 24px; font-weight: 800; margin-bottom: 6px; }
   .page-subtitle { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
   .store-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
@@ -341,6 +357,12 @@ let discountDesc = '';
 let paymentMethod = 'cash';
 let pendingCustomer = null;
 const TAX_RATE = 0.0825;
+
+// Edit this text to change the return policy printed on every receipt.
+const RETURN_POLICY = `Returns accepted within 14 days with original receipt.
+Accessories must be unopened/unused. No returns on SIM cards or activated devices.
+Devoluciones aceptadas dentro de 14 días con recibo original.
+Accesorios deben estar sin abrir/usar. No se aceptan devoluciones en SIM cards o equipos activados.`;
 
 // ─── LOGIN ────────────────────────────────────────────────────────────
 function selectEmployee(name) {
@@ -907,8 +929,14 @@ function showReceipt(saleId, items, subtotal, discount, discountDesc, tax, total
   const lines = items.map(i => `  ${i.name.padEnd(24,' ')} x${i.qty}  $${(i.price*i.qty).toFixed(2)}`).join('\n');
   openModal(`
     <div class="modal-title">🧾 Receipt <button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="receipt-preview">MirComm Palmhurst
-4415 N. Conway Ave. Ste. 180
+    <div id="receipt-print-area" class="receipt-print-area">
+      <div class="receipt-brand">
+        <div class="receipt-logo">MirComm</div>
+        <div class="receipt-brand-sub">Palmhurst</div>
+      </div>
+      <div class="receipt-preview">4415 N. Conway Ave. Ste. 180
+Palmhurst, TX 78573
+(956) 603-6505
 ${now.toLocaleString()}
 Sale ID: ${saleId}  |  Rep: ${currentUser}${customer&&customer.name?`\nCliente: ${customer.name}`:''}
 ────────────────────────────────
@@ -919,7 +947,8 @@ Tax (8.25%):     $${tax.toFixed(2)}
 TOTAL:           $${total.toFixed(2)}
 Payment:         ${payment.toUpperCase()}
 ────────────────────────────────
-Thank you for choosing MirComm!
+Thank you for choosing MirComm!</div>
+      <div class="receipt-policy">${RETURN_POLICY.replace(/\n/g,'<br>')}</div>
     </div>
     <div style="margin-top:14px;display:flex;gap:10px">
       <button class="btn btn-ghost" style="flex:1" onclick="window.print()">🖨 Print</button>
