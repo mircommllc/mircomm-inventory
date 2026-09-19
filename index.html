@@ -232,9 +232,9 @@
     font-size: 10px; color: var(--muted); line-height: 1.5; text-align: center; white-space: pre-wrap; }
   @media print {
     body * { visibility: hidden; }
-    .receipt-print-area, .receipt-print-area * { visibility: visible; }
-    .receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 24px; background: #fff !important; }
-    .receipt-print-area, .receipt-print-area * { color: #000 !important; }
+    #print-receipt, #print-receipt * { visibility: visible; }
+    #print-receipt { display: block !important; position: static; width: 100%; padding: 24px; background: #fff !important; }
+    #print-receipt, #print-receipt * { color: #000 !important; }
     .receipt-logo { -webkit-text-fill-color: #000 !important; background: none !important; }
     .receipt-preview, .receipt-policy { border: none !important; background: #fff !important; }
     @page { margin: 10mm; }
@@ -318,6 +318,9 @@
 
 <!-- TOAST -->
 <div class="toast-container" id="toast-container"></div>
+
+<!-- PRINT-ONLY RECEIPT (kept outside the fixed modal so print isn't clipped to the modal's on-screen box) -->
+<div id="print-receipt" style="display:none"></div>
 
 <!-- MODAL -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
@@ -924,17 +927,14 @@ async function completeSale() {
   } catch(e) { toast(e.message,'error'); }
 }
 
-function showReceipt(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer) {
-  const now = new Date();
+function receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer, now) {
   const lines = items.map(i => `  ${i.name.padEnd(24,' ')} x${i.qty}  $${(i.price*i.qty).toFixed(2)}`).join('\n');
-  openModal(`
-    <div class="modal-title">🧾 Receipt <button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div id="receipt-print-area" class="receipt-print-area">
-      <div class="receipt-brand">
-        <div class="receipt-logo">MirComm</div>
-        <div class="receipt-brand-sub">Palmhurst</div>
-      </div>
-      <div class="receipt-preview">4415 N. Conway Ave. Ste. 180
+  return `
+    <div class="receipt-brand">
+      <div class="receipt-logo">MirComm</div>
+      <div class="receipt-brand-sub">Palmhurst</div>
+    </div>
+    <div class="receipt-preview">4415 N. Conway Ave. Ste. 180
 Palmhurst, TX 78573
 (956) 603-6505
 ${now.toLocaleString()}
@@ -948,8 +948,22 @@ TOTAL:           $${total.toFixed(2)}
 Payment:         ${payment.toUpperCase()}
 ────────────────────────────────
 Thank you for choosing MirComm!</div>
-      <div class="receipt-policy">${RETURN_POLICY.replace(/\n/g,'<br>')}</div>
-    </div>
+    <div class="receipt-policy">${RETURN_POLICY.replace(/\n/g,'<br>')}</div>`;
+}
+
+function showReceipt(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer) {
+  const now = new Date();
+  const content = receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer, now);
+
+  // Populate the print-only container — a plain top-level element, not nested
+  // inside the fixed-position modal, so Chrome's print engine renders it in
+  // normal document flow instead of clipping it to the modal's on-screen box.
+  const printEl = document.getElementById('print-receipt');
+  if (printEl) printEl.innerHTML = content;
+
+  openModal(`
+    <div class="modal-title">🧾 Receipt <button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${content}
     <div style="margin-top:14px;display:flex;gap:10px">
       <button class="btn btn-ghost" style="flex:1" onclick="window.print()">🖨 Print</button>
       <button class="btn btn-primary" style="flex:1" onclick="closeModal();renderPOS()">New Sale</button>
