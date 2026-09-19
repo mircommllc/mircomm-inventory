@@ -231,9 +231,9 @@
   .receipt-policy { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border);
     font-size: 10px; color: var(--muted); line-height: 1.5; text-align: center; white-space: pre-wrap; }
   @media print {
-    body * { visibility: hidden; }
-    #print-receipt, #print-receipt * { visibility: visible; }
-    #print-receipt { display: block !important; position: static; width: 100%; padding: 24px; background: #fff !important; }
+    html, body { background: #fff !important; }
+    body > *:not(#print-receipt) { display: none !important; }
+    #print-receipt { display: block !important; width: 100%; padding: 24px; background: #fff !important; }
     #print-receipt, #print-receipt * { color: #000 !important; }
     .receipt-logo { -webkit-text-fill-color: #000 !important; background: none !important; }
     .receipt-preview, .receipt-policy { border: none !important; background: #fff !important; }
@@ -362,9 +362,9 @@ let pendingCustomer = null;
 const TAX_RATE = 0.0825;
 
 // Edit this text to change the return policy printed on every receipt.
-const RETURN_POLICY = `Returns accepted within 14 days with original receipt.
+const RETURN_POLICY = `Returns accepted within 5 days with original receipt.
 Accessories must be unopened/unused. No returns on SIM cards or activated devices.
-Devoluciones aceptadas dentro de 14 días con recibo original.
+Devoluciones aceptadas dentro de 5 días con recibo original.
 Accesorios deben estar sin abrir/usar. No se aceptan devoluciones en SIM cards o equipos activados.`;
 
 // ─── LOGIN ────────────────────────────────────────────────────────────
