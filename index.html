@@ -165,6 +165,15 @@
     width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
     transform: translateY(20px); transition: transform .2s; }
   .modal-overlay.open .modal { transform: translateY(0); }
+  .modal.wide { width: 780px; }
+  .cust-row { cursor: pointer; }
+  .cust-row:hover td { background: var(--surface2); }
+  .chip { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 20px;
+    padding: 5px 12px; font-size: 12px; cursor: pointer; }
+  .chip.on { border-color: var(--blue); color: var(--blue); background: rgba(26,110,255,0.12); }
+  .cust-meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 16px; margin-bottom: 18px; }
+  .cust-meta div span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .days-pill { font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
   .modal-title { font-family: var(--font-display); font-size: 20px; font-weight: 800;
     margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
   .modal-close { margin-left: auto; background: var(--surface2); border: none; color: var(--muted);
@@ -308,6 +317,9 @@
     <div class="nav-item manager-only" data-page="report" onclick="showPage('report')">
       <span class="icon">📊</span> Sales Report
     </div>
+    <div class="nav-item manager-only" data-page="customers" onclick="showPage('customers')">
+      <span class="icon">👥</span> Clientes
+    </div>
     <div class="nav-section manager-only">Stock</div>
     <div class="nav-item manager-only" data-page="receive" onclick="showPage('receive')">
       <span class="icon">📥</span> Receive Stock
@@ -440,7 +452,7 @@ function saveConfig() {
 // ─── NAVIGATION ──────────────────────────────────────────────────────
 function showPage(page) {
   // Block non-managers from manager pages
-  const managerPages = ['inventory','transactions','report','receive'];
+  const managerPages = ['inventory','transactions','report','receive','customers'];
   if (managerPages.includes(page) && !isManager) return;
   currentPage = page;
   document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.page === page));
@@ -453,6 +465,7 @@ function loadCurrentPage() {
     case 'transactions': renderTransactions(); break;
     case 'report':       renderReport(); break;
     case 'receive':      renderReceive(); break;
+    case 'customers':    renderCustomers(); break;
   }
 }
 
@@ -485,7 +498,8 @@ function toast(msg, type='info') {
 }
 
 // ─── MODAL ───────────────────────────────────────────────────────────
-function openModal(html) {
+function openModal(html, wide) {
+  document.querySelector('#modal-overlay .modal').classList.toggle('wide', !!wide);
   document.getElementById('modal-content').innerHTML = html;
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -825,7 +839,7 @@ function renderPOSLayout() {
                   <div class="cart-item-name">${item.name}</div>
                   <div class="cart-item-price">${item.gift ? '<span style="color:var(--yellow)">🎁 Regalo</span>' : `$${(item.price*item.qty).toFixed(2)}`}</div>
                 </div>
-                ${item.category === 'Phone' ? `
+                ${isPhoneCategory(item.category) ? `
                 <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer;white-space:nowrap">
                   <input type="checkbox" ${item.gift?'checked':''} onchange="toggleGift(${i}, this.checked)"> Regalar
                 </label>` : `
@@ -911,6 +925,10 @@ function addToCart(barcode) {
     cart.push({ barcode: String(p.Barcode), name: p.Name, price: parseFloat(p.Price||0), qty: 1, category: p.Category||'', gift: false });
   }
   renderPOSLayout();
+}
+// Any phone category spelling shows the "Regalar" checkbox, not only the exact word "Phone".
+function isPhoneCategory(c) {
+  return /^(phones?|tel[eé]fonos?|celular(es)?|cell ?phones?)$/i.test(String(c||'').trim());
 }
 function toggleGift(i, checked) {
   cart[i].gift = checked;
@@ -1078,7 +1096,7 @@ async function completeSale() {
 function receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer, now) {
   const lines = items.map(i => {
     let line = `  ${i.name.padEnd(24,' ')} x${i.qty}  ${i.gift ? 'REGALO' : '$'+(i.price*i.qty).toFixed(2)}`;
-    if (i.category === 'Phone')    line += `\n    IMEI: ${i.barcode}`;
+    if (isPhoneCategory(i.category)) line += `\n    IMEI: ${i.barcode}`;
     if (i.category === 'SIM Card') line += `\n    Serial: ${i.barcode}`;
     return line;
   }).join('\n');
@@ -1235,6 +1253,246 @@ async function loadReport() {
         </tr>`).join('')}</tbody>
       </table></div>`;
   } catch(e) { el.innerHTML = errorState(e.message); }
+}
+
+
+// ─── CLIENTES (MANAGER ONLY) ──────────────────────────────────────────
+let customersData = [];
+let custFilter = { q: '', days: 0, smsOnly: false, sort: 'recent' };
+
+function escHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function phoneDigits(v) { return String(v ?? '').replace(/\D/g,'').slice(-10); }
+function fmtPhone(d) { return d.length === 10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : d; }
+function parseAnyDate(v) {
+  if (!v) return null;
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const d = m ? new Date(+m[1], +m[2]-1, +m[3]) : new Date(v);
+  return isNaN(d) ? null : d;
+}
+function pickField(o, ...keys) {
+  for (const k of keys) if (o[k] !== undefined && o[k] !== null && o[k] !== '') return o[k];
+  return '';
+}
+function txPhoneOf(tx) {
+  const k = Object.keys(tx).find(k => /phone|tel/i.test(k) && !/spectrum/i.test(k));
+  return k ? phoneDigits(tx[k]) : '';
+}
+
+async function renderCustomers() {
+  if (!isManager) { showPage('pos'); return; }
+  const el = document.getElementById('content');
+  if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
+  el.innerHTML = `
+    <div class="page-title">👥 Clientes</div>
+    <div class="page-subtitle">Palmhurst · historial y reactivación</div>
+    <div id="cust-stats"></div>
+    <div class="action-row date-filter" style="margin-bottom:14px">
+      <input class="search-input" id="cust-q" style="flex:1;min-width:220px" placeholder="Buscar nombre, teléfono o correo…"
+        value="${escHtml(custFilter.q)}" oninput="custFilter.q=this.value;renderCustomerTable()">
+      <label>Sin comprar en más de</label>
+      <input type="number" min="0" class="form-input" id="cust-days" style="width:90px" placeholder="días"
+        value="${custFilter.days||''}" oninput="custFilter.days=parseInt(this.value)||0;renderCustomerTable()">
+      <span class="chip" data-d="30" onclick="setCustDays(30)">30</span>
+      <span class="chip" data-d="60" onclick="setCustDays(60)">60</span>
+      <span class="chip" data-d="90" onclick="setCustDays(90)">90</span>
+      <span class="chip" data-d="180" onclick="setCustDays(180)">180</span>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" ${custFilter.smsOnly?'checked':''} onchange="custFilter.smsOnly=this.checked;renderCustomerTable()"> Solo aceptan SMS
+      </label>
+      <select class="form-input form-select" style="width:auto" onchange="custFilter.sort=this.value;renderCustomerTable()">
+        <option value="recent" ${custFilter.sort==='recent'?'selected':''}>Compra más reciente</option>
+        <option value="oldest" ${custFilter.sort==='oldest'?'selected':''}>Más días sin comprar</option>
+        <option value="spent" ${custFilter.sort==='spent'?'selected':''}>Mayor gasto</option>
+        <option value="visits" ${custFilter.sort==='visits'?'selected':''}>Más visitas</option>
+        <option value="name" ${custFilter.sort==='name'?'selected':''}>Nombre A–Z</option>
+      </select>
+      <button class="btn btn-ghost" onclick="exportCustomersCSV()">⬇ Exportar CSV</button>
+    </div>
+    <div id="cust-table"><div class="loading"><div class="spinner"></div></div></div>`;
+  try {
+    const [custs, txs] = await Promise.all([
+      apiGet({ action:'getCustomers', store:currentStore }),
+      apiGet({ action:'getTransactions', store:currentStore, startDate:'2020-01-01', endDate:'2099-12-31' }).catch(() => [])
+    ]);
+    customersData = buildCustomerIndex(Array.isArray(custs) ? custs : [], Array.isArray(txs) ? txs : []);
+    renderCustomerTable();
+  } catch(e) {
+    const msg = /getCustomers|unknown|invalid action/i.test(e.message)
+      ? 'El backend todavía no tiene la acción getCustomers. Agrega Clientes.gs y haz Deploy → New version.'
+      : e.message;
+    document.getElementById('cust-table').innerHTML = errorState(msg);
+  }
+}
+
+function buildCustomerIndex(custs, txs) {
+  const byPhone = {};
+  const txHasPhone = txs.some(t => txPhoneOf(t));
+  txs.forEach(t => {
+    const p = txPhoneOf(t);
+    if (!p) return;
+    (byPhone[p] = byPhone[p] || []).push(t);
+  });
+  const now = new Date();
+  return custs.map(c => {
+    const phone = phoneDigits(pickField(c, 'Phone', 'Telefono', 'Teléfono'));
+    const history = (byPhone[phone] || []).slice().sort((a,b) => new Date(b.Date) - new Date(a.Date));
+    const done = history.filter(t => String(t.Status).toLowerCase() !== 'voided');
+    let last, visits, spent;
+    if (txHasPhone && done.length) {
+      last = parseAnyDate(done[0].Date);
+      visits = done.length;
+      spent = done.reduce((s,t) => s + (parseFloat(t.Total)||0), 0);
+    } else {
+      last = parseAnyDate(pickField(c, 'LastVisit', 'LastPurchase', 'LastSeen', 'UpdatedAt'));
+      visits = parseInt(c.Visits) || 0;
+      spent = parseFloat(c.TotalSpent) || 0;
+    }
+    const first = parseAnyDate(pickField(c, 'FirstVisit', 'CreatedAt', 'DateAdded'))
+      || (done.length ? parseAnyDate(done[done.length-1].Date) : null);
+    const daysSince = last ? Math.floor((now - last) / 86400000) : null;
+    return {
+      raw: c, phone, history,
+      name: String(pickField(c, 'Name', 'Nombre')),
+      email: String(c.Email || ''),
+      carrier: String(c.Carrier || ''),
+      language: String(c.Language || ''),
+      consent: String(c.Consent).toLowerCase() === 'yes' || c.Consent === true,
+      last, first, visits, spent, daysSince
+    };
+  });
+}
+
+function setCustDays(d) {
+  custFilter.days = custFilter.days === d ? 0 : d;
+  const input = document.getElementById('cust-days');
+  if (input) input.value = custFilter.days || '';
+  renderCustomerTable();
+}
+
+function filteredCustomers() {
+  const q = custFilter.q.trim().toLowerCase();
+  const qd = q.replace(/\D/g,'');
+  let list = customersData.filter(c => {
+    if (q && !(c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || (qd.length >= 3 && c.phone.includes(qd)))) return false;
+    if (custFilter.days && !(c.daysSince === null || c.daysSince > custFilter.days)) return false;
+    if (custFilter.smsOnly && !c.consent) return false;
+    return true;
+  });
+  const t = c => c.last ? c.last.getTime() : 0;
+  const sorters = {
+    recent: (a,b) => t(b) - t(a),
+    oldest: (a,b) => t(a) - t(b),
+    spent:  (a,b) => b.spent - a.spent,
+    visits: (a,b) => b.visits - a.visits,
+    name:   (a,b) => a.name.localeCompare(b.name, 'es')
+  };
+  return list.sort(sorters[custFilter.sort] || sorters.recent);
+}
+
+function daysColor(d) {
+  if (d === null) return 'var(--muted)';
+  if (d <= 30) return 'var(--green)';
+  if (d <= 90) return 'var(--yellow)';
+  return 'var(--red)';
+}
+
+function renderCustomerTable() {
+  document.querySelectorAll('.chip[data-d]').forEach(ch => ch.classList.toggle('on', +ch.dataset.d === custFilter.days));
+  const all = customersData;
+  const active = all.filter(c => c.daysSince !== null && c.daysSince <= 30).length;
+  const lapsed = all.filter(c => c.daysSince !== null && c.daysSince > 90).length;
+  const sms = all.filter(c => c.consent).length;
+  const statsEl = document.getElementById('cust-stats');
+  if (statsEl) statsEl.innerHTML = `
+    <div class="report-grid">
+      <div class="stat-card blue"><div class="stat-label">Clientes</div><div class="stat-value">${all.length}</div></div>
+      <div class="stat-card green"><div class="stat-label">Compraron en 30 días</div><div class="stat-value">${active}</div></div>
+      <div class="stat-card red"><div class="stat-label">Más de 90 días sin comprar</div><div class="stat-value">${lapsed}</div></div>
+      <div class="stat-card cyan"><div class="stat-label">Aceptan SMS</div><div class="stat-value">${sms}</div></div>
+    </div>`;
+  const el = document.getElementById('cust-table');
+  if (!el) return;
+  const list = filteredCustomers();
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${list.length} de ${all.length} cliente(s)</div>
+    <div class="table-wrap" style="overflow-x:auto"><table>
+      <thead><tr><th>Nombre</th><th>Teléfono</th><th>Última compra</th><th>Días</th><th>Visitas</th><th>Total</th><th>Carrier</th><th>Idioma</th><th>SMS</th></tr></thead>
+      <tbody>${list.length === 0 ? `<tr><td colspan="9"><div class="empty-state"><div class="icon">👥</div><p>Sin resultados</p></div></td></tr>` :
+        list.map(c => `<tr class="cust-row" onclick="openCustomerDetail('${c.phone}')">
+          <td style="font-weight:600">${escHtml(c.name) || '—'}</td>
+          <td class="mono">${fmtPhone(c.phone)}</td>
+          <td style="font-size:12px">${c.last ? c.last.toLocaleDateString() : '—'}</td>
+          <td><span class="days-pill" style="color:${daysColor(c.daysSince)}">${c.daysSince ?? '—'}</span></td>
+          <td>${c.visits}</td>
+          <td class="mono">$${c.spent.toFixed(2)}</td>
+          <td>${c.carrier ? `<span class="tag">${escHtml(c.carrier)}</span>` : '—'}</td>
+          <td style="font-size:12px">${escHtml(c.language) || '—'}</td>
+          <td>${c.consent ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--muted)">—</span>'}</td>
+        </tr>`).join('')}
+      </tbody></table></div>`;
+}
+
+function openCustomerDetail(phone) {
+  const c = customersData.find(x => x.phone === phone);
+  if (!c) return;
+  const r = c.raw;
+  const field = (label, val) => `<div><span>${label}</span>${val ? escHtml(val) : '—'}</div>`;
+  const dob = parseAnyDate(r.DOB);
+  const hist = c.history.map(tx => {
+    let items = []; try { items = JSON.parse(tx.ItemsJSON || '[]'); } catch(_) {}
+    const voided = String(tx.Status).toLowerCase() === 'voided';
+    const sp = pickField(tx, 'SpectrumAccountNumber');
+    return `<tr style="${voided ? 'opacity:.5' : ''}">
+      <td style="font-size:12px;white-space:nowrap">${new Date(tx.Date).toLocaleDateString()}</td>
+      <td class="mono" style="font-size:12px">${escHtml(tx.SaleID)}</td>
+      <td style="font-size:12px">${items.map(i => escHtml(i.name) + (i.gift ? ' 🎁' : '') + ` ×${i.qty}`).join(', ') || '—'}
+        ${sp ? `<div style="color:var(--yellow);font-size:11px">Spectrum: ${escHtml(pickField(tx,'SpectrumAccountName'))} · ${escHtml(sp)}</div>` : ''}</td>
+      <td class="mono">$${(parseFloat(tx.Total)||0).toFixed(2)}</td>
+      <td><span class="badge badge-${String(tx.Status).toLowerCase()}">${escHtml(tx.Status)}</span></td>
+    </tr>`;
+  }).join('');
+  openModal(`
+    <div class="modal-title">👤 ${escHtml(c.name) || 'Cliente'} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      <a class="btn btn-primary btn-sm" href="tel:+1${c.phone}">📞 Llamar ${fmtPhone(c.phone)}</a>
+      <a class="btn btn-ghost btn-sm" href="sms:+1${c.phone}">💬 SMS</a>
+      ${c.email ? `<a class="btn btn-ghost btn-sm" href="mailto:${escHtml(c.email)}">✉ Correo</a>` : ''}
+    </div>
+    <div class="cust-meta">
+      ${field('Correo', c.email)}
+      ${field('Fecha de nacimiento', dob ? dob.toLocaleDateString() : '')}
+      ${field('Carrier', c.carrier)}
+      ${field('Código postal', r.Zip)}
+      ${field('Cómo nos conoció', r.ReferralSource)}
+      ${field('Idioma', c.language)}
+      ${field('Acepta SMS', c.consent ? 'Sí' : 'No')}
+      ${field('Cliente desde', c.first ? c.first.toLocaleDateString() : '')}
+      ${field('Última compra', c.last ? `${c.last.toLocaleDateString()} (${c.daysSince} días)` : '')}
+      ${field('Visitas', String(c.visits))}
+      ${field('Total gastado', '$' + c.spent.toFixed(2))}
+    </div>
+    <div class="form-label" style="margin-bottom:8px">Historial de compras</div>
+    <div class="table-wrap" style="overflow-x:auto"><table>
+      <thead><tr><th>Fecha</th><th>Venta</th><th>Artículos</th><th>Total</th><th>Estado</th></tr></thead>
+      <tbody>${hist || `<tr><td colspan="5"><div class="empty-state" style="padding:20px"><p>Sin ventas vinculadas a este teléfono</p></div></td></tr>`}</tbody>
+    </table></div>`, true);
+}
+
+function exportCustomersCSV() {
+  const list = filteredCustomers();
+  if (!list.length) { toast('No hay clientes para exportar.', 'error'); return; }
+  const cols = ['Nombre','Teléfono','Correo','Idioma','Carrier','Acepta SMS','Última compra','Días sin comprar','Visitas','Total gastado'];
+  const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+  const rows = list.map(c => [c.name, fmtPhone(c.phone), c.email, c.language, c.carrier, c.consent ? 'Sí' : 'No',
+    c.last ? c.last.toLocaleDateString() : '', c.daysSince ?? '', c.visits, c.spent.toFixed(2)].map(q).join(','));
+  const csv = '\uFEFF' + [cols.map(q).join(','), ...rows].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const d = new Date();
+  a.download = `clientes_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}${custFilter.days ? `_${custFilter.days}dias` : ''}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────
