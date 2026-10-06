@@ -1349,7 +1349,7 @@ function buildCustomerIndex(custs, txs) {
       visits = parseInt(c.Visits) || 0;
       spent = parseFloat(c.TotalSpent) || 0;
     }
-    const first = parseAnyDate(pickField(c, 'FirstVisit', 'CreatedAt', 'DateAdded'))
+    const first = parseAnyDate(pickField(c, 'FirstSeen', 'FirstVisit', 'CreatedAt', 'DateAdded'))
       || (done.length ? parseAnyDate(done[done.length-1].Date) : null);
     const daysSince = last ? Math.floor((now - last) / 86400000) : null;
     return {
