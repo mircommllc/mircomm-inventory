@@ -2381,19 +2381,105 @@ const ACT_MOBILE_TYPE_INFO = {
 
 // Cellmart Premier Dealer commission table. Add older tables (with their start date)
 // to estimate months before 9/29/2026.
+// null = unknown amount (the estimate says "Revisar").
 const COMMISSION_RATES = [
+  { from: '2026-01-01', label: 'Tarifa anterior (sacada de los pagos de Cellmart, jun–sep 2026)',
+    internet: { '100': 320, '500': 380, 'gig': 500 },
+    mobileFirst: 150, mobileAdditional: 250, mobileMaxLines: 10,
+    videoHigh: 80, videoLow: null, voice: null, xumo: 0,
+    bundle: { intMob: 75, intVid: 0, triple: null } },
   { from: '2026-09-29', label: 'Cellmart Premier — vigente 29 sep 2026',
     internet: { '100': 370, '500': 430, 'gig': 550 },
     mobileFirst: 150, mobileAdditional: 250, mobileMaxLines: 10,
     videoHigh: 80, videoLow: 40, voice: 20, xumo: 20,
     bundle: { intMob: 75, intVid: 20, triple: 100 } }
 ];
-// Internet tier names → rate key. "Advantage" is left out until confirmed.
+// Internet tier names → rate key. "Advantage" is the lowest tier (Cellmart paid $320 vs $380 for Premier).
 const TIER_MAP = [
   [/2\s*gig|1\s*gig|\bgig\b/i, 'gig'],
   [/\b500\b|premier/i, '500'],
-  [/\b100\b|\b300\b/i, '100']
+  [/\b100\b|\b300\b|advantage/i, '100']
 ];
+// Cellmart 2026 commission payment calendar: sales/connections in [start, end] are paid on `pay` at the latest.
+const PAY_SCHEDULE = [
+  ['2025-12-27','2026-01-02','2026-02-02'],
+  ['2026-01-03','2026-01-09','2026-02-02'],
+  ['2026-01-10','2026-01-16','2026-02-16'],
+  ['2026-01-17','2026-01-23','2026-02-16'],
+  ['2026-01-24','2026-01-28','2026-03-02'],
+  ['2026-01-29','2026-01-30','2026-03-02'],
+  ['2026-01-31','2026-02-06','2026-03-02'],
+  ['2026-02-07','2026-02-13','2026-03-16'],
+  ['2026-02-14','2026-02-20','2026-03-16'],
+  ['2026-02-21','2026-02-27','2026-03-30'],
+  ['2026-02-28','2026-02-28','2026-03-30'],
+  ['2026-03-01','2026-03-06','2026-03-30'],
+  ['2026-03-07','2026-03-13','2026-04-13'],
+  ['2026-03-14','2026-03-20','2026-04-13'],
+  ['2026-03-21','2026-03-27','2026-04-27'],
+  ['2026-03-28','2026-03-28','2026-04-27'],
+  ['2026-03-29','2026-04-03','2026-05-11'],
+  ['2026-04-04','2026-04-10','2026-05-11'],
+  ['2026-04-11','2026-04-17','2026-05-25'],
+  ['2026-04-18','2026-04-24','2026-05-25'],
+  ['2026-04-25','2026-04-28','2026-06-08'],
+  ['2026-04-29','2026-05-01','2026-06-08'],
+  ['2026-05-02','2026-05-08','2026-06-08'],
+  ['2026-05-09','2026-05-15','2026-06-22'],
+  ['2026-05-16','2026-05-22','2026-06-22'],
+  ['2026-05-23','2026-05-28','2026-07-06'],
+  ['2026-05-29','2026-05-29','2026-07-06'],
+  ['2026-05-30','2026-06-05','2026-07-06'],
+  ['2026-06-06','2026-06-12','2026-07-20'],
+  ['2026-06-13','2026-06-19','2026-07-20'],
+  ['2026-06-20','2026-06-26','2026-08-03'],
+  ['2026-06-27','2026-06-28','2026-08-03'],
+  ['2026-06-29','2026-07-03','2026-08-03'],
+  ['2026-07-04','2026-07-10','2026-08-03'],
+  ['2026-07-11','2026-07-17','2026-08-17'],
+  ['2026-07-18','2026-07-24','2026-08-17'],
+  ['2026-07-25','2026-07-28','2026-08-31'],
+  ['2026-07-29','2026-07-31','2026-08-31'],
+  ['2026-08-01','2026-08-07','2026-09-14'],
+  ['2026-08-08','2026-08-14','2026-09-14'],
+  ['2026-08-15','2026-08-21','2026-09-28'],
+  ['2026-08-22','2026-08-28','2026-09-28'],
+  ['2026-08-29','2026-09-04','2026-10-12'],
+  ['2026-09-05','2026-09-11','2026-10-12'],
+  ['2026-09-12','2026-09-18','2026-10-26'],
+  ['2026-09-19','2026-09-25','2026-10-26'],
+  ['2026-09-26','2026-09-28','2026-11-09'],
+  ['2026-09-29','2026-10-02','2026-11-09'],
+  ['2026-10-03','2026-10-09','2026-11-09'],
+  ['2026-10-10','2026-10-16','2026-11-23'],
+  ['2026-10-17','2026-10-23','2026-11-23'],
+  ['2026-10-24','2026-10-28','2026-12-07'],
+  ['2026-10-29','2026-10-30','2026-12-07'],
+  ['2026-10-31','2026-11-06','2026-12-07'],
+  ['2026-11-07','2026-11-13','2026-12-21'],
+  ['2026-11-14','2026-11-20','2026-12-21'],
+  ['2026-11-21','2026-11-27','2027-01-04'],
+  ['2026-11-28','2026-11-28','2027-01-04'],
+  ['2026-11-29','2026-12-04','2027-01-04'],
+  ['2026-12-05','2026-12-11','2027-01-18'],
+  ['2026-12-12','2026-12-18','2027-01-18'],
+  ['2026-12-19','2026-12-25','2027-02-01'],
+  ['2026-12-26','2026-12-28','2027-02-01']
+];
+function actPayDeadline(ymd) {
+  const d = String(ymd || '').slice(0, 10);
+  const s = PAY_SCHEDULE.find(x => x[0] <= d && d <= x[1]);
+  return s ? { start: s[0], end: s[1], pay: s[2] } : null;
+}
+// Connection date from a loaded Core/Mobile report (payment is counted from the later of sale and connection)
+function actConnectDate(a) {
+  const acct = actAcct(a.AccountNumber); let d = '';
+  const g = actReco && actReco.groups[acct];
+  if (g) g.psus.forEach(p => { if (p.connected && p.conn && p.conn >= (a.OrderDate || '') && (!d || p.conn < d)) d = p.conn; });
+  const ms = actMobReco && actMobReco.byId[a.ID];
+  if (ms) ms.wos.forEach(w => (actMobReco.groups[w]?.lines || []).forEach(l => { if (l.connected && l.conn && (!d || l.conn > d)) d = l.conn; }));
+  return d;
+}
 const DISPUTE_DAYS = 30;
 
 let actData = [];
@@ -2466,7 +2552,7 @@ function actExpected(svc, ymd) {
   const r = actRateFor(ymd);
   if (!r) return { total: null, lines: [], note: 'Sin tabla de comisión para esa fecha' };
   const lines = []; let unknown = [];
-  const add = (label, amt) => lines.push({ label, amt });
+  const add = (label, amt) => { if (amt === null || amt === undefined) unknown.push(label); else if (amt) lines.push({ label, amt }); };
   const hasInt = !!svc.internetTier, mob = Math.min(+svc.mobileLines || 0, r.mobileMaxLines), hasVid = !!svc.videoTier;
   if (hasInt) {
     const k = actTierKey(svc.internetTier);
@@ -2480,7 +2566,7 @@ function actExpected(svc, ymd) {
   }
   if (hasVid) {
     const v = actVideoRate(svc.videoTier, r);
-    if (v) add(`TV ${svc.videoTier}`, v); else if (v === undefined) unknown.push(`TV "${svc.videoTier}"`);
+    if (v) add(`TV ${svc.videoTier}`, v); else unknown.push(`TV "${svc.videoTier}"`);
   }
   if (svc.voice) {
     if (hasInt || hasVid || mob) add('Voice', r.voice); else unknown.push('Voice sin bundle no paga');
@@ -2506,7 +2592,7 @@ function actSvcChips(svc) {
   if (svc.xumo) c.push(`<span class="svc">Xumo ×${svc.xumo}</span>`);
   return c.join(' ') || '<span style="color:var(--muted)">—</span>';
 }
-const fmtMoney = n => n === null || n === undefined ? '—' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const fmtMoney = n => n === null || n === undefined ? '—' : (Number(n) < 0 ? '−$' : '$') + Math.abs(Number(n)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
 // ─── Page ───
 async function renderActivations() {
@@ -2567,7 +2653,13 @@ function actFiltered() {
     if (actFilter.svc === 'int' && !s.internetTier) return false;
     if (actFilter.svc === 'mob' && !s.mobileLines) return false;
     if (actFilter.svc === 'tv' && !s.videoTier) return false;
-    if (actFilter.status && actFilter.status.startsWith('m:')) {
+    if (actFilter.status && actFilter.status.startsWith('c:')) {
+      const cs = actComReco && actComReco.byId[a.ID], f = actFilter.status.slice(2);
+      if (!cs) return false;
+      if (f === 'claim' && !['overdue','under'].includes(cs.code)) return false;
+      if (f === 'paid' && !['paid','nocalc','over'].includes(cs.code)) return false;
+      if (!['claim','paid'].includes(f) && cs.code !== f) return false;
+    } else if (actFilter.status && actFilter.status.startsWith('m:')) {
       const ms = actMobReco && actMobReco.byId[a.ID], f = actFilter.status.slice(2);
       if (!ms) return false;
       if (f === 'claim' && !['missing','partial'].includes(ms.code)) return false;
@@ -2626,6 +2718,13 @@ function renderActBody() {
         <option value="canceled" ${actFilter.status==='canceled'?'selected':''}>Canceladas</option>
         <option value="ok" ${actFilter.status==='ok'?'selected':''}>✅ Conectadas</option>
       </select>` : ''}
+      ${actComReco ? `<select class="form-input form-select" style="width:auto" onchange="actFilter.status=this.value;renderActBody()">
+        <option value="">Pagos: todos</option>
+        <option value="c:claim" ${actFilter.status==='c:claim'?'selected':''}>💵 ❌ Vencidas / de menos</option>
+        <option value="c:pending" ${actFilter.status==='c:pending'?'selected':''}>💵 ⏳ En plazo</option>
+        <option value="c:charged" ${actFilter.status==='c:charged'?'selected':''}>💵 ⚠️ Chargebacks</option>
+        <option value="c:paid" ${actFilter.status==='c:paid'?'selected':''}>💵 ✅ Pagadas</option>
+      </select>` : ''}
       ${actMobReco ? `<select class="form-input form-select" style="width:auto" onchange="actFilter.status=this.value;renderActBody()">
         <option value="">Móvil: todos</option>
         <option value="m:claim" ${actFilter.status==='m:claim'?'selected':''}>📱 ❌ Para reclamar</option>
@@ -2647,9 +2746,12 @@ function renderActBody() {
         ${estUnknown ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${estUnknown} sin calcular</div>` : ''}</div>
     </div>
     ${actEmailsPanel()}
+    ${actComReco ? actComRecoPanel() : ''}
     ${actMobReco ? actMobRecoPanel() : ''}
     ${actReco ? actRecoPanel() : ''}
-    ${!actReco && !actMobReco ? `<div class="act-hint">📄 Sube el Core Report o el Mobile Report de Cellmart para ver qué ya conectó, qué falta, qué se canceló y qué líneas nadie registró.</div>` : ''}
+    ${!actReco && !actMobReco && !actComReco ? `<div class="act-hint">📄 Sube los reportes de Cellmart (Core, Mobile y Commission, en cualquier orden) para ver qué conectó, qué se pagó, qué falta cobrar y qué líneas nadie registró.</div>`
+      : `<div class="act-hint" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Cargados: ${[actReco && '📄 Core', actMobReco && '📱 Mobile', actComReco && '💵 Commission'].filter(Boolean).join(' · ')}${!actComReco ? ' · falta el Commission Report para ver los pagos' : ''}
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="actExportClaims()">⬇ Lista para reclamar</button></div>`}
     <div id="act-table"></div>`;
   renderActTable();
 }
@@ -2663,7 +2765,7 @@ function renderActTable() {
     return;
   }
   el.innerHTML = `<div class="table-wrap" style="overflow-x:auto"><table>
-    <thead><tr><th>Fecha</th><th>Cliente</th><th>Cuenta</th><th>Hecha por</th><th>Servicios</th><th style="text-align:right">Comisión est.</th>${actReco?'<th>Core</th>':''}${actMobReco?'<th>Móvil</th>':''}</tr></thead>
+    <thead><tr><th>Fecha</th><th>Cliente</th><th>Cuenta</th><th>Hecha por</th><th>Servicios</th><th style="text-align:right">Comisión est.</th>${actReco?'<th>Core</th>':''}${actMobReco?'<th>Móvil</th>':''}${actComReco?'<th>Pago</th>':''}</tr></thead>
     <tbody>${list.map(a => {
       const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID], ms = actMobReco && actMobReco.byId[a.ID];
       const owner = actRepOwner(a);
@@ -2676,6 +2778,7 @@ function renderActTable() {
         <td class="mono" style="text-align:right;color:${x.total?'var(--green)':'var(--muted)'}" title="${escHtml(x.note||'')}">${fmtMoney(x.total)}${x.note?' *':''}</td>
         ${actReco ? `<td>${st ? actStatusBadge(st) : ''}</td>` : ''}
         ${actMobReco ? `<td>${ms ? actMobBadge(ms) : ''}</td>` : ''}
+        ${actComReco ? `<td>${actComReco.byId[a.ID] ? actComBadge(actComReco.byId[a.ID]) : ''}</td>` : ''}
       </tr>`; }).join('')}
     </tbody></table></div>`;
 }
@@ -2730,6 +2833,9 @@ function openActDetail(id) {
       ${st.issues.map(i => `<div>• ${escHtml(i)}</div>`).join('')}
       ${st.disputeLeft !== null && ['missing','partial'].includes(st.code) ? `<div style="margin-top:6px;color:${st.disputeLeft<=7?'var(--red)':'var(--yellow)'}">Quedan aprox. ${Math.max(st.disputeLeft,0)} día(s) para disputar (30 días).</div>` : ''}
     </div>` : ''}
+    ${actComReco && actComReco.byId[a.ID] ? `<div class="act-reco-box"><div style="margin-bottom:6px">💵 Pago de Cellmart: ${actComBadge(actComReco.byId[a.ID])}</div>
+      ${actComReco.byId[a.ID].issues.map(i => `<div>• ${escHtml(i)}</div>`).join('')}</div>`
+      : (() => { const dl = actPayDeadline((c => c && c > a.OrderDate ? c : a.OrderDate)(actConnectDate(a))); return dl ? `<div class="act-reco-box">💵 Según el calendario de Cellmart se paga a más tardar el <b>${actFmtDate(dl.pay)}</b> (semana del ${actFmtDate(dl.start)} al ${actFmtDate(dl.end)}).</div>` : ''; })()}
     ${ms ? `<div class="act-reco-box"><div style="margin-bottom:6px">📱 Mobile Report: ${actMobBadge(ms)}</div>
       ${ms.issues.map(i => `<div>• ${escHtml(i)}</div>`).join('')}
       ${ms.disputeLeft !== null && ['missing','partial'].includes(ms.code) ? `<div style="margin-top:6px;color:${ms.disputeLeft<=7?'var(--red)':'var(--yellow)'}">Quedan aprox. ${Math.max(ms.disputeLeft,0)} día(s) para disputar (30 días).</div>` : ''}
@@ -2856,6 +2962,7 @@ async function actSaveForm(id) {
     if (i >= 0) actData[i] = saved; else actData.push(saved);
     if (actReco) actReconcile(actReco.groups, actReco.meta);
     if (actMobReco) actMobReconcile(actMobReco.groups, actMobReco.meta);
+    if (actComReco) actComReconcile(actComReco.rows, actComReco.adjustments, actComReco.meta);
     if (actEmails) actEmails = await apiGet({ action: 'getMobileEmails' }).catch(() => actEmails);
     closeModal(); toast('Activación guardada.', 'success'); renderActBody();
   } catch (e) { toast(e.message, 'error'); }
@@ -2879,8 +2986,13 @@ async function actLoadReport(file) {
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
     const ws = wb.Sheets[wb.SheetNames[0]];
     const grid = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+    if (grid.some(r => r.some(c => /^commission paid$/i.test(String(c).trim())))) {
+      actLoadCommissionReport(file, XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }));
+      return;
+    }
     if (grid.some(r => r.some(c => /mobile work order number\s*-\s*parent/i.test(String(c))))) {
       actLoadMobileReport(file, XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }));
+      if (actComReco) { actComReconcile(actComReco.rows, actComReco.adjustments, actComReco.meta); renderActBody(); }
       return;
     }
     const hi = grid.findIndex(r => r.some(c => /customer\s*-\s*account number/i.test(String(c))));
@@ -2906,6 +3018,7 @@ async function actLoadReport(file) {
     });
     const meta = { file: file.name, minSale, upd: maxUpd || actToday(), accounts: Object.keys(groups).length };
     actReconcile(groups, meta);
+    if (actComReco) actComReconcile(actComReco.rows, actComReco.adjustments, actComReco.meta);
     actFilter.fm = '';  // the report spans several months
     toast(`Core Report cargado: ${meta.accounts} cuentas.`, 'success');
     renderActBody();
@@ -3038,24 +3151,37 @@ function actExportCSV() {
   const list = actFiltered();
   if (!list.length) { toast('No hay activaciones para exportar.', 'error'); return; }
   actCsv([['Fecha','Mes fiscal','Hecha por','Rep ID','Cliente','Cuenta','Confirmación','Work order','Orden móvil','Teléfono','Correo','Dirección','Ciudad','Zip',
-    'Internet','Líneas móviles','Tipo de línea','Incrementales','Plan móvil','Números de línea','TV','Voice','Xumo','Comisión estimada','Estatus Core','Detalle Core','Estatus móvil','Detalle móvil','IMEIs','Notas','Registrada por']]
+    'Internet','Líneas móviles','Tipo de línea','Incrementales','Plan móvil','Números de línea','TV','Voice','Xumo','Comisión estimada','Estatus Core','Detalle Core','Estatus móvil','Detalle móvil','Estatus pago','Pagado','Fecha límite de pago','IMEIs','Notas','Registrada por']]
     .concat(list.map(a => { const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID], ms = actMobReco && actMobReco.byId[a.ID];
       return [a.OrderDate, a.FiscalMonth, actRepName(a), a.RepID, a.CustomerName, a.AccountNumber, a.Confirmation, a.WorkOrder, a.MobileOrder, a.Phone, a.Email,
         a.Address, a.City, a.Zip, s.internetTier, s.mobileLines || '', s.mobileLines ? (ACT_MOBILE_TYPE_INFO[s.mobileType]||{short:s.mobileType}).short + (s.mobileTypeAuto ? ' (calculado)' : '') : '',
         s.mobileLines ? s.mobileLines - (s.mobileType === 'Incremental' ? 0 : 1) : '', a.MobilePlan, a.LinePhones, s.videoTier, s.voice ? 'Yes' : '', s.xumo || '',
         x.total ?? '', st ? (ACT_STATUS[st.code]||{}).label : '', st ? st.issues.join(' | ') : '',
-        ms ? (ACT_MOB_STATUS[ms.code]||{}).label : '', ms ? ms.issues.join(' | ') : '', a.IMEIs, a.Notes, a.Source === 'Email' ? 'Correo' : (a.EnteredBy || a.Source)]; })),
+        ms ? (ACT_MOB_STATUS[ms.code]||{}).label : '', ms ? ms.issues.join(' | ') : '',
+        (cs => cs ? (ACT_COM_STATUS[cs.code]||{}).label : '')(actComReco && actComReco.byId[a.ID]),
+        (cs => cs ? cs.paid : '')(actComReco && actComReco.byId[a.ID]),
+        (dl => dl ? dl.pay : '')(actPayDeadline((c => c && c > a.OrderDate ? c : a.OrderDate)(actConnectDate(a)))), a.IMEIs, a.Notes, a.Source === 'Email' ? 'Correo' : (a.EnteredBy || a.Source)]; })),
     `activaciones_${actFilter.fm || 'todas'}.csv`);
 }
 function actExportClaims() {
-  const list = actData.filter(a => { const st = actReco && actReco.byId[a.ID]; return st && ['missing','partial','chargeback'].includes(st.code); });
-  if (!list.length) { toast('No hay cuentas para reclamar.', 'info'); return; }
-  actCsv([['Fecha de venta','Rep ID','Cliente','Cuenta','Confirmación','Work order','Servicios vendidos','Problema','Días para disputar']]
-    .concat(list.map(a => { const st = actReco.byId[a.ID], s = actSvcOf(a);
-      return [a.OrderDate, a.RepID, a.CustomerName, a.AccountNumber, a.Confirmation, a.WorkOrder,
-        [s.internetTier && 'Internet ' + s.internetTier, s.mobileLines && s.mobileLines + ' línea(s) móvil', s.videoTier && 'TV ' + s.videoTier, s.voice && 'Voice'].filter(Boolean).join(' + '),
-        st.issues.join(' | '), st.disputeLeft === null ? '' : Math.max(st.disputeLeft, 0)]; })),
+  const out = [];
+  const svcText = s => [s.internetTier && 'Internet ' + s.internetTier, s.mobileLines && s.mobileLines + ' línea(s) móvil', s.videoTier && 'TV ' + s.videoTier, s.voice && 'Voice'].filter(Boolean).join(' + ');
+  actData.forEach(a => {
+    const s = actSvcOf(a), base = [a.OrderDate, actRepName(a), a.RepID, a.CustomerName, a.AccountNumber, a.Confirmation || a.WorkOrder || '', a.MobileOrder || '', svcText(s)];
+    const st = actReco && actReco.byId[a.ID];
+    if (st && ['missing','partial','chargeback'].includes(st.code))
+      out.push(base.concat(['Core Report', (ACT_STATUS[st.code]||{}).label, st.issues.join(' | '), '', '', st.disputeLeft === null ? '' : Math.max(st.disputeLeft, 0)]));
+    const ms = actMobReco && actMobReco.byId[a.ID];
+    if (ms && (['missing','partial'].includes(ms.code) || ms.typeIssue))
+      out.push(base.concat(['Mobile Report', ['missing','partial'].includes(ms.code) ? (ACT_MOB_STATUS[ms.code]||{}).label : '⚠️ Tipo de línea', ms.issues.join(' | '), '', '', ms.disputeLeft === null ? '' : Math.max(ms.disputeLeft, 0)]));
+    const cs = actComReco && actComReco.byId[a.ID];
+    if (cs && ['overdue','under','charged'].includes(cs.code))
+      out.push(base.concat(['Commission Report', (ACT_COM_STATUS[cs.code]||{}).label, cs.issues.join(' | '), cs.expected ?? '', cs.paid || 0, cs.deadline ? 'límite de pago ' + actFmtDate(cs.deadline) : '']));
+  });
+  if (!out.length) { toast(actReco || actMobReco || actComReco ? 'No hay nada que reclamar con los reportes cargados.' : 'Primero sube el Core, Mobile o Commission Report.', 'info'); return; }
+  actCsv([['Fecha de venta','Hecha por','Rep ID','Cliente','Cuenta','Confirmación / Work order','Orden móvil','Servicios vendidos','Reporte','Problema','Detalle','Comisión esperada','Pagado','Días para disputar / fecha límite']].concat(out),
     `reclamar_cellmart_${actToday()}.csv`);
+  toast(`${out.length} renglón(es) en la lista para reclamar.`, 'success');
 }
 
 // ─── 📱 MIS LÍNEAS (ASESORAS) ───────────────────────────────────────
@@ -3331,6 +3457,9 @@ function actRawNum(v) {
   if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(0);
   return String(v ?? '').replace(/[^\d]/g, '');
 }
+function actNameTokens(n) {
+  return String(n || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z]+/).filter(x => x.length > 1 && !['jr','sr','de','la','del'].includes(x));
+}
 function actReportName(n) {   // "GARCIA,JASMINE" → "JASMINE GARCIA"
   const s = String(n || '').trim();
   const m = s.match(/^([^,]+),\s*(.+)$/);
@@ -3391,6 +3520,13 @@ function actMobReconcile(groups, meta) {
     gs = (byAcct[acct] || []).filter(g => !used.has(g.wo) && g.sale && a.OrderDate && Math.abs(actDaysBetween(a.OrderDate, g.sale)) <= 3)
       .sort((x, y) => Math.abs(actDaysBetween(a.OrderDate, x.sale)) - Math.abs(actDaysBetween(a.OrderDate, y.sale)));
     if (gs.length) return [gs[0]];
+    // Same customer, different account number (the mobile account can be separate from the internet one)
+    const nk = actNameTokens(a.CustomerName);
+    if (nk.length >= 2) {
+      gs = Object.values(groups).filter(g => !used.has(g.wo) && g.sale && a.OrderDate && Math.abs(actDaysBetween(a.OrderDate, g.sale)) <= 3 &&
+        (t => nk.every(x => t.includes(x)) || t.length >= 2 && t.every(x => nk.includes(x)))(actNameTokens(g.name)));
+      if (gs.length === 1) { gs[0].byName = true; return gs; }
+    }
     const imeis = String(a.IMEIs || '').split(/[^\d]+/).filter(x => x.length >= 14);
     if (imeis.length) {
       gs = Object.values(groups).filter(g => !used.has(g.wo) && g.lines.some(l => imeis.includes(l.imei)));
@@ -3405,11 +3541,12 @@ function actMobReconcile(groups, meta) {
     if (!gs.length) {
       if (meta.minSale && a.OrderDate < meta.minSale) { st.code = 'out'; issues.push('La venta es anterior al rango del reporte.'); }
       else if (a.OrderDate > meta.upd) { st.code = 'out'; issues.push(`Venta posterior al reporte (llega al ${actFmtDate(meta.upd)}). Baja un reporte más nuevo.`); }
-      else if (a.OrderDate > recentCut) { st.code = 'recent'; issues.push('Venta muy reciente para este reporte.'); }
+      else if (a.OrderDate >= recentCut) { st.code = 'recent'; issues.push('Venta muy reciente para este reporte.'); }
       else { st.code = 'missing'; st.disputeLeft = disputeLeft; issues.push('La orden no aparece en el Mobile Report.'); }
       byId[a.ID] = st; return;
     }
     gs.forEach(g => used.add(g.wo));
+    if (gs.some(g => g.byName)) issues.push(`Encontrada por nombre: en el reporte la línea está en la cuenta ${gs[0].acct}.`);
     const lines = gs.flatMap(g => g.lines);
     const act = lines.filter(l => l.connected && !l.canceled), can = lines.filter(l => l.canceled), pen = lines.filter(l => !l.connected && !l.canceled);
     const want = +a.MobileLines || 0;
@@ -3468,6 +3605,137 @@ function actMobRecoPanel() {
         <span class="mono" style="color:var(--muted)">#${escHtml(g.wo)}</span>
         <button class="btn btn-ghost btn-sm" onclick="openActForm(null, Object.assign(actPrefillFromGroup(actMobReco.groups['${escHtml(g.wo)}']), {_from:'Del Mobile Report de Cellmart. Pon quién la hizo.'}))">Registrar</button></div>`; }).join('')}</div></details>` : ''}
     ${dead ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">${dead} orden(es) del reporte sin registrar están canceladas por completo (no pagan).</div>` : ''}
+  </div>`;
+}
+
+// ─── Commission Report (lo que Cellmart realmente pagó) ───────────
+// One row per paid item. Rows without an account are invoice adjustments
+// (e.g. "invoice #1233" for phones bought from Cellmart): shown, never flagged.
+let actComReco = null;
+const ACT_COM_STATUS = {
+  paid:     { label: '✅ Pagada',          cls: 'badge-ok' },
+  under:    { label: '⚠️ Pagada de menos', cls: 'badge-out' },
+  over:     { label: 'Pagada de más',     cls: 'badge-low' },
+  pending:  { label: '⏳ En plazo',        cls: 'badge-low' },
+  overdue:  { label: '❌ Vencida',         cls: 'badge-out' },
+  charged:  { label: '⚠️ Chargeback',      cls: 'badge-out' },
+  nocalc:   { label: 'Pagada',            cls: 'badge-ok' },
+  canceled: { label: 'No se paga',        cls: '' },
+  out:      { label: 'Fuera del rango',   cls: '' }
+};
+function actComBadge(cs) {
+  const s = ACT_COM_STATUS[cs.code] || { label: cs.code, cls: '' };
+  return `<span class="badge ${s.cls}" title="${escHtml(cs.issues.join(' · '))}">${s.label}</span>`;
+}
+function actLoadCommissionReport(file, grid) {
+  const hi = grid.findIndex(r => r.some(c => /^commission paid$/i.test(String(c).trim())));
+  const H = grid[hi].map(h => String(h).trim().toLowerCase());
+  const col = name => H.indexOf(name.toLowerCase());
+  const C = { pay: col('Payment Date'), acct: col('Account No.'), wo: col('WO Number'), bundle: col('Bundle Name'), amt: col('Commission Paid'),
+    name: col('Customer Name'), sale: col('Sale Entry Date'), use: col('Internet Usage Date'), disc: col('PSU Disconnection Date'),
+    dir: col('Direction'), itier: col('Internet Tier'), vtier: col('Video Tier'), mob: col('Mobile PSU'), incr: col('Mobile Lines'),
+    xumo: col('Xumo Boxes'), person: col('Sales Person'), status: col('Transaction Status'), disp: col('Disputable Date') };
+  const cell = (r, i) => i < 0 ? '' : r[i];
+  const rows = [], adjustments = [];
+  grid.slice(hi + 1).forEach((r, i) => {
+    if (/commission paid/i.test(String(cell(r, C.amt))) || String(cell(r, C.amt)).trim() === '') return;
+    const amt = Number(String(cell(r, C.amt)).replace(/[$,\s]/g, ''));
+    if (!isFinite(amt)) return;
+    const o = { i, pay: actRptDate(cell(r, C.pay)), acct: actAcct(cell(r, C.acct)), wo: actRawNum(cell(r, C.wo)), bundle: String(cell(r, C.bundle) || '').trim(),
+      amt, name: String(cell(r, C.name) || ''), sale: actRptDate(cell(r, C.sale)), use: actRptDate(cell(r, C.use)), disc: actRptDate(cell(r, C.disc)),
+      dir: String(cell(r, C.dir) || ''), itier: String(cell(r, C.itier) || ''), vtier: String(cell(r, C.vtier) || ''),
+      mob: +cell(r, C.mob) || 0, incr: +cell(r, C.incr) || 0, xumo: +cell(r, C.xumo) || 0, person: String(cell(r, C.person) || '').toUpperCase(),
+      disputable: actRptDate(cell(r, C.disp)) };
+    if (!o.acct) adjustments.push(o); else rows.push(o);
+  });
+  const pays = [...new Set(rows.concat(adjustments).map(r => r.pay).filter(Boolean))].sort();
+  const meta = { file: file.name, minPay: pays[0] || '', maxPay: pays[pays.length - 1] || '', items: rows.length };
+  actComReconcile(rows, adjustments, meta);
+  actFilter.fm = '';
+  toast(`Commission Report cargado: ${rows.length} pagos en ${pays.length} fecha(s) de pago.`, 'success');
+  renderActBody();
+}
+function actComReconcile(rows, adjustments, meta) {
+  // Assign each paid row to the closest registered activation on the same account (±10 days)
+  const byAcct = {};
+  actData.forEach(a => { const k = actAcct(a.AccountNumber); if (k) (byAcct[k] = byAcct[k] || []).push(a); });
+  const assigned = {}, unmatched = [];
+  rows.forEach(r => {
+    const ref = r.sale || r.use || r.pay;
+    const cands = (byAcct[r.acct] || []).filter(a => a.OrderDate && Math.abs(actDaysBetween(a.OrderDate, ref)) <= 10)
+      .sort((x, y) => Math.abs(actDaysBetween(x.OrderDate, ref)) - Math.abs(actDaysBetween(y.OrderDate, ref)));
+    if (cands.length) (assigned[cands[0].ID] = assigned[cands[0].ID] || []).push(r); else unmatched.push(r);
+  });
+  const byId = {};
+  actData.forEach(a => {
+    const got = assigned[a.ID] || [], issues = [];
+    const s = actSvcOf(a), x = actExpected(s, a.OrderDate);
+    const paid = got.filter(r => r.amt > 0).reduce((n, r) => n + r.amt, 0);
+    const charged = got.filter(r => r.amt < 0).reduce((n, r) => n + r.amt, 0);
+    const conn = actConnectDate(a);
+    const base = conn && conn > a.OrderDate ? conn : a.OrderDate;
+    const dl = actPayDeadline(base);
+    const cs = { code: 'paid', issues, paid, charged, expected: x.total, deadline: dl ? dl.pay : '', rows: got, base };
+    got.forEach(r => issues.push(`${r.amt < 0 ? 'Descuento' : 'Pagado'} ${fmtMoney(r.amt)} el ${actFmtDate(r.pay)} — ${r.bundle}`));
+    const st = actReco && actReco.byId[a.ID], ms = actMobReco && actMobReco.byId[a.ID];
+    const allCanceled = (st && st.code === 'canceled') && (!ms || ms.code === 'canceled') || (!st && ms && ms.code === 'canceled');
+    if (charged < 0) cs.code = 'charged';
+    else if (got.length) {
+      if (x.total === null || x.note) cs.code = 'nocalc';
+      else if (paid + 1 < x.total) { cs.code = 'under'; issues.push(`Esperado ${fmtMoney(x.total)}, pagado ${fmtMoney(paid)}: faltan ${fmtMoney(x.total - paid)}.`); }
+      else if (paid > x.total + 1) { cs.code = 'over'; issues.push(`Esperado ${fmtMoney(x.total)}, pagado ${fmtMoney(paid)}.`); }
+    } else if (allCanceled) { cs.code = 'canceled'; issues.push('El reporte de Spectrum la marca cancelada: no se paga.'); }
+    else if (!dl) { cs.code = 'out'; issues.push('No hay calendario de pago para esa fecha.'); }
+    else if (dl.pay > meta.maxPay) { cs.code = 'pending'; issues.push(`Se paga a más tardar el ${actFmtDate(dl.pay)} (semana del ${actFmtDate(dl.start)} al ${actFmtDate(dl.end)}${conn && conn > a.OrderDate ? ', contada desde la conexión' : ''}).`); }
+    else if (dl.pay < meta.minPay) { cs.code = 'out'; issues.push(`Debió pagarse el ${actFmtDate(dl.pay)}, antes del primer pago de este reporte. Baja un reporte con fechas más viejas.`); }
+    else { cs.code = 'overdue'; issues.push(`Debió pagarse a más tardar el ${actFmtDate(dl.pay)} y no aparece en los pagos.${conn ? '' : ' Si conectó después de la venta, la fecha se corre (sube el Core/Mobile Report para verlo).'}`); }
+    if (cs.code === 'paid' && got.length) issues.push(`Esperado ${fmtMoney(x.total)} ✓`);
+    byId[a.ID] = cs;
+  });
+  // Totals by payment date
+  const byPay = {};
+  rows.concat(adjustments).forEach(r => {
+    const p = byPay[r.pay] = byPay[r.pay] || { pay: r.pay, n: 0, gross: 0, charge: 0, adj: 0 };
+    if (!r.acct) p.adj += r.amt; else if (r.amt < 0) p.charge += r.amt; else { p.gross += r.amt; p.n++; }
+  });
+  actComReco = { rows, adjustments, meta, byId, unmatched, byPay: Object.values(byPay).sort((a, b) => b.pay.localeCompare(a.pay)) };
+}
+function actComRecoPanel() {
+  const r = actComReco, vals = Object.values(r.byId);
+  const n = c => vals.filter(v => c.includes(v.code)).length;
+  const sum = k => r.byPay.reduce((t, p) => t + p[k], 0);
+  const gross = sum('gross'), charge = sum('charge'), adj = sum('adj');
+  const owed = vals.filter(v => v.code === 'under').reduce((t, v) => t + (v.expected - v.paid), 0)
+    + vals.filter(v => v.code === 'overdue' && v.expected).reduce((t, v) => t + v.expected, 0);
+  return `<div class="act-reco">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="font-weight:700">💵 ${escHtml(r.meta.file)}</div>
+      <div style="font-size:12px;color:var(--muted)">${r.meta.items} pagos · fechas de pago del ${actFmtDate(r.meta.minPay)} al ${actFmtDate(r.meta.maxPay)}</div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="actComReco=null;if(actFilter.status.startsWith('c:'))actFilter.status='';renderActBody()">✕ Quitar reporte</button>
+    </div>
+    <div class="report-grid" style="margin-bottom:0">
+      <div class="stat-card green"><div class="stat-label">💵 Neto pagado</div><div class="stat-value">${fmtMoney(gross + charge + adj)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${fmtMoney(gross)} en comisiones${charge ? ` · ${fmtMoney(charge)} chargebacks` : ''}${adj ? ` · ${fmtMoney(adj)} facturas` : ''}</div></div>
+      <div class="stat-card green" style="cursor:pointer" onclick="actFilter.status='c:paid';renderActBody()"><div class="stat-label">✅ Pagadas</div><div class="stat-value">${n(['paid','nocalc','over'])}</div></div>
+      <div class="stat-card yellow" style="cursor:pointer" onclick="actFilter.status='c:pending';renderActBody()"><div class="stat-label">⏳ En plazo</div><div class="stat-value">${n(['pending'])}</div></div>
+      <div class="stat-card red" style="cursor:pointer" onclick="actFilter.status='c:claim';renderActBody()"><div class="stat-label">❌ Vencidas / de menos</div><div class="stat-value">${n(['overdue','under'])}</div>
+        ${owed ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">aprox. ${fmtMoney(owed)} por cobrar</div>` : ''}</div>
+      <div class="stat-card red" style="cursor:pointer" onclick="actFilter.status='c:charged';renderActBody()"><div class="stat-label">⚠️ Chargebacks</div><div class="stat-value">${n(['charged'])}</div></div>
+    </div>
+    <details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:var(--muted)">Pagos por fecha (${r.byPay.length})</summary>
+      <div class="table-wrap" style="margin-top:8px;overflow-x:auto"><table>
+        <thead><tr><th>Fecha de pago</th><th>Cuentas</th><th style="text-align:right">Comisiones</th><th style="text-align:right">Chargebacks</th><th style="text-align:right">Facturas / ajustes</th><th style="text-align:right">Neto</th></tr></thead>
+        <tbody>${r.byPay.map(p => `<tr><td class="mono">${actFmtDate(p.pay)}</td><td>${p.n}</td><td class="mono" style="text-align:right">${fmtMoney(p.gross)}</td>
+          <td class="mono" style="text-align:right">${p.charge ? fmtMoney(p.charge) : '—'}</td><td class="mono" style="text-align:right">${p.adj ? fmtMoney(p.adj) : '—'}</td>
+          <td class="mono" style="text-align:right;font-weight:700">${fmtMoney(p.gross + p.charge + p.adj)}</td></tr>`).join('')}</tbody></table></div>
+      ${r.adjustments.length ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">Facturas descontadas: ${r.adjustments.map(a => `${escHtml(a.bundle)} ${fmtMoney(a.amt)} (${actFmtDate(a.pay)})`).join(' · ')}. Son descuentos de compras a Cellmart, no errores de comisión.</div>` : ''}
+    </details>
+    ${r.unmatched.length ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;color:var(--muted)">Pagos de cuentas que no están registradas en la app (${r.unmatched.length})</summary>
+      <div style="font-size:12px;margin-top:8px">${r.unmatched.map(u => `<div class="ml-mail">
+        <span style="color:var(--muted)">${actFmtDate(u.sale)}</span>
+        <span style="flex:1"><b>${escHtml(mlTitle(actReportName(u.name)))}</b> <span class="mono" style="color:var(--muted)">${escHtml(u.acct)}</span></span>
+        <span>${escHtml(u.bundle)}</span><span class="mono" style="color:${u.amt < 0 ? 'var(--red)' : 'var(--green)'}">${fmtMoney(u.amt)}</span>
+        <span style="color:var(--muted)">pagado ${actFmtDate(u.pay)}</span></div>`).join('')}</div></details>` : ''}
   </div>`;
 }
 
