@@ -257,6 +257,58 @@
   .discount-input input { flex: 1; }
   .payment-select { margin-bottom: 12px; }
 
+  /* ── PROSPECTOS ── */
+  .pros-pin-box { max-width: 360px; margin: 50px auto; text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; }
+  .report-grid.pros-stats { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  .pros-of { font-size: 13px; color: var(--muted); font-family: var(--font-body); font-weight: 500; }
+  .pros-bar { height: 4px; background: var(--surface2); border-radius: 4px; margin-top: 10px; overflow: hidden; }
+  .pros-bar div { height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+  .pros-new-btn { font-size: 15px !important; padding: 14px !important; margin-bottom: 20px; }
+  .pros-section-title { font-family: var(--font-display); font-size: 15px; font-weight: 800; margin: 18px 0 10px; }
+  .pros-list { display: flex; flex-direction: column; gap: 10px; }
+  .pros-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .pros-card-rev { border-color: rgba(255,209,102,.4); }
+  .pros-card-top { display: flex; justify-content: space-between; gap: 10px; cursor: pointer; }
+  .pros-name { font-weight: 700; font-size: 15px; }
+  .pros-sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .pros-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .pros-meta a { color: var(--cyan); text-decoration: none; }
+  .pros-note { font-size: 12px; color: var(--yellow); margin-top: 8px; line-height: 1.5; }
+  .pros-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .pros-actions .btn, .modal a.btn { text-decoration: none; }
+  .pros-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; font-family: var(--font-body); }
+  .pros-b-new { background: rgba(26,110,255,.14); color: var(--blue); }
+  .pros-b-fu { background: rgba(0,196,232,.12); color: var(--cyan); }
+  .pros-b-sold { background: rgba(0,232,135,.12); color: var(--green); }
+  .pros-b-lost { background: rgba(255,68,85,.12); color: var(--red); }
+  .pros-b-exp { background: rgba(106,122,150,.18); color: var(--muted); }
+  .pros-b-rev { background: rgba(255,209,102,.14); color: var(--yellow); }
+  .pros-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pros-chips .chip { font-size: 13px; padding: 7px 12px; }
+  .pros-hint { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .pros-check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: -6px 0 14px; cursor: pointer; }
+  .pros-check input { width: 16px; height: 16px; }
+  .pros-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .pros-subrow td { color: var(--muted); font-size: 12px; padding-top: 4px !important; padding-bottom: 4px !important; }
+  @media (max-width: 1600px) { .pros-two { grid-template-columns: 1fr; } }
+
+  /* ── PHONE LAYOUT ── */
+  @media (max-width: 700px) {
+    .topbar { padding: 0 12px; gap: 8px; }
+    .topbar > div:nth-child(2) { display: none; }
+    .topbar-btn { padding: 6px 10px; font-size: 12px; }
+    .main { flex-direction: column; }
+    .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding: 8px; border-right: none; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .nav-section { display: none !important; }
+    .nav-item { white-space: nowrap; flex-shrink: 0; }
+    .content { padding: 16px; }
+    .form-row { grid-template-columns: 1fr; gap: 0; }
+    .login-box { width: 92vw; padding: 28px 22px; }
+    .modal { padding: 20px; }
+    .report-grid.pros-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pros-stats .stat-card { padding: 14px; }
+  }
+
   /* ── TOAST ── */
   .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
   .toast { padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 500;
@@ -354,6 +406,9 @@
     </div>
     <div class="nav-item active" data-page="pos" onclick="showPage('pos')">
       <span class="icon">🛒</span> Point of Sale
+    </div>
+    <div class="nav-item" data-page="prospects" onclick="showPage('prospects')">
+      <span class="icon">🎯</span> Prospectos
     </div>
     <div class="nav-section manager-only">Reports</div>
     <div class="nav-item manager-only" data-page="transactions" onclick="showPage('transactions')">
@@ -472,6 +527,7 @@ function completeLogin() {
 
 function logout() {
   currentUser = ''; isManager = false; cart = []; stockData = [];
+  prosAuth = null; prosData = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('pin-input').value = '';
   document.getElementById('pin-error').textContent = '';
@@ -514,6 +570,7 @@ function loadCurrentPage() {
     case 'report':       renderReport(); break;
     case 'receive':      renderReceive(); break;
     case 'customers':    renderCustomers(); break;
+    case 'prospects':    renderProspects(); break;
   }
 }
 
@@ -1614,6 +1671,631 @@ function exportCustomersCSV() {
   const d = new Date();
   a.download = `clientes_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}${custFilter.days ? `_${custFilter.days}dias` : ''}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ─── PROSPECTOS (TODAS LAS ASESORAS) ─────────────────────────────────
+// Cada asesora entra con su PIN personal de 6 dígitos (se valida en el backend, Prospectos.gs).
+// Ella solo ve sus prospectos; Joel ve todos, revisa ventas y ve resultados por canal.
+const PROS_CHANNELS = [
+  { id: 'Redes sociales', icon: '📱' },
+  { id: 'Conocido personal', icon: '🤝' },
+  { id: 'Referido de un cliente', icon: '🗣️' },
+  { id: 'Llamada o mensaje en frío', icon: '📞' },
+  { id: 'Visita o evento', icon: '📍' },
+  { id: 'Código personal', icon: '🏷️' },
+  { id: 'Seguimiento de tienda', icon: '🏪' }
+];
+const PROS_PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'WhatsApp', 'Facebook Marketplace', 'Grupo de Facebook', 'Otra'];
+const PROS_RELATIONS = ['Familiar', 'Amigo(a)', 'Vecino(a)', 'Compañero(a) de trabajo', 'Otro'];
+const PROS_INTERESTS = ['Internet', 'Línea móvil', 'TV', 'Accesorios'];
+const PROS_CONTACT_TYPES = ['Llamada', 'Mensaje de texto', 'WhatsApp', 'Redes sociales', 'Visita en persona'];
+const PROS_RESULTS = ['Interesado', 'Pidió precio o información', 'Va a venir a la tienda', 'No contestó', 'Ya tiene servicio con otra compañía', 'No le interesa'];
+const PROS_DAILY_GOAL = 10;
+
+let prosAuth = null;          // { user, pin, manager, code } — solo en memoria
+let prosData = null;          // respuesta de prosList
+let prosFilter = { view: 'activos', q: '', rep: '', canal: '', fm: '' };
+let prosForm = {};            // estado del formulario de nuevo prospecto
+
+function prosApi(action, params = {}) {
+  return apiGet({ action, user: prosAuth.user, pin: prosAuth.pin, ...params });
+}
+function prosDate(s) {
+  if (!s) return null;
+  const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0)) : null;
+}
+function prosYmd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function prosToday() { return prosYmd(new Date()); }
+function prosShortDate(s) {
+  const d = prosDate(s);
+  return d ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : '—';
+}
+// Mes fiscal de Charter: del 29 del mes anterior al 28.
+function prosFm(s) {
+  const d = prosDate(s);
+  if (!d) return '';
+  let y = d.getFullYear(), m = d.getMonth() + 1;
+  if (d.getDate() >= 29) { m++; if (m > 12) { m = 1; y++; } }
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+function prosFmLabel(fm) {
+  const m = String(fm || '').match(/^(\d{4})-(\d{2})$/);
+  if (!m) return 'Todo';
+  const n = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const mo = +m[2], prev = mo === 1 ? 12 : mo - 1;
+  return `${n[mo - 1]} ${m[1]} (29 ${n[prev - 1].toLowerCase()} – 28 ${n[mo - 1].toLowerCase()})`;
+}
+function prosDaysLeft(p) {
+  const v = prosDate(p.VenceEl);
+  return v ? Math.ceil((v - new Date()) / 86400000) : null;
+}
+function prosStatus(p) {
+  if (p.Estado === 'Vendido') return 'Vendido';
+  if (p.Estado === 'Perdido') return 'Perdido';
+  if (p.Vencido) return 'Vencido';
+  return p.Estado || 'Nuevo';
+}
+function prosStatusBadge(p) {
+  const s = prosStatus(p);
+  const cls = { 'Nuevo': 'pros-b-new', 'En seguimiento': 'pros-b-fu', 'Vendido': 'pros-b-sold', 'Perdido': 'pros-b-lost', 'Vencido': 'pros-b-exp' }[s] || '';
+  return `<span class="pros-badge ${cls}">${escHtml(s)}</span>`;
+}
+function prosAttrBadge(p) {
+  if (!p.Atribucion) return '';
+  const cls = { 'Propia': 'pros-b-sold', 'Tienda': 'pros-b-fu', 'Revisar': 'pros-b-rev', 'Rechazada': 'pros-b-lost' }[p.Atribucion] || '';
+  const label = { 'Propia': 'Venta propia', 'Tienda': 'Venta de tienda', 'Revisar': 'En revisión', 'Rechazada': 'Rechazada' }[p.Atribucion] || p.Atribucion;
+  return `<span class="pros-badge ${cls}">${label}</span>`;
+}
+function prosIsActive(p) { return !['Vendido', 'Vencido', 'Perdido'].includes(prosStatus(p)); }
+function prosChannelIcon(c) { return (PROS_CHANNELS.find(x => x.id === c) || {}).icon || '•'; }
+
+// ── Entrada con PIN ──
+async function renderProspects() {
+  const el = document.getElementById('content');
+  if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
+  if (!prosAuth || prosAuth.user !== currentUser) { prosAuth = null; prosData = null; renderProsPin(); return; }
+  if (!prosData) {
+    el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try { prosData = await prosApi('prosList'); }
+    catch (e) {
+      if (/PIN|intentos|Usuario/i.test(e.message)) { prosAuth = null; renderProsPin(e.message); return; }
+      el.innerHTML = errorState(/Acción desconocida|unknown|invalid action/i.test(e.message)
+        ? 'El backend todavía no tiene Prospectos. Agrega Prospectos.gs y haz Deploy → New version.' : escHtml(e.message));
+      return;
+    }
+  }
+  if (prosAuth.manager) renderProsManager(); else renderProsRep();
+}
+function renderProsPin(err) {
+  document.getElementById('content').innerHTML = `
+    <div class="pros-pin-box">
+      <div style="font-size:40px;margin-bottom:10px">🎯</div>
+      <div class="page-title" style="margin-bottom:6px">Prospectos</div>
+      <p style="color:var(--muted);margin-bottom:20px;line-height:1.5">${escHtml(currentUser)}, escribe tu PIN personal de 6 dígitos.</p>
+      <input class="pin-input" id="pros-pin" type="password" inputmode="numeric" maxlength="6" placeholder="••••••"
+        onkeydown="if(event.key==='Enter')prosLogin()" oninput="if(this.value.length===6)prosLogin()">
+      <div class="pin-error" id="pros-pin-err">${err ? escHtml(err) : ''}</div>
+      <button class="btn btn-primary btn-full" onclick="prosLogin()">Entrar</button>
+    </div>`;
+  setTimeout(() => document.getElementById('pros-pin')?.focus(), 50);
+}
+async function prosLogin() {
+  const inp = document.getElementById('pros-pin');
+  const pin = (inp?.value || '').trim();
+  if (!/^\d{6}$/.test(pin)) { document.getElementById('pros-pin-err').textContent = 'El PIN tiene 6 dígitos.'; return; }
+  inp.disabled = true;
+  try {
+    prosAuth = { user: currentUser, pin };
+    const r = await prosApi('prosLogin');
+    Object.assign(prosAuth, { manager: r.user.manager, code: r.user.code });
+    prosData = null;
+    renderProspects();
+  } catch (e) {
+    prosAuth = null;
+    renderProsPin(/Acción desconocida|unknown|invalid action/i.test(e.message)
+      ? 'El backend todavía no tiene Prospectos. Pídele a Joel que lo instale.' : e.message);
+  }
+}
+async function prosReload() {
+  try { prosData = await prosApi('prosList'); renderProspects(); }
+  catch (e) { toast(escHtml(e.message), 'error'); }
+}
+function prosReplace(p) {
+  const i = prosData.prospects.findIndex(x => x.ID === p.ID);
+  if (i >= 0) prosData.prospects[i] = p; else prosData.prospects.unshift(p);
+}
+
+// ── Vista de la asesora ──
+function renderProsRep() {
+  const el = document.getElementById('content');
+  const all = prosData.prospects;
+  const today = prosToday();
+  const contactsToday = prosData.contacts.filter(c => String(c.Fecha).slice(0, 10) === today).length;
+  const due = all.filter(p => prosIsActive(p) && p.ProximoSeguimiento && p.ProximoSeguimiento <= today)
+    .sort((a, b) => a.ProximoSeguimiento.localeCompare(b.ProximoSeguimiento));
+  const fmNow = prosFm(today);
+  const soldMonth = all.filter(p => p.Estado === 'Vendido' && prosFm(p.FechaVenta) === fmNow);
+  const own = soldMonth.filter(p => p.Atribucion === 'Propia').length;
+  const rev = soldMonth.filter(p => p.Atribucion === 'Revisar' || !p.Atribucion).length;
+  const pct = Math.min(100, Math.round(contactsToday / PROS_DAILY_GOAL * 100));
+  el.innerHTML = `
+    <div class="page-title">🎯 Mis prospectos</div>
+    <div class="page-subtitle">${escHtml(prosAuth.user)}${prosAuth.code ? ` · tu código: <b style="color:var(--cyan)">${escHtml(prosAuth.code)}</b>` : ''}</div>
+    <div class="report-grid pros-stats">
+      <div class="stat-card ${contactsToday >= PROS_DAILY_GOAL ? 'green' : 'yellow'}"><div class="stat-label">Contactos hoy</div>
+        <div class="stat-value">${contactsToday}<span class="pros-of"> / ${PROS_DAILY_GOAL}</span></div>
+        <div class="pros-bar"><div style="width:${pct}%"></div></div></div>
+      <div class="stat-card ${due.length ? 'red' : 'blue'}"><div class="stat-label">Seguimientos para hoy</div><div class="stat-value">${due.length}</div></div>
+      <div class="stat-card cyan"><div class="stat-label">Prospectos activos</div><div class="stat-value">${all.filter(prosIsActive).length}</div></div>
+      <div class="stat-card green"><div class="stat-label">Ventas propias del mes</div><div class="stat-value">${own}${rev ? `<span class="pros-of"> +${rev} en revisión</span>` : ''}</div></div>
+    </div>
+    <button class="btn btn-primary btn-full pros-new-btn" onclick="openProsNew()">＋ Nuevo prospecto</button>
+    ${due.length ? `<div class="pros-section-title">📅 Para hoy</div><div class="pros-list">${due.map(prosCard).join('')}</div>` : ''}
+    <div class="pros-section-title">Todos mis prospectos</div>
+    <div class="action-row" style="margin-bottom:12px">
+      ${prosViewChips()}
+      <input class="search-input" style="flex:1;min-width:180px" placeholder="Buscar nombre o teléfono…" value="${escHtml(prosFilter.q)}"
+        oninput="prosFilter.q=this.value;prosRenderList()">
+    </div>
+    <div id="pros-list" class="pros-list"></div>`;
+  prosRenderList();
+}
+function prosViewChips() {
+  const views = [['activos', 'Activos'], ['vendidos', 'Vendidos'], ['vencidos', 'Vencidos'], ['perdidos', 'Perdidos'], ['todos', 'Todos']];
+  return views.map(([k, l]) => `<span class="chip ${prosFilter.view === k ? 'on' : ''}" onclick="prosFilter.view='${k}';prosRefreshChips(this)">${l}</span>`).join('');
+}
+function prosRefreshChips(chip) {
+  chip.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === chip));
+  prosRenderList();
+}
+function prosFiltered() {
+  const q = prosFilter.q.trim().toLowerCase(), qd = q.replace(/\D/g, '');
+  return prosData.prospects.filter(p => {
+    const s = prosStatus(p);
+    if (prosFilter.view === 'activos' && !prosIsActive(p)) return false;
+    if (prosFilter.view === 'vendidos' && s !== 'Vendido') return false;
+    if (prosFilter.view === 'vencidos' && s !== 'Vencido') return false;
+    if (prosFilter.view === 'perdidos' && s !== 'Perdido') return false;
+    if (prosFilter.view === 'revisar' && p.Atribucion !== 'Revisar') return false;
+    if (prosFilter.rep && p.Asesora !== prosFilter.rep) return false;
+    if (prosFilter.canal && p.Canal !== prosFilter.canal) return false;
+    if (prosFilter.fm && prosFm(p.Creado) !== prosFilter.fm && prosFm(p.FechaVenta) !== prosFilter.fm) return false;
+    if (q && !(String(p.Nombre).toLowerCase().includes(q) || (qd && String(p.Telefono).includes(qd)))) return false;
+    return true;
+  }).sort((a, b) => String(b.Creado).localeCompare(String(a.Creado)));
+}
+function prosRenderList() {
+  const el = document.getElementById('pros-list');
+  if (!el) return;
+  const list = prosFiltered();
+  if (prosAuth.manager) { el.innerHTML = prosTable(list); return; }
+  el.innerHTML = list.length ? list.map(prosCard).join('')
+    : `<div class="empty-state" style="padding:30px"><div class="icon">🎯</div><p>No hay prospectos aquí todavía.</p></div>`;
+}
+function prosCard(p) {
+  const left = prosDaysLeft(p);
+  const active = prosIsActive(p);
+  const ph = String(p.Telefono || '');
+  return `<div class="pros-card">
+    <div class="pros-card-top" onclick="openProsDetail('${p.ID}')">
+      <div style="min-width:0">
+        <div class="pros-name">${escHtml(p.Nombre)}</div>
+        <div class="pros-sub">${prosChannelIcon(p.Canal)} ${escHtml(p.Canal)}${p.Detalle ? ' · ' + escHtml(p.Detalle) : ''}</div>
+      </div>
+      <div style="text-align:right;flex:none">${prosStatusBadge(p)} ${prosAttrBadge(p)}</div>
+    </div>
+    <div class="pros-meta">
+      <a href="tel:+1${ph}" class="mono">${fmtPhone(ph)}</a>
+      ${p.Interes ? `<span>${escHtml(p.Interes)}</span>` : ''}
+      ${active && p.ProximoSeguimiento ? `<span style="color:${p.ProximoSeguimiento <= prosToday() ? 'var(--yellow)' : 'var(--muted)'}">Seguimiento: ${prosShortDate(p.ProximoSeguimiento)}</span>` : ''}
+      ${active && left !== null ? `<span style="color:${left <= 5 ? 'var(--red)' : 'var(--muted)'}">Vence en ${left} día${left === 1 ? '' : 's'}</span>` : ''}
+      ${prosAuth.manager ? `<span>👤 ${escHtml(p.Asesora)}</span>` : ''}
+    </div>
+    ${active ? `<div class="pros-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openProsContact('${p.ID}')">📞 Registrar contacto</button>
+      <a class="btn btn-ghost btn-sm" href="sms:+1${ph}">💬 SMS</a>
+      <a class="btn btn-ghost btn-sm" href="https://wa.me/1${ph}" target="_blank" rel="noopener">WhatsApp</a>
+      <button class="btn btn-ghost btn-sm" onclick="openProsSold('${p.ID}')">✅ Se vendió</button>
+    </div>` : ''}
+  </div>`;
+}
+
+// ── Vista del manager ──
+function renderProsManager() {
+  const el = document.getElementById('content');
+  const all = prosData.prospects;
+  if (!prosFilter.fm) prosFilter.fm = prosFm(prosToday());
+  const fms = [...new Set(all.flatMap(p => [prosFm(p.Creado), prosFm(p.FechaVenta)]).filter(Boolean).concat(prosFm(prosToday())))].sort().reverse();
+  const users = (prosData.users || []).filter(u => !u.manager || all.some(p => p.Asesora === u.name));
+  el.innerHTML = `
+    <div class="page-title">🎯 Prospectos</div>
+    <div class="page-subtitle">Todas las asesoras · registro, seguimiento y ventas propias</div>
+    <div class="action-row date-filter" style="margin-bottom:14px">
+      <select class="form-input form-select" style="width:auto" onchange="prosFilter.fm=this.value;renderProsManager()">
+        ${fms.map(f => `<option value="${f}" ${f === prosFilter.fm ? 'selected' : ''}>${prosFmLabel(f)}</option>`).join('')}
+        <option value="all" ${prosFilter.fm === 'all' ? 'selected' : ''}>Todo</option>
+      </select>
+      <select class="form-input form-select" style="width:auto" onchange="prosFilter.rep=this.value;renderProsManager()">
+        <option value="">Todas las asesoras</option>
+        ${users.map(u => `<option ${prosFilter.rep === u.name ? 'selected' : ''}>${escHtml(u.name)}</option>`).join('')}
+      </select>
+      <button class="btn btn-ghost" onclick="prosRunMatch(this)">🔄 Cruzar con Activaciones</button>
+      <button class="btn btn-ghost" onclick="openProsNew()">＋ Nuevo</button>
+      <button class="btn btn-ghost" onclick="prosExportCSV()">⬇ CSV</button>
+    </div>
+    <div id="pros-mgr-summary"></div>
+    <div id="pros-review"></div>
+    <div class="pros-section-title">Prospectos</div>
+    <div class="action-row" style="margin-bottom:12px">
+      ${prosViewChips()}
+      <select class="form-input form-select" style="width:auto" onchange="prosFilter.canal=this.value;prosRenderList()">
+        <option value="">Todos los canales</option>
+        ${PROS_CHANNELS.map(c => `<option ${prosFilter.canal === c.id ? 'selected' : ''}>${c.id}</option>`).join('')}
+      </select>
+      <input class="search-input" style="flex:1;min-width:180px" placeholder="Buscar nombre o teléfono…" value="${escHtml(prosFilter.q)}"
+        oninput="prosFilter.q=this.value;prosRenderList()">
+    </div>
+    <div id="pros-list"></div>`;
+  prosRenderManagerSummary();
+  prosRenderList();
+}
+function prosInMonth(p, field) { return prosFilter.fm === 'all' || prosFm(p[field]) === prosFilter.fm; }
+function prosRenderManagerSummary() {
+  const all = prosData.prospects.filter(p => !prosFilter.rep || p.Asesora === prosFilter.rep);
+  const created = all.filter(p => prosInMonth(p, 'Creado'));
+  const sold = all.filter(p => p.Estado === 'Vendido' && prosInMonth(p, 'FechaVenta'));
+  const review = prosData.prospects.filter(p => p.Atribucion === 'Revisar');
+  const today = prosToday();
+  const contacts = prosData.contacts.filter(c => (!prosFilter.rep || c.Asesora === prosFilter.rep));
+  const contactsMonth = contacts.filter(c => prosInMonth(c, 'Fecha'));
+
+  // Por asesora
+  const reps = [...new Set(prosData.prospects.map(p => p.Asesora).concat(prosData.contacts.map(c => c.Asesora)))]
+    .filter(r => !prosFilter.rep || r === prosFilter.rep).sort();
+  const repRows = reps.map(r => {
+    const c = created.filter(p => p.Asesora === r).length;
+    const s = sold.filter(p => p.Asesora === r);
+    return `<tr><td style="font-weight:600">${escHtml(r)}</td>
+      <td>${contacts.filter(x => x.Asesora === r && String(x.Fecha).slice(0, 10) === today).length}</td>
+      <td>${contactsMonth.filter(x => x.Asesora === r).length}</td><td>${c}</td>
+      <td style="color:var(--green);font-weight:600">${s.filter(p => p.Atribucion === 'Propia').length}</td>
+      <td>${s.filter(p => p.Atribucion === 'Tienda').length}</td>
+      <td style="color:var(--yellow)">${s.filter(p => p.Atribucion === 'Revisar' || !p.Atribucion).length}</td></tr>`;
+  }).join('');
+
+  // Por canal (y detalle): prospectos registrados en el mes y cuántos de ellos ya se vendieron
+  const byCh = {};
+  created.forEach(p => {
+    const k = p.Canal || '—';
+    const d = p.Canal === 'Redes sociales' ? (String(p.Detalle).split('·')[0].trim() || 'Sin plataforma') : '';
+    byCh[k] = byCh[k] || { n: 0, sold: 0, own: 0, sub: {} };
+    byCh[k].n++;
+    if (p.Estado === 'Vendido') byCh[k].sold++;
+    if (p.Atribucion === 'Propia') byCh[k].own++;
+    if (d) { byCh[k].sub[d] = byCh[k].sub[d] || { n: 0, sold: 0 }; byCh[k].sub[d].n++; if (p.Estado === 'Vendido') byCh[k].sub[d].sold++; }
+  });
+  const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
+  const chRows = Object.entries(byCh).sort((a, b) => b[1].n - a[1].n).map(([k, v]) =>
+    `<tr><td>${prosChannelIcon(k)} ${escHtml(k)}</td><td>${v.n}</td><td>${v.sold}</td><td>${v.own}</td><td style="font-weight:600">${pct(v.sold, v.n)}</td></tr>` +
+    Object.entries(v.sub).sort((a, b) => b[1].n - a[1].n).map(([s, x]) =>
+      `<tr class="pros-subrow"><td>↳ ${escHtml(s)}</td><td>${x.n}</td><td>${x.sold}</td><td></td><td>${pct(x.sold, x.n)}</td></tr>`).join('')
+  ).join('');
+
+  document.getElementById('pros-mgr-summary').innerHTML = `
+    <div class="report-grid pros-stats">
+      <div class="stat-card blue"><div class="stat-label">Prospectos registrados</div><div class="stat-value">${created.length}</div></div>
+      <div class="stat-card cyan"><div class="stat-label">Contactos en el periodo</div><div class="stat-value">${contactsMonth.length}</div></div>
+      <div class="stat-card green"><div class="stat-label">Ventas propias</div><div class="stat-value">${sold.filter(p => p.Atribucion === 'Propia').length}</div></div>
+      <div class="stat-card ${review.length ? 'yellow' : 'blue'}"><div class="stat-label">Por revisar</div><div class="stat-value">${review.length}</div></div>
+    </div>
+    <div class="pros-two">
+      <div><div class="pros-section-title">Por asesora</div>
+        <div class="table-wrap" style="overflow-x:auto"><table>
+          <thead><tr><th>Asesora</th><th>Contactos hoy</th><th>Contactos</th><th>Prospectos</th><th>Propias</th><th>Tienda</th><th>Revisar</th></tr></thead>
+          <tbody>${repRows || `<tr><td colspan="7" style="color:var(--muted)">Sin actividad</td></tr>`}</tbody></table></div></div>
+      <div><div class="pros-section-title">De dónde salen</div>
+        <div class="table-wrap" style="overflow-x:auto"><table>
+          <thead><tr><th>Canal</th><th>Prospectos</th><th>Vendidos</th><th>Propias</th><th>Conversión</th></tr></thead>
+          <tbody>${chRows || `<tr><td colspan="5" style="color:var(--muted)">Sin prospectos en el periodo</td></tr>`}</tbody></table></div></div>
+    </div>`;
+
+  document.getElementById('pros-review').innerHTML = review.length ? `
+    <div class="pros-section-title" style="color:var(--yellow)">⚠️ Ventas por revisar (${review.length})</div>
+    <div class="pros-list">${review.map(p => `<div class="pros-card pros-card-rev">
+      <div class="pros-card-top" onclick="openProsDetail('${p.ID}')">
+        <div style="min-width:0"><div class="pros-name">${escHtml(p.Nombre)} <span style="color:var(--muted);font-weight:400">· ${escHtml(p.Asesora)}</span></div>
+          <div class="pros-sub">${prosChannelIcon(p.Canal)} ${escHtml(p.Canal)}${p.Detalle ? ' · ' + escHtml(p.Detalle) : ''} · registrado ${escHtml(p.Creado)} · venta ${escHtml(p.FechaVenta || '—')}</div></div>
+      </div>
+      <div class="pros-note">${escHtml(p.AtribucionNota)}</div>
+      <div class="pros-actions">
+        <button class="btn btn-sm btn-primary" onclick="prosReview('${p.ID}','Propia')">Propia ($75)</button>
+        <button class="btn btn-sm btn-ghost" onclick="prosReview('${p.ID}','Tienda')">Tienda ($40)</button>
+        <button class="btn btn-sm btn-ghost" style="color:var(--red)" onclick="prosReview('${p.ID}','Rechazada')">Rechazar</button>
+      </div></div>`).join('')}</div>` : '';
+}
+function prosTable(list) {
+  if (!list.length) return `<div class="empty-state" style="padding:30px"><div class="icon">🎯</div><p>Sin resultados</p></div>`;
+  return `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">${list.length} prospecto(s)</div>
+    <div class="table-wrap" style="overflow-x:auto"><table>
+    <thead><tr><th>Registrado</th><th>Asesora</th><th>Nombre</th><th>Teléfono</th><th>Canal</th><th>Contactos</th><th>Vence</th><th>Estado</th></tr></thead>
+    <tbody>${list.map(p => `<tr class="cust-row" onclick="openProsDetail('${p.ID}')">
+      <td style="font-size:12px;white-space:nowrap">${prosShortDate(p.Creado)}</td>
+      <td>${escHtml(p.Asesora)}</td>
+      <td style="font-weight:600">${escHtml(p.Nombre)}${p.EraCliente ? ' <span title="Ya era cliente de la tienda">🏪</span>' : ''}</td>
+      <td class="mono" style="white-space:nowrap">${fmtPhone(String(p.Telefono))}</td>
+      <td style="font-size:12px">${prosChannelIcon(p.Canal)} ${escHtml(p.Canal)}${p.Detalle ? `<div style="color:var(--muted)">${escHtml(p.Detalle)}</div>` : ''}</td>
+      <td>${escHtml(p.Contactos || '0')}</td>
+      <td style="font-size:12px;white-space:nowrap">${prosIsActive(p) ? prosShortDate(p.VenceEl) : '—'}</td>
+      <td>${prosStatusBadge(p)} ${prosAttrBadge(p)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+async function prosRunMatch(btn) {
+  btn.disabled = true;
+  try {
+    const r = await prosApi('prosMatch');
+    toast(r.message ? escHtml(r.message) : `Cruce listo: ${r.matched} venta(s) encontrada(s), ${r.updated} actualizada(s).`, r.message ? 'info' : 'success');
+    await prosReload();
+  } catch (e) { toast(escHtml(e.message), 'error'); btn.disabled = false; }
+}
+async function prosReview(id, atribucion) {
+  const nota = atribucion === 'Rechazada' ? prompt('¿Por qué se rechaza? (opcional)') : undefined;
+  if (nota === null) return;
+  try {
+    const r = await prosApi('prosReview', { id, atribucion, ...(nota !== undefined ? { nota } : {}) });
+    prosReplace(r.prospect); closeModal(); renderProspects();
+    toast('Venta revisada.', 'success');
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+function prosExportCSV() {
+  const list = prosFiltered();
+  if (!list.length) { toast('No hay prospectos para exportar.', 'error'); return; }
+  const cols = ['ID','Creado','Asesora','RegistradoPor','Nombre','Telefono','Direccion','Zip','Canal','Detalle','Codigo','Interes',
+    'Estado','Contactos','UltimoContacto','VenceEl','EraCliente','Atribucion','AtribucionNota','CuentaSpectrum','FechaVenta','RepIdVenta','RevisadoPor','Notas'];
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = '﻿' + [cols.map(q).join(','), ...list.map(p => cols.map(c => q(c === 'Estado' ? prosStatus(p) : p[c])).join(','))].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `prospectos_${prosToday()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ── Nuevo prospecto ──
+function openProsNew() {
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  prosForm = { canal: '', interes: ['Internet'], proximo: prosYmd(tomorrow) };
+  const users = (prosData.users || []).filter(u => !u.manager);
+  openModal(`
+    <div class="modal-title">＋ Nuevo prospecto <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-group"><label class="form-label">Nombre *</label>
+      <input class="form-input" id="pn-nombre" autocomplete="off" placeholder="Nombre y apellido"></div>
+    <div class="form-group"><label class="form-label">Teléfono *</label>
+      <input class="form-input" id="pn-tel" type="tel" inputmode="tel" autocomplete="off" placeholder="956 555 1234" onblur="prosCheckPhone()">
+      <div id="pn-tel-msg" class="pros-hint"></div></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="pn-dir" placeholder="Para revisar cobertura"></div>
+      <div class="form-group"><label class="form-label">Código postal</label><input class="form-input" id="pn-zip" inputmode="numeric" maxlength="5"></div>
+    </div>
+    <div class="form-group"><label class="form-label">¿De dónde salió? *</label>
+      <div class="pros-chips" id="pn-canal">${PROS_CHANNELS.map(c =>
+        `<span class="chip" data-v="${c.id}" onclick="prosPickChannel('${c.id}')">${c.icon} ${c.id}</span>`).join('')}</div></div>
+    <div id="pn-detail"></div>
+    <div class="form-group"><label class="form-label">Le interesa</label>
+      <div class="pros-chips" id="pn-int">${PROS_INTERESTS.map(i =>
+        `<span class="chip ${prosForm.interes.includes(i) ? 'on' : ''}" onclick="prosToggleInterest(this,'${i}')">${i}</span>`).join('')}</div></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Próximo seguimiento</label>
+        <input class="form-input" id="pn-prox" type="date" value="${prosForm.proximo}"></div>
+      ${prosAuth.manager ? `<div class="form-group"><label class="form-label">Asesora</label>
+        <select class="form-input form-select" id="pn-asesora">${users.map(u => `<option>${escHtml(u.name)}</option>`).join('')}</select></div>` : '<div></div>'}
+    </div>
+    <div class="form-group"><label class="form-label">Notas</label>
+      <textarea class="form-input" id="pn-notas" rows="2" placeholder="Qué busca, cuánto paga hoy, cuándo se muda…"></textarea></div>
+    <button class="btn btn-primary btn-full" id="pn-save" onclick="prosSaveNew()">Registrar prospecto</button>
+    <p class="pros-hint" style="margin-top:10px">La fecha y hora del registro las pone el sistema. Si el teléfono ya está registrado o ya tiene servicio con MirComm, no se puede registrar.</p>`);
+  setTimeout(() => document.getElementById('pn-nombre')?.focus(), 80);
+}
+function prosPickChannel(c) {
+  prosForm.canal = c;
+  document.querySelectorAll('#pn-canal .chip').forEach(ch => ch.classList.toggle('on', ch.dataset.v === c));
+  const sel = (id, opts, ph) => `<select class="form-input form-select" id="${id}"><option value="">${ph}</option>${opts.map(o => `<option>${o}</option>`).join('')}</select>`;
+  const html = {
+    'Redes sociales': `<div class="form-row">
+        <div class="form-group"><label class="form-label">Plataforma *</label>${sel('pn-d1', PROS_PLATFORMS, 'Elige…')}</div>
+        <div class="form-group"><label class="form-label">Desde qué cuenta *</label>${sel('pn-d2', ['Mi cuenta personal', 'Página de MirComm'], 'Elige…')}</div></div>`,
+    'Conocido personal': `<div class="form-group"><label class="form-label">¿Quién es? *</label>${sel('pn-d1', PROS_RELATIONS, 'Elige…')}</div>`,
+    'Referido de un cliente': `<div class="form-group"><label class="form-label">Cliente que lo mandó *</label>
+        <input class="form-input" id="pn-d1" placeholder="Nombre o teléfono del cliente"></div>`,
+    'Llamada o mensaje en frío': `<div class="form-group"><label class="form-label">¿De dónde sacaste el número? *</label>
+        <input class="form-input" id="pn-d1" placeholder="Ej. anuncio de casa en venta, lista de la feria"></div>`,
+    'Visita o evento': `<div class="form-group"><label class="form-label">Negocio, evento o lugar *</label>
+        <input class="form-input" id="pn-d1" placeholder="Ej. feria de Mission, taller mecánico en Conway"></div>`,
+    'Código personal': `<div class="form-group"><label class="form-label">Código que mencionó *</label>
+        <input class="form-input" id="pn-codigo" style="text-transform:uppercase" placeholder="Ej. LIZ" maxlength="10">
+        <div class="pros-hint">Para clientes que llegan a la tienda con el código de una asesora. El prospecto queda a nombre de la dueña del código.</div></div>`,
+    'Seguimiento de tienda': `<div class="pros-hint" style="margin:-6px 0 14px">Cliente que vino a la tienda y no compró. Si después contrata, cuenta como venta de tienda ($40).</div>`
+  }[c] || '';
+  document.getElementById('pn-detail').innerHTML = html;
+}
+function prosToggleInterest(chip, v) {
+  const i = prosForm.interes.indexOf(v);
+  if (i >= 0) prosForm.interes.splice(i, 1); else prosForm.interes.push(v);
+  chip.classList.toggle('on', i < 0);
+}
+async function prosCheckPhone() {
+  const msg = document.getElementById('pn-tel-msg');
+  const tel = document.getElementById('pn-tel')?.value || '';
+  if (!msg || phoneDigits(tel).length < 10) { if (msg) msg.textContent = ''; return; }
+  msg.style.color = 'var(--muted)'; msg.textContent = 'Revisando teléfono…';
+  try {
+    const r = await prosApi('prosCheck', { telefono: tel });
+    msg.style.color = r.ok ? (r.eraCliente ? 'var(--yellow)' : 'var(--green)') : 'var(--red)';
+    msg.textContent = r.ok ? (r.message || '✓ Disponible') : r.message;
+  } catch (e) { msg.textContent = ''; }
+}
+function prosDetailValue() {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  switch (prosForm.canal) {
+    case 'Redes sociales': return v('pn-d1') && v('pn-d2') ? `${v('pn-d1')} · ${v('pn-d2') === 'Mi cuenta personal' ? 'cuenta personal' : 'página de MirComm'}` : '';
+    case 'Código personal': case 'Seguimiento de tienda': return 'ok';
+    default: return v('pn-d1');
+  }
+}
+async function prosSaveNew() {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const nombre = v('pn-nombre'), tel = v('pn-tel');
+  if (!nombre) { toast('Falta el nombre.', 'error'); return; }
+  if (phoneDigits(tel).length !== 10) { toast('El teléfono debe tener 10 dígitos.', 'error'); return; }
+  if (!prosForm.canal) { toast('Elige de dónde salió el prospecto.', 'error'); return; }
+  const detalle = prosDetailValue();
+  if (!detalle) { toast('Completa el detalle del canal.', 'error'); return; }
+  const btn = document.getElementById('pn-save'); btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    const r = await prosApi('prosAdd', {
+      nombre, telefono: tel, direccion: v('pn-dir'), zip: v('pn-zip'), canal: prosForm.canal,
+      detalle: detalle === 'ok' ? '' : detalle, codigo: v('pn-codigo').toUpperCase(),
+      interes: prosForm.interes.join(', '), proximo: v('pn-prox'), notas: v('pn-notas'),
+      ...(prosAuth.manager ? { asesora: v('pn-asesora') } : {})
+    });
+    if (r.prospect.Asesora === prosAuth.user || prosAuth.manager) prosReplace(r.prospect);
+    closeModal(); renderProspects();
+    toast(r.warning ? escHtml(r.warning) : (r.prospect.Asesora !== prosAuth.user && !prosAuth.manager
+      ? `Registrado a nombre de ${escHtml(r.prospect.Asesora)}.` : 'Prospecto registrado.'), r.warning ? 'info' : 'success');
+  } catch (e) {
+    toast(escHtml(e.message), 'error'); btn.disabled = false; btn.textContent = 'Registrar prospecto';
+  }
+}
+
+// ── Registrar contacto ──
+function openProsContact(id) {
+  const p = prosData.prospects.find(x => x.ID === id); if (!p) return;
+  const next = new Date(); next.setDate(next.getDate() + 2);
+  openModal(`
+    <div class="modal-title">📞 Contacto con ${escHtml(p.Nombre)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-group"><label class="form-label">¿Cómo lo contactaste? *</label>
+      <div class="pros-chips" id="pc-tipo">${PROS_CONTACT_TYPES.map(t => `<span class="chip" data-v="${t}" onclick="this.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c===this))">${t}</span>`).join('')}</div></div>
+    <div class="form-group"><label class="form-label">Resultado</label>
+      <select class="form-input form-select" id="pc-res" onchange="document.getElementById('pc-lost-wrap').style.display=/No le interesa|otra compañía/.test(this.value)?'flex':'none'">
+        <option value="">Elige…</option>${PROS_RESULTS.map(r => `<option>${r}</option>`).join('')}</select></div>
+    <label id="pc-lost-wrap" class="pros-check" style="display:none"><input type="checkbox" id="pc-lost"> Marcar como perdido</label>
+    <div class="form-group"><label class="form-label">Próximo seguimiento</label>
+      <input class="form-input" id="pc-prox" type="date" value="${prosYmd(next)}"></div>
+    <div class="form-group"><label class="form-label">Nota</label>
+      <textarea class="form-input" id="pc-nota" rows="2" placeholder="Qué platicaron, qué le ofreciste…"></textarea></div>
+    <button class="btn btn-primary btn-full" id="pc-save" onclick="prosSaveContact('${id}')">Guardar contacto</button>`);
+}
+async function prosSaveContact(id) {
+  const tipo = document.querySelector('#pc-tipo .chip.on')?.dataset.v;
+  if (!tipo) { toast('Elige cómo lo contactaste.', 'error'); return; }
+  const lost = document.getElementById('pc-lost')?.checked;
+  const btn = document.getElementById('pc-save'); btn.disabled = true;
+  try {
+    const r = await prosApi('prosContact', { id, tipo, resultado: document.getElementById('pc-res').value,
+      nota: document.getElementById('pc-nota').value, proximo: lost ? '' : document.getElementById('pc-prox').value });
+    prosReplace(r.prospect);
+    prosData.contacts.push({ Fecha: r.prospect.UltimoContacto, Asesora: prosAuth.user, ProspectoID: id, Nombre: r.prospect.Nombre,
+      Tipo: tipo, Resultado: document.getElementById('pc-res').value, Nota: document.getElementById('pc-nota').value });
+    if (lost) { const u = await prosApi('prosUpdate', { id, Estado: 'Perdido' }); prosReplace(u.prospect); }
+    closeModal(); renderProspects();
+    toast(r.expired ? 'Contacto guardado. Este prospecto ya había vencido, así que el plazo no se extiende.' : 'Contacto guardado.', r.expired ? 'info' : 'success');
+  } catch (e) { toast(escHtml(e.message), 'error'); btn.disabled = false; }
+}
+
+// ── Se vendió ──
+function openProsSold(id) {
+  const p = prosData.prospects.find(x => x.ID === id); if (!p) return;
+  openModal(`
+    <div class="modal-title">✅ ${escHtml(p.Nombre)} contrató <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:16px">El sistema confirma la venta con el reporte de Spectrum.
+      Si la orden se hizo con tu Rep ID y registraste al cliente antes del día de la venta, cuenta como venta propia.</p>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cuenta Spectrum</label>
+        <input class="form-input" id="ps-cuenta" inputmode="numeric" placeholder="Opcional" value="${escHtml(p.CuentaSpectrum)}"></div>
+      <div class="form-group"><label class="form-label">Fecha de la venta</label>
+        <input class="form-input" id="ps-fecha" type="date" value="${prosToday()}"></div>
+    </div>
+    <button class="btn btn-primary btn-full" id="ps-save" onclick="prosSaveSold('${id}')">Marcar como vendido</button>`);
+}
+async function prosSaveSold(id) {
+  const btn = document.getElementById('ps-save'); btn.disabled = true;
+  try {
+    const r = await prosApi('prosSold', { id, cuenta: document.getElementById('ps-cuenta').value, fecha: document.getElementById('ps-fecha').value });
+    prosReplace(r.prospect); closeModal(); renderProspects();
+    const a = r.prospect.Atribucion;
+    toast(a === 'Propia' ? '¡Venta propia confirmada!' : a === 'Tienda' ? 'Vendido. Cuenta como venta de tienda.' : 'Vendido. Joel revisará la venta.', a === 'Propia' ? 'success' : 'info');
+  } catch (e) { toast(escHtml(e.message), 'error'); btn.disabled = false; }
+}
+
+// ── Detalle ──
+function openProsDetail(id) {
+  const p = prosData.prospects.find(x => x.ID === id); if (!p) return;
+  const hist = prosData.contacts.filter(c => c.ProspectoID === id).sort((a, b) => String(b.Fecha).localeCompare(String(a.Fecha)));
+  const field = (l, v) => `<div><span>${l}</span>${v ? escHtml(v) : '—'}</div>`;
+  const active = prosIsActive(p);
+  const m = prosAuth.manager;
+  openModal(`
+    <div class="modal-title">${escHtml(p.Nombre)} ${prosStatusBadge(p)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      <a class="btn btn-primary btn-sm" href="tel:+1${p.Telefono}">📞 ${fmtPhone(String(p.Telefono))}</a>
+      <a class="btn btn-ghost btn-sm" href="sms:+1${p.Telefono}">💬 SMS</a>
+      ${active ? `<button class="btn btn-ghost btn-sm" onclick="openProsContact('${id}')">Registrar contacto</button>
+        <button class="btn btn-ghost btn-sm" onclick="openProsSold('${id}')">✅ Se vendió</button>` : ''}
+    </div>
+    <div class="cust-meta">
+      ${field('Canal', `${p.Canal}${p.Detalle ? ' · ' + p.Detalle : ''}${p.Codigo ? ' · código ' + p.Codigo : ''}`)}
+      ${field('Registrado', p.Creado + (p.RegistradoPor && p.RegistradoPor !== p.Asesora ? ` por ${p.RegistradoPor}` : ''))}
+      ${m ? field('Asesora', p.Asesora) : ''}
+      ${field('Vence', active ? `${p.VenceEl} (${prosDaysLeft(p)} días)` : p.VenceEl)}
+      ${field('Contactos', p.Contactos)}
+      ${field('Le interesa', p.Interes)}
+      ${field('Ya era cliente', p.EraCliente)}
+      ${p.Estado === 'Vendido' ? field('Venta', `${p.FechaVenta || ''}${p.CuentaSpectrum ? ' · cuenta ' + p.CuentaSpectrum : ''}${m && p.RepIdVenta ? ' · ' + p.RepIdVenta : ''}`) : ''}
+      ${p.Atribucion ? field('Atribución', `${p.Atribucion}${p.AtribucionNota ? ' — ' + p.AtribucionNota : ''}`) : ''}
+      ${m && p.RevisadoPor ? field('Revisado', p.RevisadoPor) : ''}
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="pd-dir" value="${escHtml(p.Direccion)}"></div>
+      <div class="form-group"><label class="form-label">Código postal</label><input class="form-input" id="pd-zip" value="${escHtml(p.Zip)}" maxlength="5"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Próximo seguimiento</label><input class="form-input" id="pd-prox" type="date" value="${escHtml(p.ProximoSeguimiento)}"></div>
+      <div class="form-group"><label class="form-label">Le interesa</label><input class="form-input" id="pd-int" value="${escHtml(p.Interes)}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" id="pd-notas" rows="2">${escHtml(p.Notas)}</textarea></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+      <button class="btn btn-primary btn-sm" onclick="prosSaveDetail('${id}')">Guardar cambios</button>
+      ${active ? `<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="prosSetStatus('${id}','Perdido')">Marcar como perdido</button>` : ''}
+      ${p.Estado === 'Perdido' && !p.Vencido ? `<button class="btn btn-ghost btn-sm" onclick="prosSetStatus('${id}','En seguimiento')">Reactivar</button>` : ''}
+      ${m && p.Estado === 'Vendido' ? `<button class="btn btn-ghost btn-sm" onclick="prosReview('${id}','Propia')">Propia</button>
+        <button class="btn btn-ghost btn-sm" onclick="prosReview('${id}','Tienda')">Tienda</button>` : ''}
+      ${m ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);margin-left:auto" onclick="prosDelete('${id}')">Borrar</button>` : ''}
+    </div>
+    <div class="form-label" style="margin-bottom:8px">Historial de contactos</div>
+    <div class="table-wrap" style="overflow-x:auto"><table>
+      <thead><tr><th>Fecha</th><th>Tipo</th><th>Resultado</th><th>Nota</th></tr></thead>
+      <tbody>${hist.length ? hist.map(c => `<tr><td style="font-size:12px;white-space:nowrap">${escHtml(c.Fecha)}</td><td>${escHtml(c.Tipo)}</td>
+        <td style="font-size:12px">${escHtml(c.Resultado)}</td><td style="font-size:12px">${escHtml(c.Nota)}</td></tr>`).join('')
+        : `<tr><td colspan="4" style="color:var(--muted)">Sin contactos registrados</td></tr>`}</tbody></table></div>`, true);
+}
+async function prosSaveDetail(id) {
+  const v = x => document.getElementById(x).value;
+  try {
+    const r = await prosApi('prosUpdate', { id, Direccion: v('pd-dir'), Zip: v('pd-zip'), ProximoSeguimiento: v('pd-prox'), Interes: v('pd-int'), Notas: v('pd-notas') });
+    prosReplace(r.prospect); closeModal(); renderProspects(); toast('Cambios guardados.', 'success');
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+async function prosSetStatus(id, Estado) {
+  if (Estado === 'Perdido' && !confirm('¿Marcar este prospecto como perdido? Otra asesora podrá registrarlo.')) return;
+  try {
+    const r = await prosApi('prosUpdate', { id, Estado });
+    prosReplace(r.prospect); closeModal(); renderProspects();
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+async function prosDelete(id) {
+  if (!confirm('¿Borrar este prospecto? No se puede deshacer.')) return;
+  try {
+    await prosApi('prosDelete', { id });
+    prosData.prospects = prosData.prospects.filter(p => p.ID !== id); closeModal(); renderProspects();
+  } catch (e) { toast(escHtml(e.message), 'error'); }
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────
