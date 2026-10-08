@@ -323,6 +323,12 @@
   .act-reco { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
   .act-reco-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin: 12px 0; font-size: 13px; line-height: 1.6; }
 
+  .ml-mail { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 7px 0; border-top: 1px solid var(--border); font-size: 13px; }
+  .ml-types { display: grid; gap: 8px; }
+  .ml-type { display: flex; gap: 10px; align-items: flex-start; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 13px; line-height: 1.4; }
+  .ml-type input { margin-top: 3px; accent-color: var(--blue); }
+  .ml-type:has(input:checked) { border-color: var(--blue); background: rgba(26,110,255,0.10); }
+
   /* ── TOAST ── */
   .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
   .toast { padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 500;
@@ -423,6 +429,9 @@
     </div>
     <div class="nav-item" data-page="prospects" onclick="showPage('prospects')">
       <span class="icon">🎯</span> Prospectos
+    </div>
+    <div class="nav-item rep-only" data-page="mylines" onclick="showPage('mylines')">
+      <span class="icon">📱</span> Mis líneas
     </div>
     <div class="nav-section manager-only">Reports</div>
     <div class="nav-item manager-only" data-page="transactions" onclick="showPage('transactions')">
@@ -557,6 +566,7 @@ function completeLogin() {
   document.querySelectorAll('.manager-only').forEach(el => {
     el.classList.toggle('visible', isManager);
   });
+  document.querySelectorAll('.rep-only').forEach(el => { el.style.display = isManager ? 'none' : ''; });
 
   // Default page
   currentPage = isManager ? 'inventory' : 'pos';
@@ -569,7 +579,7 @@ function completeLogin() {
 
 function logout() {
   currentUser = ''; isManager = false; mgrToken = ''; cart = []; stockData = [];
-  prosAuth = null; prosData = null;
+  prosAuth = null; prosData = null; mlData = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('pin-input').value = '';
   document.getElementById('pin-error').textContent = '';
@@ -602,6 +612,7 @@ function showPage(page) {
   // Block non-managers from manager pages
   const managerPages = ['inventory','transactions','report','receive','customers','activations'];
   if (managerPages.includes(page) && !isManager) return;
+  if (page === 'mylines' && isManager) page = 'activations';
   currentPage = page;
   document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.page === page));
   loadCurrentPage();
@@ -616,6 +627,7 @@ function loadCurrentPage() {
     case 'customers':    renderCustomers(); break;
     case 'activations':  renderActivations(); break;
     case 'prospects':    renderProspects(); break;
+    case 'mylines':      renderMyLines(); break;
   }
 }
 
@@ -1816,8 +1828,8 @@ async function renderProspects() {
 function renderProsPin(err) {
   document.getElementById('content').innerHTML = `
     <div class="pros-pin-box">
-      <div style="font-size:40px;margin-bottom:10px">🎯</div>
-      <div class="page-title" style="margin-bottom:6px">Prospectos</div>
+      <div style="font-size:40px;margin-bottom:10px">${currentPage === 'mylines' ? '📱' : '🎯'}</div>
+      <div class="page-title" style="margin-bottom:6px">${currentPage === 'mylines' ? 'Mis líneas' : 'Prospectos'}</div>
       <p style="color:var(--muted);margin-bottom:20px;line-height:1.5">${escHtml(currentUser)}, escribe tu PIN personal de 6 dígitos.</p>
       <input class="pin-input" id="pros-pin" type="password" inputmode="numeric" maxlength="6" placeholder="••••••"
         onkeydown="if(event.key==='Enter')prosLogin()" oninput="if(this.value.length===6)prosLogin()">
@@ -1835,8 +1847,8 @@ async function prosLogin() {
     prosAuth = { user: currentUser, pin };
     const r = await prosApi('prosLogin');
     Object.assign(prosAuth, { manager: r.user.manager, code: r.user.code });
-    prosData = null;
-    renderProspects();
+    prosData = null; mlData = null;
+    loadCurrentPage();
   } catch (e) {
     prosAuth = null;
     renderProsPin(/Acción desconocida|unknown|invalid action/i.test(e.message)
@@ -2358,7 +2370,14 @@ function noSheetNotice() {
 // The Cellmart core report (.xlsx) is reconciled in the browser — nothing is uploaded.
 
 // Spectrum Rep ID → employee (keep in sync with ACT_REPS in Activaciones.gs)
-const ACT_REPS = { CMMCL4423: 'Joel', CMMLB4896: 'Lizbeth', CMMLB4898: 'Lizbeth' };
+const ACT_REPS = { CMMCL4423: 'Joel', CMMLB4896: 'Lizbeth', CMMLB4898: 'Lizbeth' /* , 'CMM?????': 'Alondra' */ };
+// Type of the FIRST line of a mobile order (the rest of the same order are always incremental)
+const ACT_MOBILE_TYPES = ['Primera', 'Incremental', 'AdicionalNoNuestra'];
+const ACT_MOBILE_TYPE_INFO = {
+  Primera:            { short: 'Primera línea', long: 'El cliente no tenía ninguna línea en su cuenta.' },
+  Incremental:        { short: 'Incremental',   long: 'Nosotros ya le habíamos hecho otra línea en esta cuenta.' },
+  AdicionalNoNuestra: { short: 'Adicional',     long: 'La cuenta ya tenía línea, pero no la hicimos nosotros.' }
+};
 
 // Cellmart Premier Dealer commission table. Add older tables (with their start date)
 // to estimate months before 9/29/2026.
@@ -2380,6 +2399,8 @@ const DISPUTE_DAYS = 30;
 let actData = [];
 let actFilter = { fm: null, rep: '', svc: '', status: '', q: '' };
 let actReco = null;      // result of the last core report reconciliation
+let actMobReco = null;   // result of the last mobile report reconciliation
+let actEmails = null;    // "Agent Order Confirmation" emails with their registered/pending status
 
 function actFiscalMonth(ymd) {
   const m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -2404,7 +2425,19 @@ function actAddDays(ymd, n) {
   const d = new Date(ymd + 'T00:00:00'); d.setDate(d.getDate() + n);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function actRepName(a) { return a.Employee || ACT_REPS[String(a.RepID||'').toUpperCase()] || a.RepID || '—'; }
+function actRepName(a) { return a.SoldBy || a.Employee || ACT_REPS[String(a.RepID||'').toUpperCase()] || a.RepID || '—'; }
+function actRepOwner(a) { return ACT_REPS[String(a.RepID||'').toUpperCase()] || a.Employee || ''; }
+// Earlier MirComm mobile orders on the same account (from the app's own records)
+function actPriorMobileRows(acct, beforeDate, excludeId, beforeCreated) {
+  return actData.filter(x => x.ID !== excludeId && actAcct(x.AccountNumber) === acct && +x.MobileLines > 0 &&
+    (!beforeDate || x.OrderDate < beforeDate || (x.OrderDate === beforeDate && beforeCreated !== undefined && String(x.CreatedAt||'') < String(beforeCreated||''))));
+}
+// Explicit type, or derived from history for rows that came from the internet emails
+function actMobileTypeOf(a) {
+  if (!(+a.MobileLines > 0)) return { type: '', auto: false };
+  if (a.MobileType) return { type: a.MobileType, auto: false };
+  return { type: actPriorMobileRows(actAcct(a.AccountNumber), a.OrderDate, a.ID, a.CreatedAt).length ? 'Incremental' : 'Primera', auto: true };
+}
 function actAcct(v) { return String(v ?? '').replace(/\D/g, ''); }
 function actFmtDate(ymd) {
   const m = String(ymd||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -2440,8 +2473,10 @@ function actExpected(svc, ymd) {
     if (k) add(`Internet ${svc.internetTier}`, r.internet[k]); else unknown.push(`tier "${svc.internetTier}"`);
   }
   if (mob > 0) {
-    add('Móvil — línea 1', r.mobileFirst);
-    if (mob > 1) add(`Móvil — líneas 2-${mob}`, r.mobileAdditional * (mob - 1));
+    const t = svc.mobileType || 'Primera';
+    if (t === 'Incremental') add('Móvil — línea incremental', r.mobileAdditional);
+    else add(t === 'AdicionalNoNuestra' ? 'Móvil — adicional (la primera no fue nuestra)' : 'Móvil — primera línea', r.mobileFirst);
+    if (mob > 1) add(`Móvil — ${mob - 1} incremental(es) más en la orden`, r.mobileAdditional * (mob - 1));
   }
   if (hasVid) {
     const v = actVideoRate(svc.videoTier, r);
@@ -2457,13 +2492,15 @@ function actExpected(svc, ymd) {
   return { total: lines.reduce((s,l) => s + l.amt, 0), lines, note: unknown.length ? 'Revisar: ' + unknown.join(', ') : '' };
 }
 function actSvcOf(a) {
+  const mt = actMobileTypeOf(a);
   return { internetTier: a.InternetTier || '', mobileLines: +a.MobileLines || 0, videoTier: a.VideoTier || '',
-           voice: /^(yes|y|s[ií]|true|1)$/i.test(String(a.Voice||'')), xumo: +a.XumoDevices || 0 };
+           voice: /^(yes|y|s[ií]|true|1)$/i.test(String(a.Voice||'')), xumo: +a.XumoDevices || 0,
+           mobileType: mt.type, mobileTypeAuto: mt.auto };
 }
 function actSvcChips(svc) {
   const c = [];
   if (svc.internetTier) c.push(`<span class="svc svc-int">🌐 ${escHtml(svc.internetTier)}</span>`);
-  if (svc.mobileLines) c.push(`<span class="svc svc-mob">📱 ${svc.mobileLines} línea${svc.mobileLines>1?'s':''}</span>`);
+  if (svc.mobileLines) c.push(`<span class="svc svc-mob" title="${svc.mobileTypeAuto ? 'Tipo calculado por la app (no lo capturó nadie)' : ''}">📱 ${svc.mobileLines} línea${svc.mobileLines>1?'s':''}${svc.mobileType ? ' · ' + escHtml((ACT_MOBILE_TYPE_INFO[svc.mobileType]||{short:svc.mobileType}).short) + (svc.mobileTypeAuto ? '?' : '') : ''}</span>`);
   if (svc.videoTier) c.push(`<span class="svc svc-tv">📺 ${escHtml(svc.videoTier)}</span>`);
   if (svc.voice) c.push(`<span class="svc">☎ Voice</span>`);
   if (svc.xumo) c.push(`<span class="svc">Xumo ×${svc.xumo}</span>`);
@@ -2482,15 +2519,18 @@ async function renderActivations() {
     <div class="action-row">
       <button class="btn btn-primary" onclick="actImportNow(false)">↻ Importar correos nuevos</button>
       <button class="btn btn-ghost" onclick="openActForm()">📱 Registrar activación móvil</button>
-      <label class="btn btn-ghost" style="cursor:pointer">📄 Subir Core Report
-        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="actLoadCoreReport(this.files[0]);this.value=''">
+      <label class="btn btn-ghost" style="cursor:pointer">📄 Subir reporte de Cellmart
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="actLoadReport(this.files[0]);this.value=''">
       </label>
       <button class="btn btn-ghost" onclick="actExportCSV()">⬇ Exportar CSV</button>
     </div>
     <div id="act-body"><div class="loading"><div class="spinner"></div></div></div>`;
   try {
-    const rows = await apiGet({ action: 'getActivations' });
+    const [rows, emails, repMap] = await Promise.all([apiGet({ action: 'getActivations' }),
+      apiGet({ action: 'getMobileEmails' }).catch(() => null), apiGet({ action: 'getRepMap' }).catch(() => null)]);
+    if (repMap && typeof repMap === 'object' && !Array.isArray(repMap)) Object.assign(ACT_REPS, repMap);
     actData = Array.isArray(rows) ? rows : [];
+    actEmails = Array.isArray(emails) ? emails : null;
     if (actFilter.fm === null) {
       const cur = actFiscalMonth(actToday());
       actFilter.fm = actData.some(a => a.FiscalMonth === cur) ? cur : '';
@@ -2509,9 +2549,11 @@ async function actImportNow(all) {
   try {
     const r = await apiGet({ action: 'importActivations', all: all ? '1' : '0' });
     if (r.busy) { toast('Ya hay una importación corriendo. Intenta en un minuto.', 'info'); return; }
-    toast(r.added ? `${r.added} activación(es) nueva(s) importada(s).` : 'No hay correos nuevos.', r.added ? 'success' : 'info');
+    const nm = +r.mobileEmails || 0;
+    toast(r.added || nm ? `${r.added} activación(es) y ${nm} correo(s) de línea nuevos.` : 'No hay correos nuevos.', r.added || nm ? 'success' : 'info');
     if (r.errors && r.errors.length) toast(`${r.errors.length} correo(s) no se pudieron leer.`, 'error');
     actData = await apiGet({ action: 'getActivations' });
+    actEmails = await apiGet({ action: 'getMobileEmails' }).catch(() => actEmails);
     renderActBody();
   } catch (e) { toast(e.message, 'error'); }
 }
@@ -2525,13 +2567,19 @@ function actFiltered() {
     if (actFilter.svc === 'int' && !s.internetTier) return false;
     if (actFilter.svc === 'mob' && !s.mobileLines) return false;
     if (actFilter.svc === 'tv' && !s.videoTier) return false;
-    if (actFilter.status) {
+    if (actFilter.status && actFilter.status.startsWith('m:')) {
+      const ms = actMobReco && actMobReco.byId[a.ID], f = actFilter.status.slice(2);
+      if (!ms) return false;
+      if (f === 'claim' && !['missing','partial'].includes(ms.code)) return false;
+      if (f === 'type' && !ms.typeIssue) return false;
+      if (!['claim','type'].includes(f) && ms.code !== f) return false;
+    } else if (actFilter.status) {
       const st = actReco && actReco.byId[a.ID];
       if (!st) return false;
       if (actFilter.status === 'claim' && !['missing','partial'].includes(st.code)) return false;
       if (actFilter.status !== 'claim' && st.code !== actFilter.status) return false;
     }
-    if (q && ![a.CustomerName, a.AccountNumber, a.Phone, a.Confirmation, a.WorkOrder, a.Email].some(v => String(v||'').toLowerCase().includes(q))) return false;
+    if (q && ![a.CustomerName, a.AccountNumber, a.Phone, a.Confirmation, a.WorkOrder, a.Email, a.MobileOrder, a.LinePhones, a.IMEIs].some(v => String(v||'').toLowerCase().includes(q))) return false;
     return true;
   }).sort((a,b) => (b.OrderDate||'').localeCompare(a.OrderDate||''));
 }
@@ -2545,10 +2593,11 @@ function renderActBody() {
   const reps = [...new Set(actData.map(actRepName))].sort();
   const list = actFiltered();
 
-  let nInt = 0, nMob = 0, nTv = 0, est = 0, estUnknown = 0;
+  let nInt = 0, nMob = 0, nIncr = 0, nTv = 0, est = 0, estUnknown = 0;
   list.forEach(a => {
     const s = actSvcOf(a);
     if (s.internetTier) nInt++; nMob += s.mobileLines; if (s.videoTier) nTv++;
+    if (s.mobileLines) nIncr += s.mobileLines - (s.mobileType === 'Incremental' ? 0 : 1);
     const x = actExpected(s, a.OrderDate);
     if (x.total === null || x.note) estUnknown++; if (x.total) est += x.total;
   });
@@ -2560,7 +2609,7 @@ function renderActBody() {
         ${months.map(m => `<option value="${m}" ${actFilter.fm===m?'selected':''}>${actFmLabel(m)}</option>`).join('')}
       </select>
       <select class="form-input form-select" style="width:auto" onchange="actFilter.rep=this.value;renderActBody()">
-        <option value="">Todos los reps</option>
+        <option value="">Todas las personas</option>
         ${reps.map(r => `<option ${actFilter.rep===r?'selected':''}>${escHtml(r)}</option>`).join('')}
       </select>
       <select class="form-input form-select" style="width:auto" onchange="actFilter.svc=this.value;renderActBody()">
@@ -2577,18 +2626,30 @@ function renderActBody() {
         <option value="canceled" ${actFilter.status==='canceled'?'selected':''}>Canceladas</option>
         <option value="ok" ${actFilter.status==='ok'?'selected':''}>✅ Conectadas</option>
       </select>` : ''}
+      ${actMobReco ? `<select class="form-input form-select" style="width:auto" onchange="actFilter.status=this.value;renderActBody()">
+        <option value="">Móvil: todos</option>
+        <option value="m:claim" ${actFilter.status==='m:claim'?'selected':''}>📱 ❌ Para reclamar</option>
+        <option value="m:type" ${actFilter.status==='m:type'?'selected':''}>📱 ⚠️ Tipo por revisar</option>
+        <option value="m:pending" ${actFilter.status==='m:pending'?'selected':''}>📱 ⏳ Pendientes</option>
+        <option value="m:canceled" ${actFilter.status==='m:canceled'?'selected':''}>📱 Canceladas</option>
+        <option value="m:ok" ${actFilter.status==='m:ok'?'selected':''}>📱 ✅ Activadas</option>
+      </select>` : ''}
       <input class="search-input" style="flex:1;min-width:200px" placeholder="Buscar cliente, cuenta, teléfono, confirmación…"
         value="${escHtml(actFilter.q)}" oninput="actFilter.q=this.value;renderActTable()">
     </div>
     <div class="report-grid">
       <div class="stat-card blue"><div class="stat-label">Órdenes</div><div class="stat-value">${list.length}</div></div>
       <div class="stat-card cyan"><div class="stat-label">🌐 Internet</div><div class="stat-value">${nInt}</div></div>
-      <div class="stat-card green"><div class="stat-label">📱 Líneas móviles</div><div class="stat-value">${nMob}</div></div>
+      <div class="stat-card green"><div class="stat-label">📱 Líneas móviles</div><div class="stat-value">${nMob}</div>
+        ${nMob ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${nIncr} incremental(es)</div>` : ''}</div>
       <div class="stat-card yellow"><div class="stat-label">📺 TV</div><div class="stat-value">${nTv}</div></div>
       <div class="stat-card green"><div class="stat-label">Comisión estimada</div><div class="stat-value">${fmtMoney(est)}</div>
         ${estUnknown ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${estUnknown} sin calcular</div>` : ''}</div>
     </div>
-    ${actReco ? actRecoPanel() : `<div class="act-hint">📄 Sube el Core Report de Cellmart para ver qué cuentas ya conectaron, cuáles faltan y cuáles están en riesgo de chargeback.</div>`}
+    ${actEmailsPanel()}
+    ${actMobReco ? actMobRecoPanel() : ''}
+    ${actReco ? actRecoPanel() : ''}
+    ${!actReco && !actMobReco ? `<div class="act-hint">📄 Sube el Core Report o el Mobile Report de Cellmart para ver qué ya conectó, qué falta, qué se canceló y qué líneas nadie registró.</div>` : ''}
     <div id="act-table"></div>`;
   renderActTable();
 }
@@ -2602,17 +2663,19 @@ function renderActTable() {
     return;
   }
   el.innerHTML = `<div class="table-wrap" style="overflow-x:auto"><table>
-    <thead><tr><th>Fecha</th><th>Cliente</th><th>Cuenta</th><th>Rep</th><th>Servicios</th><th style="text-align:right">Comisión est.</th>${actReco?'<th>Cellmart</th>':''}</tr></thead>
+    <thead><tr><th>Fecha</th><th>Cliente</th><th>Cuenta</th><th>Hecha por</th><th>Servicios</th><th style="text-align:right">Comisión est.</th>${actReco?'<th>Core</th>':''}${actMobReco?'<th>Móvil</th>':''}</tr></thead>
     <tbody>${list.map(a => {
-      const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID];
+      const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID], ms = actMobReco && actMobReco.byId[a.ID];
+      const owner = actRepOwner(a);
       return `<tr onclick="openActDetail('${escHtml(a.ID)}')">
         <td class="mono">${actFmtDate(a.OrderDate)}</td>
-        <td><div style="font-weight:600">${escHtml(a.CustomerName||'—')}</div>${a.Source==='Manual'?'<div style="font-size:11px;color:var(--muted)">registro manual</div>':''}</td>
+        <td><div style="font-weight:600">${escHtml(a.CustomerName||'—')}</div>${a.Source==='Manual'?'<div style="font-size:11px;color:var(--muted)">registro manual</div>':a.Source==='Asesora'?`<div style="font-size:11px;color:var(--muted)">registrada por ${escHtml(a.EnteredBy||'asesora')}</div>`:''}</td>
         <td class="mono">${escHtml(a.AccountNumber||'')}</td>
-        <td>${escHtml(actRepName(a))}</td>
+        <td>${escHtml(actRepName(a))}${a.SoldBy && owner && owner !== a.SoldBy ? `<div style="font-size:11px;color:var(--yellow)">con ID de ${escHtml(owner)}</div>` : ''}</td>
         <td>${actSvcChips(s)}</td>
         <td class="mono" style="text-align:right;color:${x.total?'var(--green)':'var(--muted)'}" title="${escHtml(x.note||'')}">${fmtMoney(x.total)}${x.note?' *':''}</td>
         ${actReco ? `<td>${st ? actStatusBadge(st) : ''}</td>` : ''}
+        ${actMobReco ? `<td>${ms ? actMobBadge(ms) : ''}</td>` : ''}
       </tr>`; }).join('')}
     </tbody></table></div>`;
 }
@@ -2636,7 +2699,7 @@ function actStatusBadge(st) {
 function openActDetail(id) {
   const a = actData.find(x => x.ID === id);
   if (!a) return;
-  const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID];
+  const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID], ms = actMobReco && actMobReco.byId[a.ID];
   let products = [];
   try { products = JSON.parse(a.Products || '[]'); } catch (e) {}
   const field = (l, v) => v ? `<div><span>${l}</span>${escHtml(v)}</div>` : '';
@@ -2649,7 +2712,11 @@ function openActDetail(id) {
       ${field('Cuenta', a.AccountNumber)}
       ${field('Confirmación', a.Confirmation)}
       ${field('Work order', a.WorkOrder)}
-      ${field('Rep', `${actRepName(a)}${a.RepID && actRepName(a)!==a.RepID ? ' ('+a.RepID+')' : ''}`)}
+      ${field('Hecha por', actRepName(a))}
+      ${field('Rep ID en Spectrum', a.RepID ? `${a.RepID}${actRepOwner(a) ? ' (' + actRepOwner(a) + ')' : ''}` : '')}
+      ${field('Tipo de línea', s.mobileLines ? `${(ACT_MOBILE_TYPE_INFO[s.mobileType]||{short:s.mobileType}).short}${s.mobileTypeAuto ? ' (calculado)' : ''}${s.mobileLines > 1 ? ` + ${s.mobileLines - 1} incremental(es)` : ''}` : '')}
+      ${field('Orden móvil', a.MobileOrder)}
+      ${field('Número(s) de línea', a.LinePhones)}
       ${field('Teléfono', a.Phone ? fmtPhone(actAcct(a.Phone).slice(-10)) : '')}
       ${field('Correo', a.Email)}
       ${field('Dirección', [a.Address, a.City, a.State, a.Zip].filter(Boolean).join(', '))}
@@ -2657,11 +2724,15 @@ function openActDetail(id) {
       ${field('Paquete', a.Package)}
       ${field('Plan móvil', a.MobilePlan)}
       ${field('Total de la orden', a.OrderTotal ? '$' + a.OrderTotal : '')}
-      ${field('Origen', a.Source === 'Email' ? 'Correo de Spectrum' : 'Registro manual')}
+      ${field('Origen', a.Source === 'Email' ? 'Correo de Spectrum' : a.Source === 'Asesora' ? 'Registrada por ' + (a.EnteredBy || 'la asesora') : 'Registro manual')}
     </div>
     ${st ? `<div class="act-reco-box"><div style="margin-bottom:6px">${actStatusBadge(st)}</div>
       ${st.issues.map(i => `<div>• ${escHtml(i)}</div>`).join('')}
       ${st.disputeLeft !== null && ['missing','partial'].includes(st.code) ? `<div style="margin-top:6px;color:${st.disputeLeft<=7?'var(--red)':'var(--yellow)'}">Quedan aprox. ${Math.max(st.disputeLeft,0)} día(s) para disputar (30 días).</div>` : ''}
+    </div>` : ''}
+    ${ms ? `<div class="act-reco-box"><div style="margin-bottom:6px">📱 Mobile Report: ${actMobBadge(ms)}</div>
+      ${ms.issues.map(i => `<div>• ${escHtml(i)}</div>`).join('')}
+      ${ms.disputeLeft !== null && ['missing','partial'].includes(ms.code) ? `<div style="margin-top:6px;color:${ms.disputeLeft<=7?'var(--red)':'var(--yellow)'}">Quedan aprox. ${Math.max(ms.disputeLeft,0)} día(s) para disputar (30 días).</div>` : ''}
     </div>` : ''}
     <div class="act-reco-box">
       <div style="font-weight:600;margin-bottom:6px">Comisión estimada: ${fmtMoney(x.total)}</div>
@@ -2699,22 +2770,30 @@ async function actDelete(id) {
 }
 
 // ─── Manual entry (mobile, or anything the email missed) ───
-function openActForm(id) {
-  const a = id ? actData.find(x => x.ID === id) || {} : {};
+function openActForm(id, pre) {
+  const a = id ? actData.find(x => x.ID === id) || {} : Object.assign({ RepID: 'CMMCL4423' }, pre || {});
   const repOpts = Object.entries(ACT_REPS).map(([rid, n]) => `<option value="${rid}" ${String(a.RepID||'').toUpperCase()===rid?'selected':''}>${n} (${rid})</option>`).join('');
   const tierOpts = ['', '100', '500', '1 Gig', '2 Gig'];
   openModal(`
     <div class="modal-title">${id ? '✏️ Editar activación' : '📱 Registrar activación móvil'} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${pre && pre._from ? `<div class="act-hint" style="margin-bottom:12px">${escHtml(pre._from)}</div>` : ''}
     <div class="form-row">
       <div class="form-group"><label class="form-label">Fecha de orden *</label><input class="form-input" type="date" id="af-date" value="${escHtml(a.OrderDate || actToday())}"></div>
-      <div class="form-group"><label class="form-label">Rep *</label>
+      <div class="form-group"><label class="form-label">Hecha por *</label>
+        <select class="form-input form-select" id="af-soldby">${EMPLOYEES.map(n => `<option ${actRepName(a)===n || (!a.ID && !a.SoldBy && n==='Joel') ? 'selected' : ''}>${n}</option>`).join('')}</select>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Quién atendió al cliente (para su comisión).</div></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Rep ID en Spectrum *</label>
         <select class="form-input form-select" id="af-rep">${repOpts}
           ${a.RepID && !ACT_REPS[String(a.RepID).toUpperCase()] ? `<option value="${escHtml(a.RepID)}" selected>${escHtml(a.RepID)}</option>` : ''}
         </select></div>
+      <div class="form-group"><label class="form-label">Número de cuenta Spectrum *</label><input class="form-input" id="af-acct" inputmode="numeric" value="${escHtml(a.AccountNumber||'')}" oninput="actFormAcct('${escHtml(a.ID||'')}')"></div>
     </div>
+    <div id="af-acct-info"></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Número de cuenta Spectrum *</label><input class="form-input" id="af-acct" inputmode="numeric" value="${escHtml(a.AccountNumber||'')}"></div>
-      <div class="form-group"><label class="form-label">Confirmación / Orden</label><input class="form-input" id="af-conf" value="${escHtml(a.Confirmation||'')}"></div>
+      <div class="form-group"><label class="form-label">Confirmación (internet/TV)</label><input class="form-input" id="af-conf" value="${escHtml(a.Confirmation||'')}"></div>
+      <div class="form-group"><label class="form-label">Orden móvil (14 dígitos)</label><input class="form-input mono" id="af-morder" inputmode="numeric" value="${escHtml(a.MobileOrder||'')}"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Cliente *</label><input class="form-input" id="af-name" value="${escHtml(a.CustomerName||'')}"></div>
@@ -2722,8 +2801,15 @@ function openActForm(id) {
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Líneas móviles</label><input class="form-input" type="number" min="0" max="10" id="af-lines" value="${escHtml(a.MobileLines || (id ? '' : '1'))}"></div>
+      <div class="form-group"><label class="form-label">Tipo de la primera línea</label>
+        <select class="form-input form-select" id="af-mtype">
+          <option value="">${id && +a.MobileLines && !a.MobileType ? 'Calcular solo (' + escHtml((ACT_MOBILE_TYPE_INFO[actMobileTypeOf(a).type]||{}).short||'') + ')' : '—'}</option>
+          ${ACT_MOBILE_TYPES.map(t => `<option value="${t}" ${a.MobileType===t?'selected':''}>${ACT_MOBILE_TYPE_INFO[t].short} — ${t==='Incremental'?'$250':'$150'}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row">
       <div class="form-group"><label class="form-label">Plan móvil</label>
         <select class="form-input form-select" id="af-plan">${['', 'Unlimited', 'Unlimited Plus', 'By the Gig'].map(p => `<option ${a.MobilePlan===p?'selected':''}>${p}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Número(s) de línea</label><input class="form-input" id="af-linephones" value="${escHtml(a.LinePhones||'')}"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Internet (si aplica)</label>
@@ -2734,12 +2820,30 @@ function openActForm(id) {
     <div class="form-group"><label class="form-label">IMEI(s)</label><input class="form-input" id="af-imei" placeholder="Separados por coma" value="${escHtml(a.IMEIs||'')}"></div>
     <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" id="af-notes" rows="2" placeholder="Ej. port-in de AT&T, teléfono regalado">${escHtml(a.Notes||'')}</textarea></div>
     <button class="btn btn-primary btn-full" onclick="actSaveForm('${escHtml(id||'')}')">Guardar</button>`);
+  if (a.AccountNumber) actFormAcct(a.ID || '', true);
+}
+function actFormAcct(id, keepType) {
+  const acct = actAcct(document.getElementById('af-acct')?.value);
+  const box = document.getElementById('af-acct-info');
+  if (!box) return;
+  if (acct.length < 9) { box.innerHTML = ''; return; }
+  const cur = id ? actData.find(x => x.ID === id) : null;
+  const prior = actPriorMobileRows(acct, cur ? cur.OrderDate : document.getElementById('af-date').value, id, cur ? cur.CreatedAt : '~');
+  const others = actData.filter(x => x.ID !== id && actAcct(x.AccountNumber) === acct && !(+x.MobileLines > 0));
+  const info = { ok: true, account: acct, customerName: (prior[0] || others[0] || {}).CustomerName || '',
+    priorLines: prior.reduce((n, x) => n + (+x.MobileLines || 0), 0),
+    prior: prior.map(x => ({ date: x.OrderDate, lines: +x.MobileLines, by: actRepName(x) })), otherServices: others };
+  const sel = document.getElementById('af-mtype'), before = sel ? sel.value : '';
+  mlShowAcctInfo(info, box, 'af-name', 'af-mtype');
+  if (keepType && sel) sel.value = before;
 }
 async function actSaveForm(id) {
   const v = k => document.getElementById(k).value.trim();
   const rec = { OrderDate: v('af-date'), RepID: v('af-rep'), AccountNumber: actAcct(v('af-acct')), Confirmation: v('af-conf'),
     CustomerName: v('af-name'), Phone: actAcct(v('af-phone')), MobileLines: v('af-lines'), MobilePlan: v('af-plan'),
-    InternetTier: v('af-int'), VideoTier: v('af-tv'), IMEIs: v('af-imei'), Notes: v('af-notes') };
+    InternetTier: v('af-int'), VideoTier: v('af-tv'), IMEIs: v('af-imei'), Notes: v('af-notes'),
+    SoldBy: v('af-soldby'), MobileType: +v('af-lines') > 0 ? v('af-mtype') : '', MobileOrder: v('af-morder').replace(/[^\d,]+/g, ','),
+    LinePhones: v('af-linephones') };
   rec.Employee = ACT_REPS[rec.RepID.toUpperCase()] || '';
   if (id) rec.ID = id;
   if (!rec.AccountNumber || !rec.CustomerName || !rec.OrderDate) { toast('Fecha, cuenta y cliente son obligatorios.', 'error'); return; }
@@ -2751,6 +2855,8 @@ async function actSaveForm(id) {
     const i = actData.findIndex(x => x.ID === saved.ID);
     if (i >= 0) actData[i] = saved; else actData.push(saved);
     if (actReco) actReconcile(actReco.groups, actReco.meta);
+    if (actMobReco) actMobReconcile(actMobReco.groups, actMobReco.meta);
+    if (actEmails) actEmails = await apiGet({ action: 'getMobileEmails' }).catch(() => actEmails);
     closeModal(); toast('Activación guardada.', 'success'); renderActBody();
   } catch (e) { toast(e.message, 'error'); }
 }
@@ -2762,17 +2868,21 @@ function actLoadScript(src) {
 function actRptDate(v) {
   const s = String(v ?? '').trim();
   let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; const ymd = `${y}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`; return y === '1901' ? '' : ymd; }
+  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; const ymd = `${y}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`; return +y < 2000 ? '' : ymd; }
   m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m && m[1] !== '1901' ? `${m[1]}-${m[2]}-${m[3]}` : '';
+  return m && +m[1] >= 2000 ? `${m[1]}-${m[2]}-${m[3]}` : '';
 }
-async function actLoadCoreReport(file) {
+async function actLoadReport(file) {
   if (!file) return;
   try {
     if (!window.XLSX) await actLoadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
     const ws = wb.Sheets[wb.SheetNames[0]];
     const grid = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+    if (grid.some(r => r.some(c => /mobile work order number\s*-\s*parent/i.test(String(c))))) {
+      actLoadMobileReport(file, XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }));
+      return;
+    }
     const hi = grid.findIndex(r => r.some(c => /customer\s*-\s*account number/i.test(String(c))));
     if (hi < 0) throw new Error('No encontré la columna "Customer - Account Number". ¿Es el Core Report?');
     const H = grid[hi].map(h => String(h).trim().toLowerCase());
@@ -2927,12 +3037,14 @@ function actCsv(rows, name) {
 function actExportCSV() {
   const list = actFiltered();
   if (!list.length) { toast('No hay activaciones para exportar.', 'error'); return; }
-  actCsv([['Fecha','Mes fiscal','Rep','Rep ID','Cliente','Cuenta','Confirmación','Work order','Teléfono','Correo','Dirección','Ciudad','Zip',
-    'Internet','Líneas móviles','Plan móvil','TV','Voice','Xumo','Comisión estimada','Estatus Cellmart','Detalle','IMEIs','Notas']]
-    .concat(list.map(a => { const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID];
-      return [a.OrderDate, a.FiscalMonth, actRepName(a), a.RepID, a.CustomerName, a.AccountNumber, a.Confirmation, a.WorkOrder, a.Phone, a.Email,
-        a.Address, a.City, a.Zip, s.internetTier, s.mobileLines || '', a.MobilePlan, s.videoTier, s.voice ? 'Yes' : '', s.xumo || '',
-        x.total ?? '', st ? (ACT_STATUS[st.code]||{}).label : '', st ? st.issues.join(' | ') : '', a.IMEIs, a.Notes]; })),
+  actCsv([['Fecha','Mes fiscal','Hecha por','Rep ID','Cliente','Cuenta','Confirmación','Work order','Orden móvil','Teléfono','Correo','Dirección','Ciudad','Zip',
+    'Internet','Líneas móviles','Tipo de línea','Incrementales','Plan móvil','Números de línea','TV','Voice','Xumo','Comisión estimada','Estatus Core','Detalle Core','Estatus móvil','Detalle móvil','IMEIs','Notas','Registrada por']]
+    .concat(list.map(a => { const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID], ms = actMobReco && actMobReco.byId[a.ID];
+      return [a.OrderDate, a.FiscalMonth, actRepName(a), a.RepID, a.CustomerName, a.AccountNumber, a.Confirmation, a.WorkOrder, a.MobileOrder, a.Phone, a.Email,
+        a.Address, a.City, a.Zip, s.internetTier, s.mobileLines || '', s.mobileLines ? (ACT_MOBILE_TYPE_INFO[s.mobileType]||{short:s.mobileType}).short + (s.mobileTypeAuto ? ' (calculado)' : '') : '',
+        s.mobileLines ? s.mobileLines - (s.mobileType === 'Incremental' ? 0 : 1) : '', a.MobilePlan, a.LinePhones, s.videoTier, s.voice ? 'Yes' : '', s.xumo || '',
+        x.total ?? '', st ? (ACT_STATUS[st.code]||{}).label : '', st ? st.issues.join(' | ') : '',
+        ms ? (ACT_MOB_STATUS[ms.code]||{}).label : '', ms ? ms.issues.join(' | ') : '', a.IMEIs, a.Notes, a.Source === 'Email' ? 'Correo' : (a.EnteredBy || a.Source)]; })),
     `activaciones_${actFilter.fm || 'todas'}.csv`);
 }
 function actExportClaims() {
@@ -2944,6 +3056,419 @@ function actExportClaims() {
         [s.internetTier && 'Internet ' + s.internetTier, s.mobileLines && s.mobileLines + ' línea(s) móvil', s.videoTier && 'TV ' + s.videoTier, s.voice && 'Voice'].filter(Boolean).join(' + '),
         st.issues.join(' | '), st.disputeLeft === null ? '' : Math.max(st.disputeLeft, 0)]; })),
     `reclamar_cellmart_${actToday()}.csv`);
+}
+
+// ─── 📱 MIS LÍNEAS (ASESORAS) ───────────────────────────────────────
+// Each asesora registers every mobile line herself as soon as the customer leaves.
+// Same 6-digit PIN as Prospectos (prosAuth). Spectrum's "Agent Order Confirmation"
+// emails show up here only as reminders of orders nobody has registered yet.
+let mlData = null;
+
+function mlApi(action, params = {}) {
+  return apiGet({ action, user: prosAuth.user, pin: prosAuth.pin, ...params });
+}
+function mlTypeInfo(t) { return ACT_MOBILE_TYPE_INFO[t] || { short: t || '—', long: t || '' }; }
+
+async function renderMyLines() {
+  if (isManager) { showPage('activations'); return; }
+  const el = document.getElementById('content');
+  if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
+  if (!prosAuth || prosAuth.user !== currentUser) { prosAuth = null; mlData = null; renderProsPin(); return; }
+  el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  try {
+    mlData = await mlApi('actRepList');
+  } catch (e) {
+    if (/PIN|intentos|Usuario/i.test(e.message)) { prosAuth = null; renderProsPin(e.message); return; }
+    el.innerHTML = errorState(/unknown|invalid action|actRepList/i.test(e.message)
+      ? 'El backend todavía no tiene esta versión de Activaciones.gs. Pídele a Joel que la instale.' : e.message);
+    return;
+  }
+  renderMyLinesBody();
+}
+
+function renderMyLinesBody() {
+  const el = document.getElementById('content');
+  const d = mlData;
+  const month = d.lines.filter(l => l.FiscalMonth === d.fiscalMonth);
+  const nLines = month.reduce((s, l) => s + (+l.MobileLines || 0), 0);
+  const nIncr = month.reduce((s, l) => s + (+l.MobileLines || 0) - (l.MobileType === 'Incremental' ? 0 : 1), 0);
+  el.innerHTML = `
+    <div class="page-title">📱 Mis líneas</div>
+    <div class="page-subtitle">${escHtml(d.me.name)} · registra cada línea en cuanto se vaya el cliente</div>
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="openMlForm()">＋ Registrar línea</button>
+      <button class="btn btn-ghost" onclick="renderMyLines()">↻ Actualizar</button>
+    </div>
+    ${d.emails.length ? `<div class="act-reco" style="border-color:rgba(255,209,102,.45)">
+      <div style="font-weight:700;margin-bottom:4px">📧 Spectrum confirmó estas órdenes y nadie las ha registrado</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Si tú la hiciste, regístrala. Si no fue tuya, déjala: Joel la revisa.</div>
+      ${d.emails.map(e => `<div class="ml-mail">
+        <span class="mono" style="color:var(--muted)">${actFmtDate(e.OrderDate)}</span>
+        <span style="flex:1;font-weight:600">${escHtml(mlTitle(e.FirstName))}</span>
+        <span class="mono" style="font-size:11px;color:var(--muted)">#${escHtml(e.OrderNumber)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="openMlForm('${escHtml(e.MsgId)}')">Registrar</button></div>`).join('')}
+    </div>` : ''}
+    <div class="report-grid">
+      <div class="stat-card green"><div class="stat-label">📱 Líneas este mes</div><div class="stat-value">${nLines}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${actFmLabel(d.fiscalMonth)}</div></div>
+      <div class="stat-card cyan"><div class="stat-label">➕ Incrementales</div><div class="stat-value">${nIncr}</div></div>
+      <div class="stat-card blue"><div class="stat-label">Órdenes este mes</div><div class="stat-value">${month.length}</div></div>
+    </div>
+    <div class="pros-section-title">Mis líneas registradas (últimos 2 meses)</div>
+    ${d.lines.length ? `<div class="table-wrap" style="overflow-x:auto"><table>
+      <thead><tr><th>Fecha</th><th>Cliente</th><th>Cuenta</th><th>Líneas</th><th>Tipo</th><th>Orden</th><th></th></tr></thead>
+      <tbody>${d.lines.map(l => `<tr>
+        <td class="mono">${actFmtDate(l.OrderDate)}</td>
+        <td><div style="font-weight:600">${escHtml(l.CustomerName || '—')}</div>${l.Source !== 'Asesora' ? `<div style="font-size:11px;color:var(--muted)">${l.Source === 'Email' ? 'del correo de Spectrum' : 'registrada por Joel'}</div>` : ''}</td>
+        <td class="mono">${escHtml(l.AccountNumber || '')}</td>
+        <td>${escHtml(l.MobileLines)}</td>
+        <td>${mlTypeBadge(l.MobileType, +l.MobileLines)}</td>
+        <td class="mono" style="font-size:11px">${escHtml(l.MobileOrder || '—')}</td>
+        <td>${l.canDelete ? `<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="mlDelete('${escHtml(l.ID)}')">🗑</button>` : ''}</td>
+      </tr>`).join('')}</tbody></table></div>`
+    : `<div class="table-wrap"><div class="empty-state" style="padding:30px"><div class="icon">📱</div><p>Todavía no tienes líneas registradas.</p></div></div>`}
+    <div style="font-size:12px;color:var(--muted);margin-top:10px">Puedes borrar lo que registraste hoy si te equivocaste. Para corregir algo más viejo, avísale a Joel.</div>`;
+}
+function mlTitle(s) { return String(s || '').toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()); }
+function mlTypeBadge(t, lines) {
+  if (!t) return '<span style="color:var(--muted)">—</span>';
+  const extra = lines > 1 ? ` <span style="font-size:11px;color:var(--muted)">+${lines - 1} incr.</span>` : '';
+  const cls = t === 'Incremental' ? 'badge-ok' : t === 'Primera' ? 'badge-low' : '';
+  return `<span class="badge ${cls}">${escHtml(mlTypeInfo(t).short)}</span>${extra}`;
+}
+
+function openMlForm(msgId) {
+  const e = msgId ? (mlData.emails || []).find(x => x.MsgId === msgId) : null;
+  const myIds = mlData.me.repIds || [];
+  const reps = mlData.reps || [];
+  const repOpts = (myIds.length ? myIds.map(id => ({ id, name: mlData.me.name })) : []).concat(reps.filter(r => !myIds.includes(r.id)))
+    .map((r, i) => `<option value="${escHtml(r.id)}" ${i === 0 ? 'selected' : ''}>${escHtml(r.id)} (${escHtml(r.name)})</option>`).join('');
+  const minDate = actAddDays(mlData.today, -7);
+  openModal(`
+    <div class="modal-title">📱 Registrar línea <button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${e ? `<div class="act-hint" style="margin-bottom:12px">Del correo de Spectrum: <b>${escHtml(mlTitle(e.FirstName))}</b> · orden #${escHtml(e.OrderNumber)} · ${actFmtDate(e.OrderDate)}</div>` : ''}
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Fecha de la venta *</label>
+        <input class="form-input" type="date" id="ml-date" min="${minDate}" max="${mlData.today}" value="${escHtml(e ? e.OrderDate : mlData.today)}"></div>
+      <div class="form-group"><label class="form-label">Número de cuenta Spectrum *</label>
+        <input class="form-input mono" id="ml-acct" inputmode="numeric" placeholder="8260…" oninput="mlAcctChanged()" onblur="mlCheckAcct()"></div>
+    </div>
+    <div id="ml-acct-info"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nombre del cliente *</label>
+        <input class="form-input" id="ml-name" value="${escHtml(e ? mlTitle(e.FirstName) : '')}" placeholder="Nombre y apellido"></div>
+      <div class="form-group"><label class="form-label">Teléfono de contacto</label>
+        <input class="form-input" id="ml-phone" type="tel" placeholder="956…"></div>
+    </div>
+    <div class="form-group"><label class="form-label">¿Cuántas líneas activaste en esta orden? *</label>
+      <input class="form-input" type="number" min="1" max="10" id="ml-lines" value="1" oninput="mlTypeHint()" style="max-width:120px"></div>
+    <div class="form-group"><label class="form-label">Tipo de línea *</label>
+      <div class="ml-types" id="ml-type">
+        ${ACT_MOBILE_TYPES.map(t => `<label class="ml-type"><input type="radio" name="ml-type" value="${t}" onchange="mlTypeHint()">
+          <span><b>${escHtml(ACT_MOBILE_TYPE_INFO[t].short)}</b><br><span style="color:var(--muted);font-size:12px">${escHtml(ACT_MOBILE_TYPE_INFO[t].long)}</span></span></label>`).join('')}
+      </div>
+      <div id="ml-type-hint" style="font-size:12px;color:var(--muted);margin-top:6px"></div></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Número de orden móvil</label>
+        <input class="form-input mono" id="ml-order" inputmode="numeric" placeholder="1238…" value="${escHtml(e ? e.OrderNumber : '')}">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">El de la confirmación de la orden (14 dígitos).</div></div>
+      <div class="form-group"><label class="form-label">Número(s) de la(s) línea(s) nueva(s)</label>
+        <input class="form-input" id="ml-linephones" placeholder="956…, 956…"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Plan</label>
+        <select class="form-input form-select" id="ml-plan">${['', 'Unlimited', 'Unlimited Plus', 'By the Gig'].map(p => `<option value="${p}">${p || '—'}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Rep ID que se usó en Spectrum</label>
+        <select class="form-input form-select" id="ml-rep">${repOpts}<option value="">Otro / no sé</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">IMEI(s)</label><input class="form-input mono" id="ml-imei" placeholder="Separados por coma"></div>
+    <div class="form-group"><label class="form-label">Notas</label>
+      <textarea class="form-input" id="ml-notes" rows="2" placeholder="Ej. teléfono regalado, port-in de AT&T, se llevó funda y protector"></textarea></div>
+    <button class="btn btn-primary btn-full" id="ml-save" onclick="mlSave()">Guardar</button>`);
+  setTimeout(() => document.getElementById('ml-acct')?.focus(), 50);
+}
+
+let mlAcctTimer = null, mlAcctInfo = null;
+function mlAcctChanged() {
+  clearTimeout(mlAcctTimer);
+  const v = actAcct(document.getElementById('ml-acct').value);
+  if (v.length >= 16) mlAcctTimer = setTimeout(mlCheckAcct, 300);
+  else { mlAcctInfo = null; document.getElementById('ml-acct-info').innerHTML = ''; mlTypeHint(); }
+}
+async function mlCheckAcct() {
+  const v = actAcct(document.getElementById('ml-acct')?.value);
+  const box = document.getElementById('ml-acct-info');
+  if (!box || v.length < 9 || (mlAcctInfo && mlAcctInfo.account === v)) return;
+  box.innerHTML = `<div class="act-hint" style="margin-bottom:12px">Revisando la cuenta…</div>`;
+  try {
+    const r = await mlApi('actRepCheck', { cuenta: v });
+    mlAcctInfo = r;
+    mlShowAcctInfo(r, box, 'ml-name', 'ml-type');
+  } catch (e) { box.innerHTML = `<div class="act-hint" style="margin-bottom:12px;color:var(--red)">${escHtml(e.message)}</div>`; }
+  mlTypeHint();
+}
+// Shared by the asesora form and Joel's form
+function mlShowAcctInfo(r, box, nameId, radioName) {
+  if (!r || !r.ok) { box.innerHTML = r && r.message ? `<div class="act-hint" style="margin-bottom:12px">${escHtml(r.message)}</div>` : ''; return; }
+  const nameEl = document.getElementById(nameId);
+  if (nameEl && !nameEl.value.trim() && r.customerName) nameEl.value = r.customerName;
+  const setType = t => { const el = document.querySelector(`input[name="${radioName}"][value="${t}"]`) || document.querySelector(`#${radioName} option[value="${t}"]`);
+    if (el) { if (el.tagName === 'OPTION') el.parentElement.value = t; else el.checked = true; } };
+  if (r.priorLines > 0) {
+    setType('Incremental');
+    box.innerHTML = `<div class="act-hint" style="margin-bottom:12px;border-color:rgba(0,232,135,.5);color:var(--text)">
+      ✅ Ya le hicimos <b>${r.priorLines} línea(s)</b> a esta cuenta (${r.prior.map(p => `${actFmtDate(p.date)}${p.by ? ' · ' + escHtml(p.by) : ''}`).join(', ')}).
+      Esta línea es <b>Incremental</b>.</div>`;
+  } else {
+    box.innerHTML = `<div class="act-hint" style="margin-bottom:12px">No tenemos líneas registradas en esta cuenta${r.otherServices.length ? ' (sí tiene internet o TV con nosotros)' : ''}.
+      Si el cliente <b>no tenía ninguna línea</b> de Spectrum, es <b>Primera línea</b>. Si ya tenía una que no hicimos nosotros, es <b>Adicional</b>.</div>`;
+  }
+}
+function mlTypeHint() {
+  const el = document.getElementById('ml-type-hint');
+  if (!el) return;
+  const t = document.querySelector('input[name="ml-type"]:checked')?.value;
+  const n = +document.getElementById('ml-lines').value || 0;
+  let msg = n > 1 ? `Las otras ${n - 1} línea(s) de esta orden cuentan como incrementales.` : '';
+  if (mlAcctInfo && mlAcctInfo.ok) {
+    if (mlAcctInfo.priorLines > 0 && t && t !== 'Incremental') msg = `⚠️ Esta cuenta ya tiene línea(s) nuestra(s): debería ser Incremental. ${msg}`;
+    if (!mlAcctInfo.priorLines && t === 'Incremental') msg = `⚠️ No hay líneas nuestras registradas en esta cuenta. ¿Seguro que es incremental? ${msg}`;
+  }
+  el.innerHTML = msg;
+  el.style.color = msg.startsWith('⚠️') ? 'var(--yellow)' : 'var(--muted)';
+}
+
+async function mlSave(force) {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const data = { OrderDate: v('ml-date'), AccountNumber: actAcct(v('ml-acct')), CustomerName: v('ml-name'), Phone: actAcct(v('ml-phone')),
+    MobileLines: v('ml-lines'), MobileType: document.querySelector('input[name="ml-type"]:checked')?.value || '',
+    MobileOrder: actAcct(v('ml-order')), LinePhones: v('ml-linephones'), MobilePlan: v('ml-plan'), RepID: v('ml-rep'),
+    IMEIs: v('ml-imei'), Notes: v('ml-notes') };
+  if (data.AccountNumber.length < 9) { toast('Escribe el número de cuenta completo.', 'error'); return; }
+  if (!data.CustomerName) { toast('Escribe el nombre del cliente.', 'error'); return; }
+  if (!data.MobileType) { toast('Escoge el tipo de línea.', 'error'); return; }
+  if (data.MobileOrder && data.MobileOrder.length !== 14 && !confirm(`El número de orden tiene ${data.MobileOrder.length} dígitos (normalmente son 14). ¿Guardar así?`)) return;
+  const btn = document.getElementById('ml-save'); if (btn) btn.disabled = true;
+  try {
+    const r = await mlApi('actRepSave', { data: JSON.stringify(data), ...(force ? { force: '1' } : {}) });
+    if (r.confirm) {
+      if (btn) btn.disabled = false;
+      if (confirm(r.confirm)) mlSave(true);
+      return;
+    }
+    closeModal();
+    toast(r.warning ? escHtml(r.warning) : 'Línea registrada. ¡Gracias!', r.warning ? 'info' : 'success');
+    mlAcctInfo = null;
+    renderMyLines();
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    toast(escHtml(e.message), 'error');
+  }
+}
+async function mlDelete(id) {
+  if (!confirm('¿Borrar este registro? Solo hazlo si te equivocaste.')) return;
+  try { await mlApi('actRepDelete', { id }); toast('Borrado.', 'success'); renderMyLines(); }
+  catch (e) { toast(escHtml(e.message), 'error'); }
+}
+
+// ─── Correos "Agent Order Confirmation" sin registrar (manager) ───
+function actEmailsPanel() {
+  if (!actEmails) return '';
+  const pend = actEmails.filter(e => e.status === 'pending');
+  const ign = actEmails.filter(e => e.status === 'ignored').length;
+  const reg = actEmails.filter(e => e.status === 'registered').length;
+  if (!pend.length) return actEmails.length ? `<div class="act-hint">📧 Correos de líneas de Spectrum: ${reg} registrados${ign ? ` · ${ign} ignorado(s)` : ''} · ninguno pendiente.</div>` : '';
+  return `<div class="act-reco" style="border-color:rgba(255,209,102,.45)">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <div style="font-weight:700">📧 Correos de líneas sin registrar (${pend.length})</div>
+      <div style="font-size:12px;color:var(--muted)">${reg} ya registrados${ign ? ` · ${ign} ignorado(s)` : ''}</div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Spectrum confirmó estas órdenes móviles, pero nadie las registró. Pregunta quién la hizo, o regístrala tú.</div>
+    ${pend.slice(0, 40).map(e => `<div class="ml-mail">
+      <span class="mono" style="color:var(--muted)">${actFmtDate(e.OrderDate)}</span>
+      <span style="flex:1;font-weight:600">${escHtml(mlTitle(e.FirstName))}</span>
+      <span class="mono" style="font-size:11px;color:var(--muted)">#${escHtml(e.OrderNumber)}</span>
+      <button class="btn btn-ghost btn-sm" onclick="actRegisterFromEmail('${escHtml(e.MsgId)}')">Registrar</button>
+      <button class="btn btn-ghost btn-sm" title="No es una venta (cancelada, prueba, etc.)" onclick="actIgnoreEmail('${escHtml(e.MsgId)}')">Ignorar</button>
+    </div>`).join('')}
+    ${pend.length > 40 ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">…y ${pend.length - 40} más.</div>` : ''}
+  </div>`;
+}
+function actRegisterFromEmail(msgId) {
+  const e = (actEmails || []).find(x => x.MsgId === msgId);
+  if (!e) return;
+  const g = actMobReco && actMobReco.groups[e.OrderNumber];
+  openActForm(null, Object.assign(g ? actPrefillFromGroup(g) : {},
+    { OrderDate: g ? g.sale || e.OrderDate : e.OrderDate, CustomerName: g ? mlTitle(actReportName(g.name)) : mlTitle(e.FirstName), MobileOrder: e.OrderNumber,
+      MobileLines: g ? String(g.lines.filter(l => !l.canceled).length || g.lines.length) : '1',
+      _from: `Del correo de Spectrum: ${mlTitle(e.FirstName)} · orden #${e.OrderNumber} · ${actFmtDate(e.OrderDate)}${g ? ' · datos completados con el Mobile Report' : ''}` }));
+}
+async function actIgnoreEmail(msgId) {
+  try {
+    await apiGet({ action: 'ignoreMobileEmail', msgId });
+    const e = actEmails.find(x => x.MsgId === msgId); if (e) { e.status = 'ignored'; e.Ignored = actToday(); }
+    toast('Correo ignorado.', 'success'); renderActBody();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+// ─── Mobile Report (Cellmart) ─────────────────────────────────────
+// One row per line. "Mobile Work Order Number - Parent" is the same 14-digit
+// order number that Spectrum's "Agent Order Confirmation" email carries.
+const ACT_MOB_STATUS = {
+  ok:       { label: '✅ Activada',      cls: 'badge-ok' },
+  pending:  { label: '⏳ Pendiente',     cls: 'badge-low' },
+  missing:  { label: '❌ No aparece',    cls: 'badge-out' },
+  partial:  { label: '⚠️ Faltan líneas', cls: 'badge-out' },
+  canceled: { label: 'Cancelada',        cls: 'badge-out' },
+  recent:   { label: 'Muy reciente',     cls: 'badge-low' },
+  out:      { label: 'Fuera del rango',  cls: '' }
+};
+function actMobBadge(ms) {
+  const s = ACT_MOB_STATUS[ms.code] || { label: ms.code, cls: '' };
+  return `<span class="badge ${s.cls}" title="${escHtml(ms.issues.join(' · '))}">${s.label}</span>${ms.typeIssue ? ' <span class="badge badge-low" title="' + escHtml(ms.typeIssue) + '">⚠️ Tipo</span>' : ''}`;
+}
+function actRawNum(v) {
+  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(0);
+  return String(v ?? '').replace(/[^\d]/g, '');
+}
+function actReportName(n) {   // "GARCIA,JASMINE" → "JASMINE GARCIA"
+  const s = String(n || '').trim();
+  const m = s.match(/^([^,]+),\s*(.+)$/);
+  return m ? `${m[2]} ${m[1]}` : s;
+}
+function actLoadMobileReport(file, grid) {
+  const hi = grid.findIndex(r => r.some(c => /mobile work order number\s*-\s*parent/i.test(String(c))));
+  const H = grid[hi].map(h => String(h).trim().toLowerCase());
+  const col = name => H.indexOf(name.toLowerCase());
+  const C = { acct: col('Customer - Account Number'), name: col('Customer Full Name'), conn: col('Date - Connect'), sale: col('Date - Sales Enter Date'),
+    type: col('Sale Type'), connects: col('Sales - Connects'), pending: col('Sales - Pending'), canceled: col('Sales - Canceled'),
+    net: col('Network Activation'), netDate: col('Network Activation Date'), model: col('Line Device Model'), imei: col('IMEI'),
+    plan: col('Line Rate Plan'), parent: col('Mobile Work Order Number - Parent'), wo: col('Mobile Work Order Number'),
+    byod: col('Sales - Mobile Lines Sold - BYOD'), total: col('Sales - Mobile Lines Sold - Total'), mAcct: col('Mobile Account Number') };
+  const cell = (r, i) => i < 0 ? '' : r[i];
+  const groups = {}; let minSale = '', upd = '';
+  grid.slice(hi + 1).forEach(r => {
+    const acct = actAcct(cell(r, C.acct));
+    const wo = actRawNum(cell(r, C.parent)) || actRawNum(cell(r, C.wo));
+    if (!acct || !wo || /account number/i.test(String(cell(r, C.acct)))) return;
+    const sale = actRptDate(cell(r, C.sale)), conn = actRptDate(cell(r, C.conn));
+    const g = groups[wo] = groups[wo] || { wo, acct, name: String(cell(r, C.name) || ''), sale, saleType: String(cell(r, C.type) || ''),
+      totalOnAcct: +cell(r, C.total) || 0, lines: [] };
+    g.lines.push({ connected: +cell(r, C.connects) > 0, pending: +cell(r, C.pending) > 0, canceled: +cell(r, C.canceled) > 0,
+      activated: String(cell(r, C.net)).toUpperCase() === 'Y', conn, model: String(cell(r, C.model) || ''), imei: actRawNum(cell(r, C.imei)),
+      plan: String(cell(r, C.plan) || ''), byod: +cell(r, C.byod) > 0 });
+    if (sale && (!minSale || sale < minSale)) minSale = sale;
+    [sale, conn, actRptDate(cell(r, C.netDate))].forEach(d => { if (d && d > upd) upd = d; });
+  });
+  const meta = { file: file.name, minSale, upd: upd || actToday(), orders: Object.keys(groups).length,
+    lines: Object.values(groups).reduce((n, g) => n + g.lines.length, 0) };
+  actMobReconcile(groups, meta);
+  actFilter.fm = '';
+  toast(`Mobile Report cargado: ${meta.lines} líneas en ${meta.orders} órdenes.`, 'success');
+  renderActBody();
+}
+function actPrefillFromGroup(g) {
+  const live = g.lines.filter(l => !l.canceled);
+  const prior = Object.values(actMobReco ? actMobReco.groups : {}).filter(x => x.acct === g.acct && x.wo !== g.wo && x.sale && x.sale < g.sale && x.lines.some(l => l.connected));
+  const appPrior = actPriorMobileRows(g.acct, g.sale, '');
+  return { AccountNumber: g.acct, CustomerName: mlTitle(actReportName(g.name)), OrderDate: g.sale || actToday(), MobileOrder: g.wo,
+    MobileLines: String(live.length || g.lines.length), IMEIs: live.map(l => l.imei).filter(Boolean).join(', '),
+    MobilePlan: /plus/i.test(live[0]?.plan) ? 'Unlimited Plus' : /unlimited/i.test(live[0]?.plan) ? 'Unlimited' : '',
+    MobileType: prior.length || appPrior.length ? 'Incremental' : '' };
+}
+function actMobReconcile(groups, meta) {
+  const byId = {}, used = new Set(), today = actToday();
+  const recentCut = actAddDays(meta.upd, -3);
+  const mobRows = actData.filter(a => +a.MobileLines > 0).sort((a, b) => (a.OrderDate || '').localeCompare(b.OrderDate || ''));
+  const byAcct = {};
+  Object.values(groups).forEach(g => { (byAcct[g.acct] = byAcct[g.acct] || []).push(g); });
+  // 1) by order number, 2) by account + date (±3 days), 3) by IMEI
+  const find = a => {
+    const orders = String(a.MobileOrder || '').split(/[^\d]+/).filter(Boolean);
+    let gs = orders.map(o => groups[o]).filter(g => g && !used.has(g.wo));
+    if (gs.length) return gs;
+    const acct = actAcct(a.AccountNumber);
+    gs = (byAcct[acct] || []).filter(g => !used.has(g.wo) && g.sale && a.OrderDate && Math.abs(actDaysBetween(a.OrderDate, g.sale)) <= 3)
+      .sort((x, y) => Math.abs(actDaysBetween(a.OrderDate, x.sale)) - Math.abs(actDaysBetween(a.OrderDate, y.sale)));
+    if (gs.length) return [gs[0]];
+    const imeis = String(a.IMEIs || '').split(/[^\d]+/).filter(x => x.length >= 14);
+    if (imeis.length) {
+      gs = Object.values(groups).filter(g => !used.has(g.wo) && g.lines.some(l => imeis.includes(l.imei)));
+      if (gs.length) return gs;
+    }
+    return [];
+  };
+  mobRows.forEach(a => {
+    const gs = find(a), issues = [];
+    const st = { code: 'ok', issues, disputeLeft: null, wos: gs.map(g => g.wo), typeIssue: '' };
+    const disputeLeft = DISPUTE_DAYS - actDaysBetween(a.OrderDate || today, today);
+    if (!gs.length) {
+      if (meta.minSale && a.OrderDate < meta.minSale) { st.code = 'out'; issues.push('La venta es anterior al rango del reporte.'); }
+      else if (a.OrderDate > meta.upd) { st.code = 'out'; issues.push(`Venta posterior al reporte (llega al ${actFmtDate(meta.upd)}). Baja un reporte más nuevo.`); }
+      else if (a.OrderDate > recentCut) { st.code = 'recent'; issues.push('Venta muy reciente para este reporte.'); }
+      else { st.code = 'missing'; st.disputeLeft = disputeLeft; issues.push('La orden no aparece en el Mobile Report.'); }
+      byId[a.ID] = st; return;
+    }
+    gs.forEach(g => used.add(g.wo));
+    const lines = gs.flatMap(g => g.lines);
+    const act = lines.filter(l => l.connected && !l.canceled), can = lines.filter(l => l.canceled), pen = lines.filter(l => !l.connected && !l.canceled);
+    const want = +a.MobileLines || 0;
+    if (act.length) issues.push(`${act.length} línea(s) activada(s)${act[0].conn ? ' el ' + actFmtDate(act[0].conn) : ''}: ${[...new Set(act.map(l => l.model))].join(', ')}.`);
+    if (pen.length) issues.push(`${pen.length} línea(s) pendiente(s).`);
+    if (can.length) issues.push(`${can.length} línea(s) cancelada(s).`);
+    if (act.length + pen.length < want) { st.code = 'partial'; st.disputeLeft = disputeLeft; issues.push(`Registraste ${want} línea(s); el reporte muestra ${act.length + pen.length} vigente(s).`); }
+    else if (!act.length && !pen.length && can.length) st.code = 'canceled';
+    else if (pen.length) st.code = 'pending';
+    if (act.length + pen.length > want) issues.push(`El reporte tiene ${act.length + pen.length} línea(s) y registraste ${want}: corrige el número de líneas.`);
+    // Primera vs incremental, using earlier MirComm orders on the same account (report + app)
+    const sale = gs.map(g => g.sale).filter(Boolean).sort()[0] || a.OrderDate;
+    const repPrior = (byAcct[actAcct(a.AccountNumber)] || []).filter(g => !gs.includes(g) && g.sale && g.sale < sale && g.lines.some(l => l.connected && !l.canceled));
+    const appPrior = actPriorMobileRows(actAcct(a.AccountNumber), a.OrderDate, a.ID, a.CreatedAt);
+    const t = actMobileTypeOf(a).type;
+    if (t !== 'Incremental' && repPrior.length) st.typeIssue = `El reporte muestra otra línea nuestra en esta cuenta (${actFmtDate(repPrior[0].sale)}): debería ser Incremental ($250).`;
+    else if (t === 'Incremental' && !repPrior.length && !appPrior.length) st.typeIssue = 'No hay una línea anterior nuestra en esta cuenta, ni en el reporte ni en la app: ¿es primera o adicional? ($150)';
+    const total = Math.max(...gs.map(g => g.totalOnAcct));
+    const ourOnAcct = (byAcct[actAcct(a.AccountNumber)] || []).reduce((n, g) => n + g.lines.filter(l => !l.canceled).length, 0);
+    if (t === 'Primera' && !repPrior.length && total > ourOnAcct)
+      issues.push(`La cuenta tiene ${total} línea(s) en total; si alguna ya existía antes de esta venta, el tipo correcto es "Adicional".`);
+    if (st.typeIssue) issues.push('⚠️ ' + st.typeIssue);
+    byId[a.ID] = st;
+  });
+  const unregistered = Object.values(groups).filter(g => !used.has(g.wo)).sort((a, b) => (b.sale || '').localeCompare(a.sale || ''));
+  actMobReco = { groups, meta, byId, unregistered };
+}
+function actMobRecoPanel() {
+  const r = actMobReco, vals = Object.values(r.byId);
+  const n = c => vals.filter(v => c.includes(v.code)).length;
+  const nType = vals.filter(v => v.typeIssue).length;
+  const live = r.unregistered.filter(g => g.lines.some(l => !l.canceled));
+  const dead = r.unregistered.length - live.length;
+  const liveLines = live.reduce((s, g) => s + g.lines.filter(l => !l.canceled).length, 0);
+  return `<div class="act-reco">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="font-weight:700">📱 ${escHtml(r.meta.file)}</div>
+      <div style="font-size:12px;color:var(--muted)">${r.meta.lines} líneas en ${r.meta.orders} órdenes · ventas del ${actFmtDate(r.meta.minSale)} al ${actFmtDate(r.meta.upd)}</div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="actMobReco=null;if(actFilter.status.startsWith('m:'))actFilter.status='';renderActBody()">✕ Quitar reporte</button>
+    </div>
+    <div class="report-grid" style="margin-bottom:0">
+      <div class="stat-card green" style="cursor:pointer" onclick="actFilter.status='m:ok';renderActBody()"><div class="stat-label">✅ Activadas</div><div class="stat-value">${n(['ok'])}</div></div>
+      <div class="stat-card yellow" style="cursor:pointer" onclick="actFilter.status='m:pending';renderActBody()"><div class="stat-label">⏳ Pendientes</div><div class="stat-value">${n(['pending','recent'])}</div></div>
+      <div class="stat-card red" style="cursor:pointer" onclick="actFilter.status='m:claim';renderActBody()"><div class="stat-label">❌ Para reclamar</div><div class="stat-value">${n(['missing','partial'])}</div></div>
+      <div class="stat-card red" style="cursor:pointer" onclick="actFilter.status='m:canceled';renderActBody()"><div class="stat-label">Canceladas</div><div class="stat-value">${n(['canceled'])}</div></div>
+      <div class="stat-card yellow" style="cursor:pointer" onclick="actFilter.status='m:type';renderActBody()"><div class="stat-label">⚠️ Tipo por revisar</div><div class="stat-value">${nType}</div></div>
+      <div class="stat-card blue"><div class="stat-label">🔎 Nadie las registró</div><div class="stat-value">${liveLines}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">línea(s) en ${live.length} orden(es)</div></div>
+    </div>
+    ${live.length ? `<details style="margin-top:12px" ${live.length <= 12 ? 'open' : ''}><summary style="cursor:pointer;font-size:13px;color:var(--muted)">Líneas en el reporte que nadie registró en la app (${live.length} órdenes)</summary>
+      <div style="font-size:12px;margin-top:8px">${live.map(g => { const ln = g.lines.filter(l => !l.canceled);
+        return `<div class="ml-mail">
+        <span style="color:var(--muted)">${actFmtDate(g.sale)}</span>
+        <span style="flex:1"><b>${escHtml(mlTitle(actReportName(g.name)))}</b> <span class="mono" style="color:var(--muted)">${escHtml(g.acct)}</span></span>
+        <span>${ln.length} línea(s) · ${escHtml([...new Set(ln.map(l => l.model))].join(', '))}</span>
+        <span class="mono" style="color:var(--muted)">#${escHtml(g.wo)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="openActForm(null, Object.assign(actPrefillFromGroup(actMobReco.groups['${escHtml(g.wo)}']), {_from:'Del Mobile Report de Cellmart. Pon quién la hizo.'}))">Registrar</button></div>`; }).join('')}</div></details>` : ''}
+    ${dead ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">${dead} orden(es) del reporte sin registrar están canceladas por completo (no pagan).</div>` : ''}
+  </div>`;
 }
 
 function errorState(msg) {
