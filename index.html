@@ -311,6 +311,18 @@
     .pros-stats .stat-card { padding: 14px; }
   }
 
+  #config-overlay { z-index: 600; } /* above the login screen, for first-time setup */
+  /* ── ACTIVACIONES ── */
+  .svc { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap;
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text); margin: 1px 2px 1px 0; }
+  .svc-int { border-color: rgba(0,196,232,.35); color: var(--cyan); }
+  .svc-mob { border-color: rgba(0,232,135,.35); color: var(--green); }
+  .svc-tv  { border-color: rgba(255,209,102,.35); color: var(--yellow); }
+  .act-hint { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 14px 18px;
+    color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .act-reco { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+  .act-reco-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin: 12px 0; font-size: 13px; line-height: 1.6; }
+
   /* ── TOAST ── */
   .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
   .toast { padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 500;
@@ -422,6 +434,9 @@
     <div class="nav-item manager-only" data-page="customers" onclick="showPage('customers')">
       <span class="icon">👥</span> Clientes
     </div>
+    <div class="nav-item manager-only" data-page="activations" onclick="showPage('activations')">
+      <span class="icon">📡</span> Activaciones
+    </div>
     <div class="nav-section manager-only">Stock</div>
     <div class="nav-item manager-only" data-page="receive" onclick="showPage('receive')">
       <span class="icon">📥</span> Receive Stock
@@ -460,7 +475,9 @@
 
 <script>
 // ─── STATE ───────────────────────────────────────────────────────────
-const MANAGER_PIN = '0828';
+// The manager PIN is checked by Apps Script (Activaciones.gs); it is not stored in this file.
+let mgrToken = '';
+let pinBusy = false;
 const EMPLOYEES = ['Joel', 'Alondra', 'Lizbeth'];
 let SHEETS_URL = localStorage.getItem('mircomm_url') || '';
 let currentStore = 'palmhurst';
@@ -493,17 +510,40 @@ function selectEmployee(name) {
   setTimeout(() => completeLogin(), 300);
 }
 
-function checkPin(val) {
-  document.getElementById('pin-error').textContent = '';
-  if (val.length === 4) {
-    if (val === MANAGER_PIN) {
+async function checkPin(val) {
+  const errEl = document.getElementById('pin-error');
+  const input = document.getElementById('pin-input');
+  errEl.textContent = '';
+  if (val.length !== 4 || pinBusy) return;
+  if (!SHEETS_URL) {
+    errEl.textContent = 'Primero pega la URL de Apps Script.';
+    input.value = '';
+    openConfig();
+    return;
+  }
+  pinBusy = true;
+  input.disabled = true;
+  errEl.style.color = 'var(--muted)';
+  errEl.textContent = 'Verificando…';
+  try {
+    const r = await apiGet({ action: 'managerLogin', pin: val });
+    errEl.style.color = '';
+    if (r && r.ok && r.token) {
+      mgrToken = r.token;
       currentUser = 'Joel';
       isManager = true;
+      errEl.textContent = '';
       completeLogin();
     } else {
-      document.getElementById('pin-error').textContent = 'Incorrect PIN';
-      document.getElementById('pin-input').value = '';
+      errEl.textContent = 'Incorrect PIN';
     }
+  } catch (e) {
+    errEl.style.color = '';
+    errEl.textContent = 'No se pudo verificar el PIN: ' + e.message;
+  } finally {
+    pinBusy = false;
+    input.disabled = false;
+    input.value = '';
   }
 }
 
@@ -528,7 +568,7 @@ function completeLogin() {
 }
 
 function logout() {
-  currentUser = ''; isManager = false; cart = []; stockData = [];
+  currentUser = ''; isManager = false; mgrToken = ''; cart = []; stockData = [];
   prosAuth = null; prosData = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('pin-input').value = '';
@@ -538,7 +578,9 @@ function logout() {
 
 // ─── CONFIG ──────────────────────────────────────────────────────────
 function openConfig() {
-  if (!isManager) return;
+  // Managers can always change it; anyone can set it the first time on a new browser
+  // (needed so the manager PIN can be checked against the backend).
+  if (!isManager && SHEETS_URL) return;
   document.getElementById('config-url-input').value = SHEETS_URL;
   document.getElementById('config-overlay').classList.add('open');
 }
@@ -558,7 +600,7 @@ function saveConfig() {
 // ─── NAVIGATION ──────────────────────────────────────────────────────
 function showPage(page) {
   // Block non-managers from manager pages
-  const managerPages = ['inventory','transactions','report','receive','customers'];
+  const managerPages = ['inventory','transactions','report','receive','customers','activations'];
   if (managerPages.includes(page) && !isManager) return;
   currentPage = page;
   document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.page === page));
@@ -572,6 +614,7 @@ function loadCurrentPage() {
     case 'report':       renderReport(); break;
     case 'receive':      renderReceive(); break;
     case 'customers':    renderCustomers(); break;
+    case 'activations':  renderActivations(); break;
     case 'prospects':    renderProspects(); break;
   }
 }
@@ -581,6 +624,7 @@ async function apiGet(params) {
   if (!SHEETS_URL) { if(isManager) openConfig(); throw new Error('No URL configured'); }
   const url = new URL(SHEETS_URL);
   Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  if (mgrToken) url.searchParams.set('mt', mgrToken);
   const r = await fetch(url.toString());
   const d = await r.json();
   if (d.error) throw new Error(d.error);
@@ -2308,6 +2352,600 @@ function noSheetNotice() {
     <p style="color:var(--muted);margin-bottom:24px;line-height:1.6">Ask the manager to configure the Google Sheets URL.</p>
   </div>`;
 }
+// ─── ACTIVACIONES SPECTRUM (MANAGER ONLY) ───────────────────────────
+// Rows come from the "Activations" sheet (filled automatically from Spectrum's
+// "Sales Agent Order Confirmation" emails by Activaciones.gs, plus manual mobile entries).
+// The Cellmart core report (.xlsx) is reconciled in the browser — nothing is uploaded.
+
+// Spectrum Rep ID → employee (keep in sync with ACT_REPS in Activaciones.gs)
+const ACT_REPS = { CMMCL4423: 'Joel', CMMLB4896: 'Lizbeth', CMMLB4898: 'Lizbeth' };
+
+// Cellmart Premier Dealer commission table. Add older tables (with their start date)
+// to estimate months before 9/29/2026.
+const COMMISSION_RATES = [
+  { from: '2026-09-29', label: 'Cellmart Premier — vigente 29 sep 2026',
+    internet: { '100': 370, '500': 430, 'gig': 550 },
+    mobileFirst: 150, mobileAdditional: 250, mobileMaxLines: 10,
+    videoHigh: 80, videoLow: 40, voice: 20, xumo: 20,
+    bundle: { intMob: 75, intVid: 20, triple: 100 } }
+];
+// Internet tier names → rate key. "Advantage" is left out until confirmed.
+const TIER_MAP = [
+  [/2\s*gig|1\s*gig|\bgig\b/i, 'gig'],
+  [/\b500\b|premier/i, '500'],
+  [/\b100\b|\b300\b/i, '100']
+];
+const DISPUTE_DAYS = 30;
+
+let actData = [];
+let actFilter = { fm: null, rep: '', svc: '', status: '', q: '' };
+let actReco = null;      // result of the last core report reconciliation
+
+function actFiscalMonth(ymd) {
+  const m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return '';
+  let y = +m[1], mo = +m[2];
+  if (+m[3] >= 29) { mo++; if (mo > 12) { mo = 1; y++; } }
+  return `${y}-${String(mo).padStart(2, '0')}`;
+}
+function actFmLabel(fm) {
+  const m = String(fm || '').match(/^(\d{4})-(\d{2})$/);
+  if (!m) return fm || '';
+  const names = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const mo = +m[2], prev = mo === 1 ? 12 : mo - 1;
+  return `${names[mo-1]} ${m[1]} (29 ${names[prev-1].toLowerCase()} – 28 ${names[mo-1].toLowerCase()})`;
+}
+function actToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function actDaysBetween(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000); }
+function actAddDays(ymd, n) {
+  const d = new Date(ymd + 'T00:00:00'); d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function actRepName(a) { return a.Employee || ACT_REPS[String(a.RepID||'').toUpperCase()] || a.RepID || '—'; }
+function actAcct(v) { return String(v ?? '').replace(/\D/g, ''); }
+function actFmtDate(ymd) {
+  const m = String(ymd||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${+m[2]}/${+m[3]}/${m[1]}` : (ymd || '');
+}
+
+// ─── Commission math ───
+function actRateFor(ymd) {
+  const d = String(ymd || '');
+  const list = COMMISSION_RATES.filter(r => r.from <= d).sort((a,b) => a.from < b.from ? 1 : -1);
+  return list[0] || null;
+}
+function actTierKey(t) {
+  for (const [re, k] of TIER_MAP) if (re.test(String(t||''))) return k;
+  return null;
+}
+function actVideoRate(tier, r) {
+  const t = String(tier || '');
+  if (!t || /^n\/?a$/i.test(t)) return null;
+  if (/vip|\bpro\b|stream|signature|latino\s*m[aá]s/i.test(t)) return r.videoHigh;
+  if (/choice|lite|essentials|latino|select/i.test(t)) return r.videoLow;
+  return undefined; // unknown tier name
+}
+// svc: { internetTier, mobileLines, videoTier, voice(bool), xumo }
+function actExpected(svc, ymd) {
+  const r = actRateFor(ymd);
+  if (!r) return { total: null, lines: [], note: 'Sin tabla de comisión para esa fecha' };
+  const lines = []; let unknown = [];
+  const add = (label, amt) => lines.push({ label, amt });
+  const hasInt = !!svc.internetTier, mob = Math.min(+svc.mobileLines || 0, r.mobileMaxLines), hasVid = !!svc.videoTier;
+  if (hasInt) {
+    const k = actTierKey(svc.internetTier);
+    if (k) add(`Internet ${svc.internetTier}`, r.internet[k]); else unknown.push(`tier "${svc.internetTier}"`);
+  }
+  if (mob > 0) {
+    add('Móvil — línea 1', r.mobileFirst);
+    if (mob > 1) add(`Móvil — líneas 2-${mob}`, r.mobileAdditional * (mob - 1));
+  }
+  if (hasVid) {
+    const v = actVideoRate(svc.videoTier, r);
+    if (v) add(`TV ${svc.videoTier}`, v); else if (v === undefined) unknown.push(`TV "${svc.videoTier}"`);
+  }
+  if (svc.voice) {
+    if (hasInt || hasVid || mob) add('Voice', r.voice); else unknown.push('Voice sin bundle no paga');
+  }
+  if (hasVid && +svc.xumo > 0) add(`Xumo ×${+svc.xumo}`, r.xumo * +svc.xumo);
+  if (hasInt && hasVid && mob) add('Bono Triple Play', r.bundle.triple);
+  else if (hasInt && mob) add('Bono Internet + Móvil', r.bundle.intMob);
+  else if (hasInt && hasVid) add('Bono Internet + TV', r.bundle.intVid);
+  return { total: lines.reduce((s,l) => s + l.amt, 0), lines, note: unknown.length ? 'Revisar: ' + unknown.join(', ') : '' };
+}
+function actSvcOf(a) {
+  return { internetTier: a.InternetTier || '', mobileLines: +a.MobileLines || 0, videoTier: a.VideoTier || '',
+           voice: /^(yes|y|s[ií]|true|1)$/i.test(String(a.Voice||'')), xumo: +a.XumoDevices || 0 };
+}
+function actSvcChips(svc) {
+  const c = [];
+  if (svc.internetTier) c.push(`<span class="svc svc-int">🌐 ${escHtml(svc.internetTier)}</span>`);
+  if (svc.mobileLines) c.push(`<span class="svc svc-mob">📱 ${svc.mobileLines} línea${svc.mobileLines>1?'s':''}</span>`);
+  if (svc.videoTier) c.push(`<span class="svc svc-tv">📺 ${escHtml(svc.videoTier)}</span>`);
+  if (svc.voice) c.push(`<span class="svc">☎ Voice</span>`);
+  if (svc.xumo) c.push(`<span class="svc">Xumo ×${svc.xumo}</span>`);
+  return c.join(' ') || '<span style="color:var(--muted)">—</span>';
+}
+const fmtMoney = n => n === null || n === undefined ? '—' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+// ─── Page ───
+async function renderActivations() {
+  if (!isManager) { showPage('pos'); return; }
+  const el = document.getElementById('content');
+  if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
+  el.innerHTML = `
+    <div class="page-title">📡 Activaciones</div>
+    <div class="page-subtitle">Spectrum · se registran solas desde el correo de confirmación · mes fiscal del 29 al 28</div>
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="actImportNow(false)">↻ Importar correos nuevos</button>
+      <button class="btn btn-ghost" onclick="openActForm()">📱 Registrar activación móvil</button>
+      <label class="btn btn-ghost" style="cursor:pointer">📄 Subir Core Report
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="actLoadCoreReport(this.files[0]);this.value=''">
+      </label>
+      <button class="btn btn-ghost" onclick="actExportCSV()">⬇ Exportar CSV</button>
+    </div>
+    <div id="act-body"><div class="loading"><div class="spinner"></div></div></div>`;
+  try {
+    const rows = await apiGet({ action: 'getActivations' });
+    actData = Array.isArray(rows) ? rows : [];
+    if (actFilter.fm === null) {
+      const cur = actFiscalMonth(actToday());
+      actFilter.fm = actData.some(a => a.FiscalMonth === cur) ? cur : '';
+    }
+    renderActBody();
+  } catch (e) {
+    const msg = /getActivations|unknown|invalid action/i.test(e.message)
+      ? 'El backend todavía no tiene Activaciones.gs. Sigue los pasos de instalación y haz Deploy → New version.'
+      : e.message;
+    document.getElementById('act-body').innerHTML = errorState(msg);
+  }
+}
+
+async function actImportNow(all) {
+  toast('Buscando correos de Spectrum…', 'info');
+  try {
+    const r = await apiGet({ action: 'importActivations', all: all ? '1' : '0' });
+    if (r.busy) { toast('Ya hay una importación corriendo. Intenta en un minuto.', 'info'); return; }
+    toast(r.added ? `${r.added} activación(es) nueva(s) importada(s).` : 'No hay correos nuevos.', r.added ? 'success' : 'info');
+    if (r.errors && r.errors.length) toast(`${r.errors.length} correo(s) no se pudieron leer.`, 'error');
+    actData = await apiGet({ action: 'getActivations' });
+    renderActBody();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function actFiltered() {
+  const q = actFilter.q.trim().toLowerCase();
+  return actData.filter(a => {
+    if (actFilter.fm && a.FiscalMonth !== actFilter.fm) return false;
+    if (actFilter.rep && actRepName(a) !== actFilter.rep) return false;
+    const s = actSvcOf(a);
+    if (actFilter.svc === 'int' && !s.internetTier) return false;
+    if (actFilter.svc === 'mob' && !s.mobileLines) return false;
+    if (actFilter.svc === 'tv' && !s.videoTier) return false;
+    if (actFilter.status) {
+      const st = actReco && actReco.byId[a.ID];
+      if (!st) return false;
+      if (actFilter.status === 'claim' && !['missing','partial'].includes(st.code)) return false;
+      if (actFilter.status !== 'claim' && st.code !== actFilter.status) return false;
+    }
+    if (q && ![a.CustomerName, a.AccountNumber, a.Phone, a.Confirmation, a.WorkOrder, a.Email].some(v => String(v||'').toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a,b) => (b.OrderDate||'').localeCompare(a.OrderDate||''));
+}
+
+function renderActBody() {
+  const body = document.getElementById('act-body');
+  if (!body) return;
+  const months = [...new Set(actData.map(a => a.FiscalMonth).filter(Boolean))].sort().reverse();
+  const cur = actFiscalMonth(actToday());
+  if (!months.includes(cur)) months.unshift(cur);
+  const reps = [...new Set(actData.map(actRepName))].sort();
+  const list = actFiltered();
+
+  let nInt = 0, nMob = 0, nTv = 0, est = 0, estUnknown = 0;
+  list.forEach(a => {
+    const s = actSvcOf(a);
+    if (s.internetTier) nInt++; nMob += s.mobileLines; if (s.videoTier) nTv++;
+    const x = actExpected(s, a.OrderDate);
+    if (x.total === null || x.note) estUnknown++; if (x.total) est += x.total;
+  });
+
+  body.innerHTML = `
+    <div class="action-row date-filter" style="margin-bottom:14px">
+      <select class="form-input form-select" style="width:auto" onchange="actFilter.fm=this.value;renderActBody()">
+        <option value="">Todos los meses</option>
+        ${months.map(m => `<option value="${m}" ${actFilter.fm===m?'selected':''}>${actFmLabel(m)}</option>`).join('')}
+      </select>
+      <select class="form-input form-select" style="width:auto" onchange="actFilter.rep=this.value;renderActBody()">
+        <option value="">Todos los reps</option>
+        ${reps.map(r => `<option ${actFilter.rep===r?'selected':''}>${escHtml(r)}</option>`).join('')}
+      </select>
+      <select class="form-input form-select" style="width:auto" onchange="actFilter.svc=this.value;renderActBody()">
+        <option value="">Todos los servicios</option>
+        <option value="int" ${actFilter.svc==='int'?'selected':''}>🌐 Internet</option>
+        <option value="mob" ${actFilter.svc==='mob'?'selected':''}>📱 Móvil</option>
+        <option value="tv" ${actFilter.svc==='tv'?'selected':''}>📺 TV</option>
+      </select>
+      ${actReco ? `<select class="form-input form-select" style="width:auto" onchange="actFilter.status=this.value;renderActBody()">
+        <option value="">Todos los estatus</option>
+        <option value="claim" ${actFilter.status==='claim'?'selected':''}>❌ Para reclamar</option>
+        <option value="pending" ${actFilter.status==='pending'?'selected':''}>⏳ Pendientes</option>
+        <option value="chargeback" ${actFilter.status==='chargeback'?'selected':''}>⚠️ Chargeback</option>
+        <option value="canceled" ${actFilter.status==='canceled'?'selected':''}>Canceladas</option>
+        <option value="ok" ${actFilter.status==='ok'?'selected':''}>✅ Conectadas</option>
+      </select>` : ''}
+      <input class="search-input" style="flex:1;min-width:200px" placeholder="Buscar cliente, cuenta, teléfono, confirmación…"
+        value="${escHtml(actFilter.q)}" oninput="actFilter.q=this.value;renderActTable()">
+    </div>
+    <div class="report-grid">
+      <div class="stat-card blue"><div class="stat-label">Órdenes</div><div class="stat-value">${list.length}</div></div>
+      <div class="stat-card cyan"><div class="stat-label">🌐 Internet</div><div class="stat-value">${nInt}</div></div>
+      <div class="stat-card green"><div class="stat-label">📱 Líneas móviles</div><div class="stat-value">${nMob}</div></div>
+      <div class="stat-card yellow"><div class="stat-label">📺 TV</div><div class="stat-value">${nTv}</div></div>
+      <div class="stat-card green"><div class="stat-label">Comisión estimada</div><div class="stat-value">${fmtMoney(est)}</div>
+        ${estUnknown ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${estUnknown} sin calcular</div>` : ''}</div>
+    </div>
+    ${actReco ? actRecoPanel() : `<div class="act-hint">📄 Sube el Core Report de Cellmart para ver qué cuentas ya conectaron, cuáles faltan y cuáles están en riesgo de chargeback.</div>`}
+    <div id="act-table"></div>`;
+  renderActTable();
+}
+
+function renderActTable() {
+  const el = document.getElementById('act-table');
+  if (!el) return;
+  const list = actFiltered();
+  if (!list.length) {
+    el.innerHTML = `<div class="table-wrap"><div class="empty-state"><div class="icon">📡</div><p>${actData.length ? 'No hay activaciones con estos filtros.' : 'Todavía no hay activaciones. Corre importAllSpectrumOrders en Apps Script o usa “Importar correos nuevos”.'}</p></div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="table-wrap" style="overflow-x:auto"><table>
+    <thead><tr><th>Fecha</th><th>Cliente</th><th>Cuenta</th><th>Rep</th><th>Servicios</th><th style="text-align:right">Comisión est.</th>${actReco?'<th>Cellmart</th>':''}</tr></thead>
+    <tbody>${list.map(a => {
+      const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID];
+      return `<tr onclick="openActDetail('${escHtml(a.ID)}')">
+        <td class="mono">${actFmtDate(a.OrderDate)}</td>
+        <td><div style="font-weight:600">${escHtml(a.CustomerName||'—')}</div>${a.Source==='Manual'?'<div style="font-size:11px;color:var(--muted)">registro manual</div>':''}</td>
+        <td class="mono">${escHtml(a.AccountNumber||'')}</td>
+        <td>${escHtml(actRepName(a))}</td>
+        <td>${actSvcChips(s)}</td>
+        <td class="mono" style="text-align:right;color:${x.total?'var(--green)':'var(--muted)'}" title="${escHtml(x.note||'')}">${fmtMoney(x.total)}${x.note?' *':''}</td>
+        ${actReco ? `<td>${st ? actStatusBadge(st) : ''}</td>` : ''}
+      </tr>`; }).join('')}
+    </tbody></table></div>`;
+}
+
+const ACT_STATUS = {
+  ok:         { label: '✅ Conectada',      cls: 'badge-ok' },
+  pending:    { label: '⏳ Pendiente',      cls: 'badge-low' },
+  missing:    { label: '❌ No aparece',     cls: 'badge-out' },
+  partial:    { label: '⚠️ Falta servicio', cls: 'badge-out' },
+  canceled:   { label: 'Cancelada',         cls: 'badge-out' },
+  chargeback: { label: '⚠️ Chargeback',     cls: 'badge-out' },
+  recent:     { label: 'Muy reciente',      cls: 'badge-low' },
+  out:        { label: 'Fuera del rango', cls: '' }
+};
+function actStatusBadge(st) {
+  const s = ACT_STATUS[st.code] || { label: st.code, cls: '' };
+  return `<span class="badge ${s.cls}" title="${escHtml(st.issues.join(' · '))}">${s.label}</span>`;
+}
+
+// ─── Detail / edit ───
+function openActDetail(id) {
+  const a = actData.find(x => x.ID === id);
+  if (!a) return;
+  const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID];
+  let products = [];
+  try { products = JSON.parse(a.Products || '[]'); } catch (e) {}
+  const field = (l, v) => v ? `<div><span>${l}</span>${escHtml(v)}</div>` : '';
+  openModal(`
+    <div class="modal-title">📡 ${escHtml(a.CustomerName || 'Activación')} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="margin-bottom:12px">${actSvcChips(s)}</div>
+    <div class="cust-meta">
+      ${field('Fecha de orden', actFmtDate(a.OrderDate))}
+      ${field('Mes fiscal', actFmLabel(a.FiscalMonth))}
+      ${field('Cuenta', a.AccountNumber)}
+      ${field('Confirmación', a.Confirmation)}
+      ${field('Work order', a.WorkOrder)}
+      ${field('Rep', `${actRepName(a)}${a.RepID && actRepName(a)!==a.RepID ? ' ('+a.RepID+')' : ''}`)}
+      ${field('Teléfono', a.Phone ? fmtPhone(actAcct(a.Phone).slice(-10)) : '')}
+      ${field('Correo', a.Email)}
+      ${field('Dirección', [a.Address, a.City, a.State, a.Zip].filter(Boolean).join(', '))}
+      ${field('Instalación', a.InstallType)}
+      ${field('Paquete', a.Package)}
+      ${field('Plan móvil', a.MobilePlan)}
+      ${field('Total de la orden', a.OrderTotal ? '$' + a.OrderTotal : '')}
+      ${field('Origen', a.Source === 'Email' ? 'Correo de Spectrum' : 'Registro manual')}
+    </div>
+    ${st ? `<div class="act-reco-box"><div style="margin-bottom:6px">${actStatusBadge(st)}</div>
+      ${st.issues.map(i => `<div>• ${escHtml(i)}</div>`).join('')}
+      ${st.disputeLeft !== null && ['missing','partial'].includes(st.code) ? `<div style="margin-top:6px;color:${st.disputeLeft<=7?'var(--red)':'var(--yellow)'}">Quedan aprox. ${Math.max(st.disputeLeft,0)} día(s) para disputar (30 días).</div>` : ''}
+    </div>` : ''}
+    <div class="act-reco-box">
+      <div style="font-weight:600;margin-bottom:6px">Comisión estimada: ${fmtMoney(x.total)}</div>
+      ${x.lines.map(l => `<div style="display:flex;justify-content:space-between;font-size:12px"><span>${escHtml(l.label)}</span><span class="mono">${fmtMoney(l.amt)}</span></div>`).join('')}
+      ${x.note ? `<div style="font-size:12px;color:var(--yellow);margin-top:6px">${escHtml(x.note)}</div>` : ''}
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">No incluye residual ($5/mes por internet tras 90 días) ni el bono de 75 líneas al mes.</div>
+    </div>
+    ${products.length ? `<details style="margin:12px 0"><summary style="cursor:pointer;color:var(--muted);font-size:12px">Productos de la orden (${products.length})</summary>
+      <div style="font-size:12px;margin-top:8px">${products.map(p => `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)"><span>${escHtml(p.name)} ×${p.qty}</span><span class="mono">${p.monthly!==''?'$'+p.monthly+'/mes':''}${p.once!==''?' $'+p.once+' único':''}</span></div>`).join('')}</div></details>` : ''}
+    <div class="form-group"><label class="form-label">IMEI(s)</label>
+      <input class="form-input" id="act-d-imei" value="${escHtml(a.IMEIs||'')}" placeholder="Separados por coma"></div>
+    <div class="form-group"><label class="form-label">Notas</label>
+      <textarea class="form-input" id="act-d-notes" rows="2">${escHtml(a.Notes||'')}</textarea></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" style="flex:1" onclick="actSaveNotes('${escHtml(a.ID)}')">Guardar</button>
+      <button class="btn btn-ghost" onclick="openActForm('${escHtml(a.ID)}')">✏️ Editar</button>
+      <button class="btn btn-ghost" style="color:var(--red)" onclick="actDelete('${escHtml(a.ID)}')">🗑 Borrar</button>
+    </div>`, true);
+}
+async function actSaveNotes(id) {
+  try {
+    const rec = await apiGet({ action: 'saveActivation', data: JSON.stringify({ ID: id,
+      IMEIs: document.getElementById('act-d-imei').value, Notes: document.getElementById('act-d-notes').value }) });
+    const i = actData.findIndex(x => x.ID === id); if (i >= 0) actData[i] = rec;
+    closeModal(); toast('Guardado.', 'success'); renderActBody();
+  } catch (e) { toast(e.message, 'error'); }
+}
+async function actDelete(id) {
+  if (!confirm('¿Borrar esta activación? Si vino de un correo, se volverá a importar a menos que borres también el correo.')) return;
+  try {
+    await apiGet({ action: 'deleteActivation', id });
+    actData = actData.filter(x => x.ID !== id);
+    closeModal(); toast('Borrada.', 'success'); renderActBody();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ─── Manual entry (mobile, or anything the email missed) ───
+function openActForm(id) {
+  const a = id ? actData.find(x => x.ID === id) || {} : {};
+  const repOpts = Object.entries(ACT_REPS).map(([rid, n]) => `<option value="${rid}" ${String(a.RepID||'').toUpperCase()===rid?'selected':''}>${n} (${rid})</option>`).join('');
+  const tierOpts = ['', '100', '500', '1 Gig', '2 Gig'];
+  openModal(`
+    <div class="modal-title">${id ? '✏️ Editar activación' : '📱 Registrar activación móvil'} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Fecha de orden *</label><input class="form-input" type="date" id="af-date" value="${escHtml(a.OrderDate || actToday())}"></div>
+      <div class="form-group"><label class="form-label">Rep *</label>
+        <select class="form-input form-select" id="af-rep">${repOpts}
+          ${a.RepID && !ACT_REPS[String(a.RepID).toUpperCase()] ? `<option value="${escHtml(a.RepID)}" selected>${escHtml(a.RepID)}</option>` : ''}
+        </select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Número de cuenta Spectrum *</label><input class="form-input" id="af-acct" inputmode="numeric" value="${escHtml(a.AccountNumber||'')}"></div>
+      <div class="form-group"><label class="form-label">Confirmación / Orden</label><input class="form-input" id="af-conf" value="${escHtml(a.Confirmation||'')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cliente *</label><input class="form-input" id="af-name" value="${escHtml(a.CustomerName||'')}"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="af-phone" type="tel" value="${escHtml(a.Phone||'')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Líneas móviles</label><input class="form-input" type="number" min="0" max="10" id="af-lines" value="${escHtml(a.MobileLines || (id ? '' : '1'))}"></div>
+      <div class="form-group"><label class="form-label">Plan móvil</label>
+        <select class="form-input form-select" id="af-plan">${['', 'Unlimited', 'Unlimited Plus', 'By the Gig'].map(p => `<option ${a.MobilePlan===p?'selected':''}>${p}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Internet (si aplica)</label>
+        <select class="form-input form-select" id="af-int">${tierOpts.map(t => `<option value="${t}" ${a.InternetTier===t?'selected':''}>${t||'—'}</option>`).join('')}
+          ${a.InternetTier && !tierOpts.includes(a.InternetTier) ? `<option selected>${escHtml(a.InternetTier)}</option>` : ''}</select></div>
+      <div class="form-group"><label class="form-label">TV (si aplica)</label><input class="form-input" id="af-tv" placeholder="Ej. Stream TV Signature" value="${escHtml(a.VideoTier||'')}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">IMEI(s)</label><input class="form-input" id="af-imei" placeholder="Separados por coma" value="${escHtml(a.IMEIs||'')}"></div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" id="af-notes" rows="2" placeholder="Ej. port-in de AT&T, teléfono regalado">${escHtml(a.Notes||'')}</textarea></div>
+    <button class="btn btn-primary btn-full" onclick="actSaveForm('${escHtml(id||'')}')">Guardar</button>`);
+}
+async function actSaveForm(id) {
+  const v = k => document.getElementById(k).value.trim();
+  const rec = { OrderDate: v('af-date'), RepID: v('af-rep'), AccountNumber: actAcct(v('af-acct')), Confirmation: v('af-conf'),
+    CustomerName: v('af-name'), Phone: actAcct(v('af-phone')), MobileLines: v('af-lines'), MobilePlan: v('af-plan'),
+    InternetTier: v('af-int'), VideoTier: v('af-tv'), IMEIs: v('af-imei'), Notes: v('af-notes') };
+  rec.Employee = ACT_REPS[rec.RepID.toUpperCase()] || '';
+  if (id) rec.ID = id;
+  if (!rec.AccountNumber || !rec.CustomerName || !rec.OrderDate) { toast('Fecha, cuenta y cliente son obligatorios.', 'error'); return; }
+  if (!id && !(+rec.MobileLines) && !rec.InternetTier && !rec.VideoTier) { toast('Indica al menos un servicio.', 'error'); return; }
+  if (!id && actData.some(a => actAcct(a.AccountNumber) === rec.AccountNumber && +a.MobileLines && +rec.MobileLines) &&
+      !confirm('Ya hay líneas móviles registradas en esta cuenta. ¿Registrar de todos modos?')) return;
+  try {
+    const saved = await apiGet({ action: 'saveActivation', data: JSON.stringify(rec) });
+    const i = actData.findIndex(x => x.ID === saved.ID);
+    if (i >= 0) actData[i] = saved; else actData.push(saved);
+    if (actReco) actReconcile(actReco.groups, actReco.meta);
+    closeModal(); toast('Activación guardada.', 'success'); renderActBody();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ─── Core report reconciliation ───
+function actLoadScript(src) {
+  return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(new Error('No se pudo cargar el lector de Excel.')); document.head.appendChild(s); });
+}
+function actRptDate(v) {
+  const s = String(v ?? '').trim();
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; const ymd = `${y}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`; return y === '1901' ? '' : ymd; }
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m && m[1] !== '1901' ? `${m[1]}-${m[2]}-${m[3]}` : '';
+}
+async function actLoadCoreReport(file) {
+  if (!file) return;
+  try {
+    if (!window.XLSX) await actLoadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const grid = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+    const hi = grid.findIndex(r => r.some(c => /customer\s*-\s*account number/i.test(String(c))));
+    if (hi < 0) throw new Error('No encontré la columna "Customer - Account Number". ¿Es el Core Report?');
+    const H = grid[hi].map(h => String(h).trim().toLowerCase());
+    const col = name => H.indexOf(name.toLowerCase());
+    const C = { fm: col('Fiscal Month'), acct: col('Customer - Account Number'), sale: col('Date - Sales Enter Date'),
+      conn: col('Date - Connect'), disc: col('PSU - Disconnect Date'), name: col('Customer Full Name'), agent: col('Agent'),
+      conf: col('Confirmation #'), psu: col('PSU'), canceled: col('Sales - Canceled'), connects: col('Sales - Connects'),
+      pending: col('Sales - Pending'), disconnect: col('Disconnect'), reason: col('Cancelation Reason'), upd: col('Updated Through'),
+      surv: col('90 Day Survival'), itier: col('InternetTier - Time of Sale'), vtier: col('VideoTier - Time of Sale'), xumo: col('Xumo - Time of Sale Count') };
+    const groups = {}; let minSale = '', maxUpd = '';
+    grid.slice(hi + 1).forEach(r => {
+      const acct = actAcct(r[C.acct]);
+      if (!acct) return;
+      const g = groups[acct] = groups[acct] || { acct, name: r[C.name], agent: r[C.agent], conf: String(r[C.conf]||''), fm: r[C.fm], sale: actRptDate(r[C.sale]), psus: [] };
+      const p = { type: String(r[C.psu]||'').trim(), connected: +r[C.connects] > 0, canceled: +r[C.canceled] > 0, pending: +r[C.pending] > 0,
+        disconnected: +r[C.disconnect] > 0, conn: actRptDate(r[C.conn]), disc: actRptDate(r[C.disc]), reason: r[C.reason] || '',
+        surv: String(r[C.surv]), itier: r[C.itier], vtier: r[C.vtier], xumo: +r[C.xumo] || 0 };
+      g.psus.push(p);
+      if (g.sale && (!minSale || g.sale < minSale)) minSale = g.sale;
+      const u = actRptDate(r[C.upd]); if (u && u > maxUpd) maxUpd = u;
+    });
+    const meta = { file: file.name, minSale, upd: maxUpd || actToday(), accounts: Object.keys(groups).length };
+    actReconcile(groups, meta);
+    actFilter.fm = '';  // the report spans several months
+    toast(`Core Report cargado: ${meta.accounts} cuentas.`, 'success');
+    renderActBody();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function actPsuKind(t) {
+  t = String(t).toLowerCase();
+  if (t.includes('internet')) return 'int';
+  if (t.includes('mobile') || t.includes('móvil') || t.includes('line')) return 'mob';
+  if (t.includes('video') || t.includes('tv')) return 'tv';
+  if (t.includes('voice') || t.includes('phone')) return 'voice';
+  return 'other';
+}
+// Services Cellmart actually credited for one report account (connected PSUs only)
+function actReportSvc(g) {
+  const live = g.psus.filter(p => p.connected);
+  const i = live.find(p => actPsuKind(p.type) === 'int'), v = live.find(p => actPsuKind(p.type) === 'tv');
+  return { internetTier: i ? (i.itier && !/^n\/?a$/i.test(i.itier) ? i.itier : 'Internet') : '',
+           mobileLines: live.filter(p => actPsuKind(p.type) === 'mob').length,
+           videoTier: v ? (v.vtier && !/^n\/?a$/i.test(v.vtier) ? v.vtier : 'TV') : '',
+           voice: live.some(p => actPsuKind(p.type) === 'voice'), xumo: v ? v.xumo : 0 };
+}
+
+function actReconcile(groups, meta) {
+  const byId = {}, matched = new Set(), today = actToday();
+  const recentCut = actAddDays(meta.upd, -3);
+  actData.forEach(a => {
+    const acct = actAcct(a.AccountNumber), g = groups[acct], issues = [];
+    const st = { code: 'ok', issues, disputeLeft: null, reportAcct: g ? acct : null };
+    const disputeLeft = DISPUTE_DAYS - actDaysBetween(a.OrderDate || today, today);
+    if (!g) {
+      if (meta.minSale && a.OrderDate < meta.minSale) { st.code = 'out'; issues.push('La venta es anterior al rango del reporte.'); }
+      else if (a.OrderDate > meta.upd) { st.code = 'out'; issues.push(`Venta posterior al reporte (actualizado al ${actFmtDate(meta.upd)}). Baja un reporte más nuevo.`); }
+      else if (a.OrderDate > recentCut) { st.code = 'recent'; issues.push(`Venta muy reciente: el reporte está actualizado al ${actFmtDate(meta.upd)}.`); }
+      else { st.code = 'missing'; st.disputeLeft = disputeLeft; issues.push('La cuenta no aparece en el Core Report.'); }
+      byId[a.ID] = st; return;
+    }
+    matched.add(acct);
+    const sold = actSvcOf(a), kinds = { int: [], mob: [], tv: [], voice: [] };
+    g.psus.forEach(p => { const k = actPsuKind(p.type); if (kinds[k]) kinds[k].push(p); });
+    const check = (soldIt, k, label) => {
+      if (!soldIt) return;
+      const ps = kinds[k];
+      if (!ps.length) { issues.push(`${label}: vendido pero no aparece en el reporte.`); st.code = 'partial'; return; }
+      ps.forEach(p => {
+        if (p.canceled) { issues.push(`${label}: cancelado${p.reason ? ' (' + p.reason + ')' : ''}.`); if (st.code === 'ok') st.code = 'canceled'; }
+        else if (p.disconnected) {
+          const days = p.conn && p.disc ? actDaysBetween(p.conn, p.disc) : null;
+          if (days !== null && days < 90 || p.surv === '0') { issues.push(`${label}: desconectado el ${actFmtDate(p.disc)}${days!==null?` (a los ${days} días)`:''} — chargeback.`); if (st.code !== 'partial') st.code = 'chargeback'; }
+          else issues.push(`${label}: desconectado el ${actFmtDate(p.disc)}, después de 90 días.`);
+        }
+        else if (p.pending || !p.connected) { issues.push(`${label}: pendiente de conexión.`); if (st.code === 'ok') st.code = 'pending'; }
+        else issues.push(`${label}: conectado el ${actFmtDate(p.conn)}.`);
+      });
+    };
+    check(!!sold.internetTier, 'int', 'Internet');
+    check(!!sold.videoTier, 'tv', 'TV');
+    check(sold.voice, 'voice', 'Voice');
+    if (sold.mobileLines) {
+      const got = kinds.mob.length;
+      if (got < sold.mobileLines) { issues.push(`Móvil: vendiste ${sold.mobileLines} línea(s), el reporte muestra ${got}.`); st.code = 'partial'; }
+      else check(true, 'mob', 'Móvil');
+    }
+    if (sold.internetTier && kinds.int[0]) {
+      const a1 = actTierKey(sold.internetTier), r1 = actTierKey(kinds.int[0].itier);
+      if (a1 && r1 && a1 !== r1) issues.push(`Tier distinto: vendiste ${sold.internetTier}, el reporte dice ${kinds.int[0].itier}.`);
+    }
+    if (st.code === 'partial') st.disputeLeft = disputeLeft;
+    byId[a.ID] = st;
+  });
+
+  // Commission view from the report itself
+  let earned = 0, chargeback = 0, unpriced = 0;
+  const onlyReport = [];
+  Object.values(groups).forEach(g => {
+    const live = g.psus.filter(p => p.connected);
+    if (!live.length) { if (!matched.has(g.acct)) onlyReport.push(g); return; }
+    const connDate = live.map(p => p.conn).filter(Boolean).sort()[0] || g.sale;
+    const x = actExpected(actReportSvc(g), connDate);
+    if (x.total === null) unpriced++;
+    else {
+      earned += x.total;
+      const r = actRateFor(connDate);
+      live.filter(p => p.disconnected && (p.surv === '0' || (p.conn && p.disc && actDaysBetween(p.conn, p.disc) < 90))).forEach(p => {
+        const k = actPsuKind(p.type);
+        chargeback += k === 'int' ? (r.internet[actTierKey(p.itier)] || 0) : k === 'mob' ? r.mobileFirst : k === 'tv' ? (actVideoRate(p.vtier, r) || 0) : k === 'voice' ? r.voice : 0;
+      });
+    }
+    if (!matched.has(g.acct)) onlyReport.push(g);
+  });
+  actReco = { groups, meta, byId, onlyReport, earned, chargeback, unpriced };
+}
+
+function actRecoPanel() {
+  const r = actReco, vals = Object.values(r.byId);
+  const n = c => vals.filter(v => c.includes(v.code)).length;
+  return `<div class="act-reco">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="font-weight:700">📄 ${escHtml(r.meta.file)}</div>
+      <div style="font-size:12px;color:var(--muted)">${r.meta.accounts} cuentas · ventas desde ${actFmtDate(r.meta.minSale)} · actualizado al ${actFmtDate(r.meta.upd)}</div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="actExportClaims()">⬇ Lista para reclamar</button>
+      <button class="btn btn-ghost btn-sm" onclick="actReco=null;actFilter.status='';renderActBody()">✕ Quitar reporte</button>
+    </div>
+    <div class="report-grid" style="margin-bottom:0">
+      <div class="stat-card green"><div class="stat-label">✅ Conectadas</div><div class="stat-value">${n(['ok'])}</div></div>
+      <div class="stat-card yellow"><div class="stat-label">⏳ Pendientes</div><div class="stat-value">${n(['pending','recent'])}</div></div>
+      <div class="stat-card red" style="cursor:pointer" onclick="actFilter.status='claim';renderActBody()"><div class="stat-label">❌ Para reclamar</div><div class="stat-value">${n(['missing','partial'])}</div></div>
+      <div class="stat-card red" style="cursor:pointer" onclick="actFilter.status='chargeback';renderActBody()"><div class="stat-label">⚠️ Chargeback</div><div class="stat-value">${n(['chargeback'])}</div></div>
+      <div class="stat-card blue"><div class="stat-label">Solo en el reporte</div><div class="stat-value">${r.onlyReport.length}</div></div>
+      <div class="stat-card cyan"><div class="stat-label">Comisión según reporte</div><div class="stat-value">${fmtMoney(r.earned)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${r.chargeback ? `−${fmtMoney(r.chargeback)} en chargebacks` : ''}${r.unpriced ? `${r.chargeback?' · ':''}${r.unpriced} cuenta(s) con tarifa anterior` : ''}</div></div>
+    </div>
+    ${r.onlyReport.length ? `<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:var(--muted)">Cuentas en el reporte que no están registradas en la app (${r.onlyReport.length})</summary>
+      <div style="font-size:12px;margin-top:8px">${r.onlyReport.map(g => `<div style="display:flex;gap:10px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span class="mono" style="color:var(--muted)">${escHtml(g.acct)}</span><span style="flex:1">${escHtml(g.name)}</span>
+        <span>${escHtml(ACT_REPS[String(g.agent).toUpperCase()] || g.agent)}</span><span style="color:var(--muted)">${actFmtDate(g.sale)}</span>
+        <span>${actSvcChips(actReportSvc(g))}</span></div>`).join('')}</div></details>` : ''}
+  </div>`;
+}
+
+// ─── Exports ───
+function actCsv(rows, name) {
+  const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+function actExportCSV() {
+  const list = actFiltered();
+  if (!list.length) { toast('No hay activaciones para exportar.', 'error'); return; }
+  actCsv([['Fecha','Mes fiscal','Rep','Rep ID','Cliente','Cuenta','Confirmación','Work order','Teléfono','Correo','Dirección','Ciudad','Zip',
+    'Internet','Líneas móviles','Plan móvil','TV','Voice','Xumo','Comisión estimada','Estatus Cellmart','Detalle','IMEIs','Notas']]
+    .concat(list.map(a => { const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID];
+      return [a.OrderDate, a.FiscalMonth, actRepName(a), a.RepID, a.CustomerName, a.AccountNumber, a.Confirmation, a.WorkOrder, a.Phone, a.Email,
+        a.Address, a.City, a.Zip, s.internetTier, s.mobileLines || '', a.MobilePlan, s.videoTier, s.voice ? 'Yes' : '', s.xumo || '',
+        x.total ?? '', st ? (ACT_STATUS[st.code]||{}).label : '', st ? st.issues.join(' | ') : '', a.IMEIs, a.Notes]; })),
+    `activaciones_${actFilter.fm || 'todas'}.csv`);
+}
+function actExportClaims() {
+  const list = actData.filter(a => { const st = actReco && actReco.byId[a.ID]; return st && ['missing','partial','chargeback'].includes(st.code); });
+  if (!list.length) { toast('No hay cuentas para reclamar.', 'info'); return; }
+  actCsv([['Fecha de venta','Rep ID','Cliente','Cuenta','Confirmación','Work order','Servicios vendidos','Problema','Días para disputar']]
+    .concat(list.map(a => { const st = actReco.byId[a.ID], s = actSvcOf(a);
+      return [a.OrderDate, a.RepID, a.CustomerName, a.AccountNumber, a.Confirmation, a.WorkOrder,
+        [s.internetTier && 'Internet ' + s.internetTier, s.mobileLines && s.mobileLines + ' línea(s) móvil', s.videoTier && 'TV ' + s.videoTier, s.voice && 'Voice'].filter(Boolean).join(' + '),
+        st.issues.join(' | '), st.disputeLeft === null ? '' : Math.max(st.disputeLeft, 0)]; })),
+    `reclamar_cellmart_${actToday()}.csv`);
+}
+
 function errorState(msg) {
   return `<div class="empty-state"><div class="icon">⚠️</div><p style="color:var(--red)">${msg}</p>
     <button class="btn btn-ghost" style="margin-top:12px" onclick="loadCurrentPage()">Retry</button></div>`;
