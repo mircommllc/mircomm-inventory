@@ -311,6 +311,26 @@
     .pros-stats .stat-card { padding: 14px; }
   }
 
+  /* ── CAJA: pendientes, recibo, accesorio ── */
+  .nav-badge { margin-left: auto; background: var(--blue); color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 800; }
+  .nav-badge.yellow { background: var(--yellow); color: #111; }
+  .nav-badge.red { background: var(--red); color: #fff; }
+  .pend-box { background: var(--surface); border: 1px solid rgba(26,110,255,.45); border-radius: 12px; padding: 14px 16px; margin: 4px 0 16px; }
+  .pend-box.pend-yellow { border-color: rgba(255,209,102,.6); }
+  .pend-box.pend-red { border-color: rgba(255,68,85,.7); background: rgba(255,68,85,.06); }
+  .pend-title { font-family: var(--font-display); font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .pend-count { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 0 8px; font-size: 13px; }
+  .pend-sub { font-size: 12px; color: var(--muted); margin: 4px 0 8px; }
+  .pend-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 0; border-top: 1px solid var(--border); }
+  .pend-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue); flex-shrink: 0; }
+  .pend-dot.yellow { background: var(--yellow); } .pend-dot.red { background: var(--red); }
+  .pos-line-card { background: rgba(0,232,135,.07); border: 2px solid rgba(0,232,135,.55); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .pos-line-card.done { padding: 12px 16px; }
+  .pos-line-btn { padding: 16px !important; font-size: 17px !important; font-weight: 800 !important; }
+  .acc-banner { margin: 0 16px 0; padding: 10px 12px; border: 1px dashed rgba(255,209,102,.6); border-radius: 10px; background: rgba(255,209,102,.06); font-size: 13px; }
+  .acc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .acc-opt { display: flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+
   #config-overlay { z-index: 600; } /* above the login screen, for first-time setup */
   /* ── ACTIVACIONES ── */
   .svc { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap;
@@ -439,6 +459,9 @@
     <div class="nav-item rep-only" data-page="mylines" onclick="showPage('mylines')">
       <span class="icon">📱</span> Mis líneas
     </div>
+    <div class="nav-item" id="nav-mipago" data-page="mipago" style="display:none" onclick="showPage('mipago')">
+      <span class="icon">💵</span> Mi pago
+    </div>
     <div class="nav-section manager-only">Reports</div>
     <div class="nav-item manager-only" data-page="transactions" onclick="showPage('transactions')">
       <span class="icon">📋</span> Transactions
@@ -451,6 +474,9 @@
     </div>
     <div class="nav-item manager-only" data-page="activations" onclick="showPage('activations')">
       <span class="icon">📡</span> Activaciones
+    </div>
+    <div class="nav-item manager-only" data-page="nomina" onclick="showPage('nomina')">
+      <span class="icon">💵</span> Nómina
     </div>
     <div class="nav-section manager-only">Stock</div>
     <div class="nav-item manager-only" data-page="receive" onclick="showPage('receive')">
@@ -545,7 +571,7 @@ async function repLogin() {
     mgrToken = r.token;
     currentUser = repLoginName; isManager = false;
     prosAuth = { user: repLoginName, pin, manager: !!r.user.manager, code: r.user.code || '' };
-    prosData = null; mlData = null;
+    prosData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {};
     err.textContent = ''; err.style.color = '';
     document.getElementById('rep-pin-box').style.display = 'none';
     completeLogin();
@@ -578,6 +604,7 @@ async function checkPin(val) {
       mgrToken = r.token;
       currentUser = 'Joel';
       isManager = true;
+      nomData = null; nomPeriod = null; nomEdits = {};
       errEl.textContent = '';
       completeLogin();
     } else {
@@ -604,6 +631,8 @@ function completeLogin() {
     el.classList.toggle('visible', isManager);
   });
   document.querySelectorAll('.rep-only').forEach(el => { el.style.display = isManager ? 'none' : ''; });
+  nomCheckRepAccess();
+  posPending = []; posRecentSales = null; posLastReceipt = null; posRefreshPending(true);
 
   // Default page
   currentPage = isManager ? 'inventory' : 'pos';
@@ -619,7 +648,8 @@ function logout(msg) {
   closeModal();
   document.getElementById('rep-pin-box').style.display = 'none';
   document.getElementById('rep-pin-error').textContent = '';
-  prosAuth = null; prosData = null; mlData = null;
+  prosAuth = null; prosData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {};
+  posPending = []; posPendingAt = 0; posPaintPending();
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('pin-input').value = '';
   document.getElementById('pin-error').textContent = typeof msg === 'string' ? msg : '';
@@ -650,9 +680,11 @@ function saveConfig() {
 // ─── NAVIGATION ──────────────────────────────────────────────────────
 function showPage(page) {
   // Block non-managers from manager pages
-  const managerPages = ['inventory','transactions','report','receive','customers','activations'];
+  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina'];
   if (managerPages.includes(page) && !isManager) return;
+  if (page === 'nomina') nomPreviewRep = '';
   if (page === 'mylines' && isManager) page = 'activations';
+  if (page === 'mipago' && isManager) page = 'nomina';
   currentPage = page;
   document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.page === page));
   loadCurrentPage();
@@ -668,6 +700,8 @@ function loadCurrentPage() {
     case 'activations':  renderActivations(); break;
     case 'prospects':    renderProspects(); break;
     case 'mylines':      renderMyLines(); break;
+    case 'mipago':       renderMyPay(); break;
+    case 'nomina':       renderNomina(); break;
   }
 }
 
@@ -1015,6 +1049,7 @@ async function renderPOS() {
     catch(e) { el.innerHTML = errorState(e.message); return; }
   }
   renderPOSLayout();
+  posRefreshPending();
 }
 
 function posTotals() {
@@ -1034,8 +1069,12 @@ function renderPOSLayout() {
   const nItems = cart.reduce((s,i) => s + i.qty, 0);
 
   el.innerHTML = `
-    <div class="page-title">🛒 Point of Sale</div>
-    <div class="page-subtitle">Palmhurst · ${new Date().toLocaleDateString()} · ${currentUser}</div>
+    <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px"><div class="page-title">🛒 Point of Sale</div>
+        <div class="page-subtitle">Palmhurst · ${new Date().toLocaleDateString()} · ${currentUser}</div></div>
+      <button class="btn btn-ghost" onclick="posReprintOpen()">🧾 Reimprimir recibo</button>
+    </div>
+    <div id="pos-pending">${posPendingPanel()}</div>
     <div class="pos-layout">
       <div class="pos-main">
         <div class="pos-search-wrap">
@@ -1050,6 +1089,7 @@ function renderPOSLayout() {
             <h3>Cart (${nItems} item${nItems!==1?'s':''})</h3>
             ${cart.length ? `<button class="btn btn-ghost btn-sm" onclick="clearPosCart()">🗑 Clear</button>` : ''}
           </div>
+          ${posAccBanner()}
           <div class="cart-table-wrap">
             ${cart.length===0
               ? '<div class="empty-state" style="padding:60px 20px"><div class="icon">🛒</div><p>Scan an item or search above to start a sale</p></div>'
@@ -1096,7 +1136,7 @@ function renderPOSLayout() {
               </select>
             </div>
             <div id="pos-total-rows"></div>
-            <button class="btn btn-primary btn-full pos-checkout-btn" id="pos-checkout" style="margin-top:12px" ${cart.length===0?'disabled':''} onclick="openCustomerModal()"></button>
+            <button class="btn btn-primary btn-full pos-checkout-btn" id="pos-checkout" style="margin-top:12px" ${cart.length===0?'disabled':''} onclick="posCheckout()"></button>
           </div>
         </div>
       </div>
@@ -1381,12 +1421,16 @@ async function completeSale() {
       gift: phones.some(i => i.gift),
       Notes: `Venta ${r.saleId} en caja · ${phones.map(i => i.name + (i.gift ? ' (regalado)' : '')).join(', ')}`
     } : null;
+    posLastReceipt = null;
+    posLogOffer(r.saleId, cart);
     showReceipt(r.saleId, cart, subtotal, discount, discountDesc, tax, total, paymentMethod, pendingCustomer);
+    posRefreshPending(true);
     cart=[]; discountAmt=0; discountDesc=''; stockData=[]; pendingCustomer=null; pendingSpectrumAccount=null;
   } catch(e) { toast(e.message,'error'); }
 }
 
-function receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer, now) {
+function receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer, now, opts) {
+  opts = opts || {};
   const lines = items.map(i => {
     let line = `  ${i.name.padEnd(24,' ')} x${i.qty}  ${i.gift ? 'REGALO' : '$'+(i.price*i.qty).toFixed(2)}`;
     if (isPhoneCategory(i.category)) line += `\n    IMEI: ${i.barcode}`;
@@ -1401,47 +1445,25 @@ function receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax
     <div class="receipt-preview">4415 N. Conway Ave. Ste. 180
 Palmhurst, TX 78573
 (956) 603-6505
-${now.toLocaleString()}
-Sale ID: ${saleId}  |  Rep: ${currentUser}${customer&&customer.name?`\nCliente: ${customer.name}`:''}
+${opts.copy ? '*** COPIA · REIMPRESIÓN ***\n' : ''}${now.toLocaleString()}
+Sale ID: ${saleId}  |  Rep: ${opts.rep || currentUser}${customer&&customer.name?`\nCliente: ${customer.name}`:''}
 ────────────────────────────────
 ${lines}
 ────────────────────────────────
 Subtotal:        $${subtotal.toFixed(2)}${discount>0?`\nDiscount (${discountDesc||'—'}): -$${discount.toFixed(2)}`:''}
 Tax (8.25%):     $${tax.toFixed(2)}
 TOTAL:           $${total.toFixed(2)}
-Payment:         ${payment.toUpperCase()}
+Payment:         ${String(payment || '').toUpperCase()}
 ────────────────────────────────
 Thank you for choosing MirComm!</div>
     <div class="receipt-policy">${RETURN_POLICY.replace(/\n/g,'<br>')}</div>`;
 }
 
-function showReceipt(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer) {
-  const now = new Date();
-  const content = receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer, now);
-
-  // Populate the print-only container — a plain top-level element, not nested
-  // inside the fixed-position modal, so Chrome's print engine renders it in
-  // normal document flow instead of clipping it to the modal's on-screen box.
-  const printEl = document.getElementById('print-receipt');
-  if (printEl) printEl.innerHTML = content;
-
-  openModal(`
-    <div class="modal-title">🧾 Receipt <button class="modal-close" onclick="closeModal()">✕</button></div>
-    ${content}
-    ${posLastLine && posLastLine.PosSaleID === String(saleId) ? `<div class="act-reco" style="margin:14px 0 0;border-color:rgba(0,232,135,.5)">
-      <div style="font-weight:700;margin-bottom:4px">📱 ${posLastLine.gift ? 'Se regaló un teléfono' : 'Se vendió un teléfono'}</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${posLastLine.gift ? 'El teléfono regalado requiere su línea: regístrala ahora. Ya va con la cuenta, el cliente y el IMEI.' : '¿Se activó una línea nueva de Spectrum con este teléfono? Regístrala ahora. Si solo compró el teléfono (se le perdió o se le quebró), dale New Sale.'}</div>
-      <button class="btn btn-${posLastLine.gift ? 'primary' : 'ghost'} btn-full" onclick="posRegisterLine()">📱 Registrar la línea ahora</button>
-    </div>` : ''}
-    <div style="margin-top:14px;display:flex;gap:10px">
-      <button class="btn btn-ghost" style="flex:1" onclick="window.print()">🖨 Print</button>
-      <button class="btn btn-${posLastLine && posLastLine.PosSaleID === String(saleId) && posLastLine.gift ? 'ghost' : 'primary'}" style="flex:1" onclick="closeModal();renderPOS()">New Sale</button>
-    </div>`);
-}
 // Opens the line form prefilled from the sale that just finished
 async function posRegisterLine() {
   const pre = posLastLine;
   if (!pre) return;
+  posReceiptReturn = true;
   try {
     if (isManager) {
       if (!actData.length) actData = await apiGet({ action: 'getActivations' });
@@ -1480,6 +1502,7 @@ async function loadTransactions() {
   el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
   try {
     const txs = await apiGet({ action:'getTransactions', store:currentStore, startDate:start, endDate:end });
+    txList = Array.isArray(txs) ? txs : [];
     el.innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>Sale ID</th><th>Date</th><th>Employee</th><th>Items</th><th>Payment</th><th>Discount</th><th>Total</th><th>Status</th><th></th></tr></thead>
       <tbody>${txs.length===0 ? `<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><p>No transactions</p></div></td></tr>` :
@@ -1495,7 +1518,8 @@ async function loadTransactions() {
             <td class="mono">${parseFloat(tx.DiscountAmount||0)>0?`$${parseFloat(tx.DiscountAmount).toFixed(2)}`:'—'}</td>
             <td class="mono" style="font-weight:600">$${parseFloat(tx.Total||0).toFixed(2)}</td>
             <td><span class="badge badge-${String(tx.Status).toLowerCase()}">${tx.Status}</span></td>
-            <td>${!isVoided?`<button class="btn btn-danger btn-sm" onclick="voidSalePrompt('${tx.SaleID}')">Void</button>`:''}</td>
+            <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" title="Reimprimir recibo" onclick="txReceipt('${tx.SaleID}')">🧾 Recibo</button>
+              ${!isVoided?`<button class="btn btn-danger btn-sm" onclick="voidSalePrompt('${tx.SaleID}')">Void</button>`:''}</td>
           </tr>`;
         }).join('')}
       </tbody></table></div>`;
@@ -1552,6 +1576,7 @@ async function loadReport() {
         <div class="stat-card red"><div class="stat-label">Discounts Given</div><div class="stat-value">$${r.totalDiscount.toFixed(0)}</div></div>
         <div class="stat-card red"><div class="stat-label">Voided Sales</div><div class="stat-value">${r.voidedCount}</div></div>
       </div>
+      <div id="rpt-acc"></div>
       <div class="table-wrap"><table>
         <thead><tr><th>Barcode</th><th>Product</th><th>Category</th><th>Price</th><th>On Hand</th><th>Sold</th><th>Revenue</th><th>Received</th></tr></thead>
         <tbody>${r.rows.sort((a,b)=>b.soldRev-a.soldRev).map(p=>`<tr>
@@ -1565,6 +1590,7 @@ async function loadReport() {
           <td style="color:var(--muted)">${p.rcvdQty||0}</td>
         </tr>`).join('')}</tbody>
       </table></div>`;
+    reportAccessories(start, end);
   } catch(e) { el.innerHTML = errorState(e.message); }
 }
 
@@ -1905,8 +1931,8 @@ async function renderProspects() {
 function renderProsPin(err) {
   document.getElementById('content').innerHTML = `
     <div class="pros-pin-box">
-      <div style="font-size:40px;margin-bottom:10px">${currentPage === 'mylines' ? '📱' : '🎯'}</div>
-      <div class="page-title" style="margin-bottom:6px">${currentPage === 'mylines' ? 'Mis líneas' : 'Prospectos'}</div>
+      <div style="font-size:40px;margin-bottom:10px">${{ mylines: '📱', mipago: '💵' }[currentPage] || '🎯'}</div>
+      <div class="page-title" style="margin-bottom:6px">${{ mylines: 'Mis líneas', mipago: 'Mi pago' }[currentPage] || 'Prospectos'}</div>
       <p style="color:var(--muted);margin-bottom:20px;line-height:1.5">${escHtml(currentUser)}, escribe tu PIN personal de 6 dígitos.</p>
       <input class="pin-input" id="pros-pin" type="password" inputmode="numeric" maxlength="6" placeholder="••••••"
         onkeydown="if(event.key==='Enter')prosLogin()" oninput="if(this.value.length===6)prosLogin()">
@@ -2588,7 +2614,20 @@ function actAddDays(ymd, n) {
   const d = new Date(ymd + 'T00:00:00'); d.setDate(d.getDate() + n);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function actRepName(a) { return a.SoldBy || a.Employee || ACT_REPS[String(a.RepID||'').toUpperCase()] || a.RepID || '—'; }
+// Rep IDs que otra persona usó por un tiempo (igual que NOM_REP_HANDOVER en Nomina.gs):
+// Alondra vendió con los IDs de Lizbeth hasta el domingo 11 oct 2026.
+const ACT_REP_HANDOVER = [
+  { owner: 'Lizbeth', ids: ['CMMLB4896', 'CMMLB4898'], from: '2026-06-01', to: '2026-10-11', name: 'Alondra' }
+];
+function actHandover(who, repId, ymd) {
+  const id = String(repId || '').toUpperCase(), d = String(ymd || '').slice(0, 10);
+  const h = ACT_REP_HANDOVER.find(h => d >= h.from && d <= h.to && (who === h.owner || (!who && h.ids.includes(id))));
+  return h ? h.name : who;
+}
+function actRepName(a) {
+  const who = a.SoldBy || a.Employee || ACT_REPS[String(a.RepID||'').toUpperCase()] || '';
+  return actHandover(who, a.RepID, a.OrderDate) || a.RepID || '—';
+}
 function actRepOwner(a) { return ACT_REPS[String(a.RepID||'').toUpperCase()] || a.Employee || ''; }
 // Earlier MirComm mobile orders on the same account (from the app's own records)
 function actPriorMobileRows(acct, beforeDate, excludeId, beforeCreated) {
@@ -3050,7 +3089,8 @@ async function actSaveForm(id) {
     if (actComReco) actComReconcile(actComReco.rows, actComReco.adjustments, actComReco.meta);
     if (actEmails) actEmails = await apiGet({ action: 'getMobileEmails' }).catch(() => actEmails);
     closeModal(); toast('Activación guardada.', 'success');
-    if (actFormPre.PosSaleID && currentPage === 'pos') { posLastLine = null; actFormPre = {}; renderPOS(); } else { actFormPre = {}; renderActBody(); }
+    if (actFormPre.PosSaleID) { actFormPre = {}; if (!posAfterLineSaved()) { if (currentPage === 'pos') renderPOS(); else renderActBody(); } }
+    else { actFormPre = {}; renderActBody(); }
   } catch (e) { toast(e.message, 'error'); }
 }
 
@@ -3074,11 +3114,13 @@ async function actLoadReport(file) {
     const grid = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
     if (grid.some(r => r.some(c => /^commission paid$/i.test(String(c).trim())))) {
       actLoadCommissionReport(file, XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }));
+      nomSaveSnapshot();
       return;
     }
     if (grid.some(r => r.some(c => /mobile work order number\s*-\s*parent/i.test(String(c))))) {
       actLoadMobileReport(file, XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }));
       if (actComReco) { actComReconcile(actComReco.rows, actComReco.adjustments, actComReco.meta); renderActBody(); }
+      nomSaveSnapshot();
       return;
     }
     const hi = grid.findIndex(r => r.some(c => /customer\s*-\s*account number/i.test(String(c))));
@@ -3108,6 +3150,7 @@ async function actLoadReport(file) {
     actFilter.fm = '';  // the report spans several months
     toast(`Core Report cargado: ${meta.accounts} cuentas.`, 'success');
     renderActBody();
+    nomSaveSnapshot();
   } catch (e) { toast(e.message, 'error'); }
 }
 
@@ -3307,6 +3350,7 @@ function renderMyLinesBody() {
   el.innerHTML = `
     <div class="page-title">📱 Mis líneas</div>
     <div class="page-subtitle">${escHtml(d.me.name)} · registra cada línea en cuanto se vaya el cliente</div>
+    <div id="pos-pending">${posPendingPanel()}</div>
     <div class="action-row">
       <button class="btn btn-primary" onclick="openMlForm()">＋ Registrar línea</button>
       <button class="btn btn-ghost" onclick="renderMyLines()">↻ Actualizar</button>
@@ -3364,7 +3408,7 @@ function openMlForm(msgId, pre) {
     ${pre.PosSaleID ? `<div class="act-hint" style="margin-bottom:12px">De la venta <b>${escHtml(pre.PosSaleID)}</b> en caja${pre.gift ? ' · 🎁 teléfono regalado' : ''}. Completa lo que falte.</div>` : ''}
     <div class="form-row">
       <div class="form-group"><label class="form-label">Fecha de la venta *</label>
-        <input class="form-input" type="date" id="ml-date" min="${minDate}" max="${mlData.today}" value="${escHtml(e ? e.OrderDate : mlData.today)}"></div>
+        <input class="form-input" type="date" id="ml-date" min="${minDate}" max="${mlData.today}" value="${escHtml(e ? e.OrderDate : (pre.OrderDate || mlData.today))}"></div>
       <div class="form-group"><label class="form-label">Número de cuenta Spectrum *</label>
         <input class="form-input mono" id="ml-acct" inputmode="numeric" placeholder="8260…" value="${escHtml(pre.AccountNumber || '')}" oninput="mlAcctChanged()" onblur="mlCheckAcct()"></div>
     </div>
@@ -3475,7 +3519,7 @@ async function mlSave(force) {
     closeModal();
     toast(r.warning ? escHtml(r.warning) : 'Línea registrada. ¡Gracias!', r.warning ? 'info' : 'success');
     mlAcctInfo = null;
-    if (mlFormPre.PosSaleID) { posLastLine = null; mlFormPre = {}; mlData = null; if (currentPage === 'pos') renderPOS(); else renderMyLines(); }
+    if (mlFormPre.PosSaleID) { mlFormPre = {}; mlData = null; if (!posAfterLineSaved()) { if (currentPage === 'pos') renderPOS(); else renderMyLines(); } }
     else renderMyLines();
   } catch (e) {
     if (btn) btn.disabled = false;
@@ -3885,6 +3929,876 @@ function actPosPanel(pr) {
     ${pr.soldNoLine.length ? `<details style="margin-top:${pr.giftNoLine.length ? 10 : 0}px"><summary style="cursor:pointer;font-size:13px;color:var(--muted)">📱 Teléfono + SIM vendidos sin línea registrada (${pr.soldNoLine.length}) · revisa si se abrió línea nueva o solo se cambió de teléfono</summary>
       <div style="font-size:12px;margin-top:6px">${pr.soldNoLine.map(row).join('')}</div></details>` : ''}
   </div>`;
+}
+
+// ─── 🛒 CAJA: líneas por registrar, reimprimir recibos y oferta de accesorio ─────
+// Backend: Nomina.gs (acciones actRep* con el PIN de la asesora, pos* con la sesión de Joel).
+let posPending = [];        // ventas con teléfono sin línea registrada
+let posPendingNow = '';     // hora del servidor del último cálculo
+let posPendingAt = 0;       // cuándo se pidió por última vez (ms)
+let posPendingOk = false;   // false si el backend todavía no tiene Nomina.gs
+let posOffer = null;        // resultado de la oferta de accesorio de la venta en curso
+let posLastReceipt = null;  // datos del último recibo para volver a abrirlo
+let posReceiptReturn = false;
+let posRecentSales = null;  // ventas recientes para reimprimir
+let posReprintQ = '';
+let txList = [];            // ventas cargadas en 📋 Transactions
+
+function cajaApi(repAction, mgrAction, params = {}) {
+  if (isManager) return apiGet({ action: mgrAction, ...params });
+  if (!prosAuth) return Promise.reject(new Error('Vuelve a entrar con tu PIN.'));
+  return apiGet({ action: repAction, user: prosAuth.user, pin: prosAuth.pin, ...params });
+}
+function posDateObj(s) {
+  const v = String(s || '');
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+  if (m && !/Z|[+-]\d{2}:?\d{2}$/.test(v)) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0));
+  const d = new Date(v);
+  return isNaN(d) ? new Date() : d;
+}
+function posFmtTime(s) {
+  const d = posDateObj(s), today = actToday();
+  const ymd = actYmdOf(d), hm = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return ymd === today ? `hoy ${hm}` : ymd === actAddDays(today, -1) ? `ayer ${hm}` : `${actFmtDate(ymd)} ${hm}`;
+}
+// < 2 h normal · 2 h o más amarillo · de un día anterior rojo
+function posAge(p) {
+  const d = posDateObj(p.Date), hrs = (Date.now() - d.getTime()) / 3600000;
+  if (actYmdOf(d) < actToday()) return { cls: 'red', label: 'de un día anterior' };
+  if (hrs >= 2) return { cls: 'yellow', label: `hace ${Math.floor(hrs)} h` };
+  return { cls: 'blue', label: hrs < 1 ? `hace ${Math.max(1, Math.round(hrs * 60))} min` : 'hace 1 h' };
+}
+
+// ── Líneas por registrar ──
+async function posRefreshPending(force) {
+  if (!currentUser || !SHEETS_URL) return;
+  if (!force && Date.now() - posPendingAt < 60000) { posPaintPending(); return; }
+  posPendingAt = Date.now();
+  try {
+    const r = await cajaApi('actRepPending', 'posPending');
+    posPending = r.pending || []; posPendingNow = r.now || ''; posPendingOk = true;
+  } catch (e) { posPendingOk = false; posPending = []; }
+  posPaintPending();
+}
+function posPaintPending() {
+  const n = posPending.length, worst = posPending.some(p => posAge(p).cls === 'red') ? 'red' : posPending.some(p => posAge(p).cls === 'yellow') ? 'yellow' : '';
+  document.querySelectorAll('.nav-item[data-page="pos"], .nav-item[data-page="mylines"]').forEach(el => {
+    let b = el.querySelector('.nav-badge');
+    if (!n) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement('span'); el.appendChild(b); }
+    b.className = 'nav-badge ' + worst; b.textContent = n; b.title = `${n} línea(s) por registrar`;
+  });
+  const box = document.getElementById('pos-pending');
+  if (box) box.innerHTML = posPendingPanel();
+}
+function posPendingPanel() {
+  if (!posPending.length) return '';
+  const worst = posPending.some(p => posAge(p).cls === 'red') ? 'red' : posPending.some(p => posAge(p).cls === 'yellow') ? 'yellow' : 'blue';
+  return `<div class="pend-box pend-${worst}">
+    <div class="pend-title">📱 Líneas por registrar <span class="pend-count">${posPending.length}</span></div>
+    <div class="pend-sub">Teléfonos vendidos o regalados que todavía no tienen su línea. Regístralas en cuanto se vaya el cliente${isManager ? '' : ': la línea no te cuenta hasta que la registras'}.</div>
+    ${posPending.map(p => {
+      const age = posAge(p), name = p.AccountName || p.CustomerName || '—';
+      return `<div class="pend-row">
+        <span class="pend-dot ${age.cls}" title="${escHtml(age.label)}"></span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700">${escHtml(name)}${p.gift ? ' <span class="pros-badge pros-b-rev">🎁 regalado</span>' : ''}</div>
+          <div style="font-size:12px;color:var(--muted)">${escHtml(posFmtTime(p.Date))} · ${escHtml(p.Phones.map(x => x.name).join(', '))}${isManager ? ' · cobró ' + escHtml(p.Employee) : ''} · venta ${escHtml(p.SaleID)}</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="posRegisterPending('${escHtml(p.SaleID)}')">📱 Registrar</button>
+        ${!p.gift || isManager ? `<button class="btn btn-ghost btn-sm" onclick="posDismissPending('${escHtml(p.SaleID)}')">No lleva línea</button>` : ''}
+      </div>`; }).join('')}
+  </div>`;
+}
+function posEmailMatch(list, name, ymd) {
+  const first = s => (actNameTokens(s)[0] || '');
+  const n = first(name);
+  if (!n || !list) return null;
+  return list.find(e => (!e.status || e.status === 'pending') && first(e.FirstName) === n && Math.abs(actDaysBetween(e.OrderDate, ymd)) <= 1) || null;
+}
+function posPendingPre(p) {
+  const ymd = actYmdOf(posDateObj(p.Date));
+  const imeis = p.Phones.map(x => x.imei).filter(Boolean).join(', ');
+  return { PosSaleID: p.SaleID, OrderDate: ymd, AccountNumber: p.AccountNumber || '', CustomerName: p.AccountName || p.CustomerName || '',
+    Phone: p.CustomerPhone || '', IMEIs: imeis, MobileLines: String(p.Phones.reduce((n, x) => n + (x.qty || 1), 0)), gift: p.gift,
+    Notes: `Venta ${p.SaleID} en caja · ${p.Phones.map(x => x.name + (x.gift ? ' (regalado)' : '')).join(', ')}` };
+}
+async function posRegisterPending(saleId) {
+  const p = posPending.find(x => x.SaleID === saleId);
+  if (!p) return;
+  const pre = posPendingPre(p);
+  posReceiptReturn = false;
+  try {
+    if (isManager) {
+      if (!actData.length) actData = await apiGet({ action: 'getActivations' });
+      if (!actEmails) actEmails = await apiGet({ action: 'getMobileEmails' }).catch(() => null);
+      const e = posEmailMatch(actEmails, pre.CustomerName, pre.OrderDate);
+      openActForm(null, Object.assign(pre, { SoldBy: p.Employee || 'Joel', MobileOrder: e ? e.OrderNumber : '',
+        _from: `De la venta ${p.SaleID} en caja (${posFmtTime(p.Date)}, cobró ${p.Employee})${e ? ` · orden #${e.OrderNumber} del correo de Spectrum` : ''}.` }));
+    } else {
+      if (!prosAuth) { toast('Vuelve a entrar con tu PIN.', 'error'); return; }
+      if (actDaysBetween(pre.OrderDate, actToday()) > 7) { toast('Pasó más de una semana: pídele a Joel que la registre.', 'error'); return; }
+      if (!mlData) mlData = await mlApi('actRepList');
+      const e = posEmailMatch(mlData.emails, pre.CustomerName, pre.OrderDate);
+      openMlForm(e ? e.MsgId : null, pre);
+    }
+  } catch (err) { toast(escHtml(err.message), 'error'); }
+}
+function posDismissPending(saleId) {
+  const p = posPending.find(x => x.SaleID === saleId);
+  if (!p) return;
+  const reasons = ['Solo compró el teléfono (reposición)', 'El cliente activa su línea por su cuenta', 'Es para otra compañía (AT&T, etc.)', 'Otro'];
+  openModal(`
+    <div class="modal-title">No lleva línea <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">${escHtml(p.AccountName || p.CustomerName)} · ${escHtml(p.Phones.map(x => x.name).join(', '))}. ¿Por qué no se registra línea?</p>
+    <div style="display:grid;gap:8px">${reasons.map(r => `<button class="btn btn-ghost btn-full" onclick="posDismissSave('${escHtml(saleId)}', this.textContent)">${escHtml(r)}</button>`).join('')}</div>`);
+}
+async function posDismissSave(saleId, reason) {
+  try {
+    await cajaApi('actRepDismissLine', 'posDismissLine', { saleId, reason });
+    closeModal(); toast('Listo, ya no aparece como pendiente.', 'success');
+    posPending = posPending.filter(x => x.SaleID !== saleId); posPaintPending();
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+// Después de guardar una línea que viene de la caja
+function posAfterLineSaved() {
+  posLastLine = null;
+  posRefreshPending(true);
+  if (posReceiptReturn && posLastReceipt) {
+    posReceiptReturn = false; posLastReceipt.lineDone = true;
+    showReceipt(...posLastReceipt.args);
+    return true;
+  }
+  return false;
+}
+
+// ── Recibo ──
+function posLineCard(saleId) {
+  if (posLastReceipt && posLastReceipt.saleId === String(saleId) && posLastReceipt.lineDone)
+    return `<div class="pos-line-card done"><div style="font-weight:800;font-size:16px">✅ Línea registrada</div></div>`;
+  if (!(posLastLine && posLastLine.PosSaleID === String(saleId))) return '';
+  return `<div class="pos-line-card">
+    <div style="font-weight:800;font-size:17px;margin-bottom:4px">📱 ${posLastLine.gift ? 'Se regaló un teléfono: falta registrar su línea' : 'Se vendió un teléfono: ¿lleva línea nueva?'}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Ya va con el cliente${posLastLine.AccountNumber ? ', la cuenta' : ''} y el IMEI. Si hay clientes esperando, dale <b>Listo</b>: queda en <b>📱 Líneas por registrar</b> y la registras en cuanto puedas.</div>
+    <button class="btn btn-primary btn-full pos-line-btn" onclick="posRegisterLine()">📱 Registrar la línea ahora</button>
+  </div>`;
+}
+function showReceipt(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer) {
+  const args = [saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer];
+  if (!posLastReceipt || posLastReceipt.saleId !== String(saleId)) posLastReceipt = { saleId: String(saleId), args, when: new Date(), lineDone: false };
+  const content = receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer, posLastReceipt.when);
+  const printEl = document.getElementById('print-receipt');
+  if (printEl) printEl.innerHTML = content;
+  openModal(`
+    <div class="modal-title">🧾 Recibo · venta ${escHtml(saleId)} <button class="modal-close" onclick="closeModal();renderPOS()">✕</button></div>
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <button class="btn btn-primary" style="flex:1;padding:14px;font-size:15px" onclick="window.print()">🖨 Imprimir recibo</button>
+      <button class="btn btn-ghost" style="flex:1;padding:14px;font-size:15px" onclick="closeModal();renderPOS()">✓ Listo · nueva venta</button>
+    </div>
+    ${posLineCard(saleId)}
+    ${content}`);
+}
+// Reimpresión: venta guardada → recibo con la leyenda COPIA
+function posSaleReceipt(s) {
+  const items = Array.isArray(s.Items) ? s.Items : (() => { try { return JSON.parse(s.ItemsJSON || '[]'); } catch (_) { return []; } })();
+  const subtotal = +s.Subtotal || items.reduce((n, i) => n + (i.gift ? 0 : (+i.price || 0) * (+i.qty || 1)), 0);
+  const content = receiptContentHTML(s.SaleID, items, subtotal, +s.DiscountAmount || 0, s.DiscountDesc || '', +s.Tax || 0, +s.Total || 0,
+    String(s.Payment || ''), { name: s.CustomerName || '' }, posDateObj(s.Date), { rep: s.Employee || '', copy: true });
+  const printEl = document.getElementById('print-receipt');
+  if (printEl) printEl.innerHTML = content;
+  openModal(`
+    <div class="modal-title">🧾 Copia del recibo · venta ${escHtml(s.SaleID)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${/void/i.test(s.Status || '') ? '<div class="act-hint" style="color:var(--red);margin-bottom:12px">⚠️ Esta venta fue anulada (Void).</div>' : ''}
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <button class="btn btn-primary" style="flex:1;padding:14px;font-size:15px" onclick="window.print()">🖨 Imprimir copia</button>
+      <button class="btn btn-ghost" style="flex:1;padding:14px;font-size:15px" onclick="${currentPage === 'pos' ? 'posReprintOpen(true)' : 'closeModal()'}">← Volver</button>
+    </div>
+    ${content}`);
+}
+async function posReprintOpen(keep) {
+  if (!keep) posReprintQ = '';
+  openModal(`<div class="modal-title">🧾 Reimprimir recibo <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <input class="form-input" id="rp-q" placeholder="Busca por nombre, teléfono o número de venta" value="${escHtml(posReprintQ)}" oninput="posReprintQ=this.value;posReprintList()">
+    <div id="rp-list" style="margin-top:12px"><div class="loading"><div class="spinner"></div></div></div>`, true);
+  setTimeout(() => document.getElementById('rp-q')?.focus(), 50);
+  try {
+    if (!posRecentSales || !keep) posRecentSales = (await cajaApi('actRepReceipts', 'posRecent')).sales || [];
+    posReprintList();
+  } catch (e) {
+    const el = document.getElementById('rp-list');
+    if (el) el.innerHTML = `<div class="act-hint" style="color:var(--red)">${/actRepReceipts|posRecent|unknown|desconocida/i.test(e.message) ? 'Falta instalar Nomina.gs en Apps Script.' : escHtml(e.message)}</div>`;
+  }
+}
+function posReprintList() {
+  const el = document.getElementById('rp-list');
+  if (!el || !posRecentSales) return;
+  const q = posReprintQ.trim().toLowerCase(), qd = q.replace(/\D/g, '');
+  const list = posRecentSales.filter(s => !q || [s.CustomerName, s.SaleID, s.Employee].some(v => String(v || '').toLowerCase().includes(q)) ||
+    (qd.length >= 3 && String(s.CustomerPhone || '').replace(/\D/g, '').includes(qd))).slice(0, 60);
+  el.innerHTML = list.length ? `<div class="table-wrap" style="overflow-x:auto"><table>
+    <thead><tr><th>Fecha</th><th>Cliente</th><th>Artículos</th><th style="text-align:right">Total</th><th></th></tr></thead>
+    <tbody>${list.map(s => `<tr style="cursor:pointer" onclick="posSaleReceipt(posRecentSales.find(x=>x.SaleID==='${escHtml(s.SaleID)}'))">
+      <td class="mono" style="white-space:nowrap">${escHtml(posFmtTime(s.Date))}</td>
+      <td><div style="font-weight:600">${escHtml(s.CustomerName || '—')}</div><div style="font-size:11px;color:var(--muted)">${escHtml(s.SaleID)} · ${escHtml(s.Employee)}${/void/i.test(s.Status) ? ' · <span style="color:var(--red)">VOID</span>' : ''}</div></td>
+      <td style="font-size:12px">${escHtml((s.Items || []).map(i => i.name).join(', '))}</td>
+      <td class="mono" style="text-align:right">$${(+s.Total || 0).toFixed(2)}</td>
+      <td><button class="btn btn-ghost btn-sm">🧾</button></td></tr>`).join('')}</tbody></table></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">Ventas de la tienda de los últimos 30 días.</div>`
+    : `<div class="act-hint">No encontré ventas${q ? ' con esa búsqueda' : ''}.</div>`;
+}
+function txReceipt(saleId) {
+  const tx = txList.find(t => String(t.SaleID) === String(saleId));
+  if (tx) posSaleReceipt(tx);
+}
+
+// ── Oferta de accesorio ──
+const POS_ACC_REASONS = ['Ya tiene', 'Precio', 'No le interesa', 'Otro'];
+function posIsAccessory(i) { const c = String(i.category ?? i.Category ?? ''); return !isPhoneCategory(c) && !/sim/i.test(c); }
+function posCartPhones() { return cart.filter(i => isPhoneCategory(i.category)); }
+function posAccTokens(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/)
+    .filter(t => t && !['gb', 'tb', '5g', '4g', 'lte', 'de', 'con', 'the', 'and', 'y', 'nuevo', 'new', 'unlocked'].includes(t) && !/^\d+(gb|tb)$/.test(t));
+}
+function posAccSuggestions(limit = 8) {
+  const phones = posCartPhones();
+  if (!phones.length) return [];
+  const inCart = new Set(cart.map(i => i.barcode));
+  const models = phones.map(ph => { const s = stockData.find(p => String(p.Barcode) === ph.barcode) || {}; return posAccTokens(s.Model || ph.name); });
+  const seen = new Set();
+  return stockData.filter(p => (parseInt(p.Quantity) || 0) > 0 && posIsAccessory(p) && !inCart.has(String(p.Barcode)))
+    .map(p => {
+      const toks = posAccTokens(p.Name);
+      const score = Math.max(0, ...models.map(m => m.filter(t => toks.includes(t)).length));
+      const general = /universal|cargador|charger|cable|usb|adaptador|adapter|aud[ií]fonos|earbuds|power ?bank|bater[ií]a/i.test(p.Name);
+      return { p, fit: models.some(m => m.length && score >= Math.min(2, m.length)), score, general };
+    })
+    .filter(x => { const k = String(x.p.Name).toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })   // un renglón por producto
+    // fundas/micas de OTRO modelo no se sugieren (sí aparecen en el buscador)
+    .filter((x, _, all) => x.fit || x.general || !/funda|case|mica|protector|cover|glass/i.test(x.p.Name) || !all.some(y => y.fit || y.general))
+    .sort((a, b) => (b.fit - a.fit) || (b.score - a.score) || (b.general - a.general) || String(a.p.Name).localeCompare(String(b.p.Name)))
+    .slice(0, limit);
+}
+function posAccBanner() {
+  if (!posCartPhones().length || cart.some(posIsAccessory)) return '';
+  const sug = posAccSuggestions(3);
+  return `<div class="acc-banner"><div style="font-weight:700">🛡️ Ofrece un accesorio para el teléfono</div>
+    ${sug.length ? `<div class="acc-chips">${sug.map(x => `<button class="btn btn-ghost btn-sm" onclick="addToCart('${escHtml(String(x.p.Barcode))}')">＋ ${escHtml(x.p.Name)} · $${(+x.p.Price || 0).toFixed(2)}</button>`).join('')}</div>` : ''}</div>`;
+}
+// Botón Cobrar: si hay teléfono y ningún accesorio, primero se ofrece
+function posCheckout() {
+  if (!cart.length) return;
+  const phones = posCartPhones();
+  if (!phones.length) { posOffer = null; openCustomerModal(); return; }
+  if (cart.some(posIsAccessory)) { posOffer = { Resultado: 'Ya lo llevaba', Razon: '' }; openCustomerModal(); return; }
+  posOffer = null;
+  openAccessoryGate();
+}
+function openAccessoryGate() {
+  const sug = posAccSuggestions(8), added = cart.filter(posIsAccessory);
+  openModal(`
+    <div class="modal-title">🛡️ ¿Le ofreciste un accesorio? <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:12px">Antes de cobrar, ofrécele algo para proteger su ${escHtml(posCartPhones().map(i => i.name).join(', '))}: funda, mica, cargador.</p>
+    ${added.length ? `<div class="act-hint" style="border-color:rgba(0,232,135,.5);color:var(--text);margin-bottom:12px">✅ Agregado: ${added.map(i => escHtml(i.name)).join(', ')}</div>` : ''}
+    <div style="display:grid;gap:8px;margin-bottom:12px">${sug.map(x => `<div class="acc-opt">
+      <div style="flex:1;min-width:0"><div style="font-weight:600">${escHtml(x.p.Name)}</div>
+        <div style="font-size:11px;color:var(--muted)">${x.fit ? 'Para este modelo · ' : ''}${x.p.Quantity} en existencia</div></div>
+      <div class="mono" style="color:var(--cyan)">$${(+x.p.Price || 0).toFixed(2)}</div>
+      <button class="btn btn-primary btn-sm" onclick="addToCart('${escHtml(String(x.p.Barcode))}');openAccessoryGate()">＋ Agregar</button></div>`).join('')
+      || '<div class="act-hint">No hay accesorios en existencia en el inventario.</div>'}</div>
+    <input class="form-input" placeholder="🔍 Buscar otro accesorio…" oninput="posGateSearch(this.value)">
+    <div id="acc-search" style="display:grid;gap:6px;margin-top:8px"></div>
+    ${added.length ? `<button class="btn btn-primary btn-full" style="margin-top:14px;padding:14px;font-size:15px" onclick="posOffer={Resultado:'Aceptó',Razon:''};closeModal();openCustomerModal()">Continuar al cobro →</button>`
+      : `<div style="margin-top:16px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">No lo quiso, ¿por qué?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">${POS_ACC_REASONS.map(r => `<button class="btn btn-ghost" onclick="posOffer={Resultado:'No lo quiso',Razon:'${r}'};closeModal();openCustomerModal()">${r}</button>`).join('')}</div>`}`);
+}
+function posGateSearch(q) {
+  const el = document.getElementById('acc-search');
+  if (!el) return;
+  const f = q.trim().toLowerCase();
+  if (f.length < 2) { el.innerHTML = ''; return; }
+  const inCart = new Set(cart.map(i => i.barcode));
+  el.innerHTML = stockData.filter(p => (parseInt(p.Quantity) || 0) > 0 && posIsAccessory(p) && !inCart.has(String(p.Barcode)) &&
+    (String(p.Name).toLowerCase().includes(f) || String(p.Barcode).toLowerCase().includes(f))).slice(0, 8).map(p => `<div class="acc-opt">
+      <div style="flex:1;min-width:0;font-weight:600">${escHtml(p.Name)}</div><div class="mono" style="color:var(--cyan)">$${(+p.Price || 0).toFixed(2)}</div>
+      <button class="btn btn-primary btn-sm" onclick="addToCart('${escHtml(String(p.Barcode))}');openAccessoryGate()">＋ Agregar</button></div>`).join('')
+    || '<div style="font-size:12px;color:var(--muted)">Sin resultados.</div>';
+}
+function posLogOffer(saleId, items) {
+  const phones = items.filter(i => isPhoneCategory(i.category));
+  if (!phones.length) return;
+  const acc = items.filter(posIsAccessory);
+  let o = posOffer || { Resultado: acc.length ? 'Ya lo llevaba' : 'Sin registro', Razon: '' };
+  if (o.Resultado === 'No lo quiso' && acc.length) o = { Resultado: 'Aceptó', Razon: '' };
+  posOffer = null;
+  cajaApi('actRepOffer', 'posOffer', { data: JSON.stringify({ SaleID: String(saleId), Asesora: currentUser, Resultado: o.Resultado, Razon: o.Razon,
+    Telefonos: phones.map(i => i.name + (i.gift ? ' (regalado)' : '')).join(', '), Accesorios: acc.map(i => i.name).join(', ') }) }).catch(() => {});
+}
+// 📊 Sales Report: % de teléfonos que salen con accesorio
+async function reportAccessories(start, end) {
+  const el = document.getElementById('rpt-acc');
+  if (!el) return;
+  try {
+    const offers = (await apiGet({ action: 'posOffers', start, end })).offers || [];
+    if (!offers.length) { el.innerHTML = `<div class="act-hint">🛡️ Todavía no hay ventas de teléfono con la oferta de accesorio registrada en estas fechas.</div>`; return; }
+    const by = {};
+    offers.forEach(o => {
+      const r = by[o.Asesora || '—'] = by[o.Asesora || '—'] || { n: 0, yes: 0, reasons: {} };
+      r.n++;
+      if (o.Resultado === 'Aceptó' || o.Resultado === 'Ya lo llevaba') r.yes++;
+      else if (o.Razon) r.reasons[o.Razon] = (r.reasons[o.Razon] || 0) + 1;
+    });
+    const tot = Object.values(by).reduce((a, r) => ({ n: a.n + r.n, yes: a.yes + r.yes }), { n: 0, yes: 0 });
+    const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
+    el.innerHTML = `<div class="pros-section-title">🛡️ Teléfonos que salieron con accesorio: ${pct(tot.yes, tot.n)} (${tot.yes} de ${tot.n})</div>
+      <div class="table-wrap" style="overflow-x:auto;margin-bottom:20px"><table>
+        <thead><tr><th>Asesora</th><th>Ventas con teléfono</th><th>Con accesorio</th><th>%</th><th>Por qué no</th></tr></thead>
+        <tbody>${Object.entries(by).sort((a, b) => b[1].n - a[1].n).map(([k, r]) => `<tr><td style="font-weight:600">${escHtml(k)}</td><td>${r.n}</td><td>${r.yes}</td>
+          <td style="font-weight:700;color:${r.yes / r.n >= .5 ? 'var(--green)' : 'var(--yellow)'}">${pct(r.yes, r.n)}</td>
+          <td style="font-size:12px;color:var(--muted)">${Object.entries(r.reasons).sort((a, b) => b[1] - a[1]).map(([x, c]) => `${escHtml(x)} (${c})`).join(' · ') || '—'}</td></tr>`).join('')}</tbody></table></div>`;
+  } catch (e) { el.innerHTML = ''; }
+}
+
+// ─── 💵 NÓMINA (manager) y 💵 MI PAGO (asesoras) ─────────────────────
+// Plan de asesoras (propuesta de Lizbeth, oct 2026): base por hora + comisión por lo que Cellmart
+// conectó y pagó. El estado de Cellmart se guarda (hoja Nomina_Cellmart) cada vez que Joel sube
+// el Core, Mobile o Commission Report en 📡 Activaciones. Backend: Nomina.gs.
+let nomData = null;          // respuesta de nomGet (manager) o actRepPay (asesora)
+let nomPeriod = null;        // { start, end }
+let nomEdits = {};           // asesora → { off: {key:true}, adjust, note }
+let nomPreviewRep = '';      // Joel viendo "Mi pago" como lo vería una asesora
+const NOM_PAID = ['paid', 'nocalc', 'over', 'under'];
+
+function nomPad(n) { return String(n).padStart(2, '0'); }
+// Semana de pago que contiene ymd (por default domingo a sábado; se paga cada sábado); shift = ±n semanas
+const NOM_DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+function nomWeek(ymd, shift = 0) {
+  const ws = +(((nomData || {}).config || {}).payroll || {}).weekStart || 0;
+  const d = new Date(String(ymd).slice(0, 10) + 'T00:00:00');
+  const back = (d.getDay() - ws + 7) % 7;
+  const start = actAddDays(actYmdOf(d), -back + shift * 7);
+  return { start, end: actAddDays(start, 6) };
+}
+function nomFmEnd(fm) { return `${fm}-28`; }
+function nomFmStart(fm) { const [y, m] = fm.split('-').map(Number); return m === 1 ? `${y - 1}-12-29` : `${y}-${nomPad(m - 1)}-29`; }
+function nomFmNext(fm) { const [y, m] = fm.split('-').map(Number); return m === 12 ? `${y + 1}-01` : `${y}-${nomPad(m + 1)}`; }
+function nomHas(v) { const s = String(v ?? '').trim(); return !!s && !/^(n\/?a|none|—|-|0)$/i.test(s); }
+function nomPeriodLabel(P) { return `${actFmtDate(P.start)} – ${actFmtDate(P.end)}`; }
+
+// ── Estado de Cellmart guardado para la nómina (se manda al subir un reporte) ──
+function nomSnapshot() {
+  const list = [], team = {};
+  actData.forEach(a => {
+    const o = { ID: a.ID, FiscalMonth: actFiscalMonth(a.OrderDate), Asesora: actRepName(a) };
+    const sold = actSvcOf(a), acct = actAcct(a.AccountNumber);
+    const st = actReco && actReco.byId[a.ID], ms = actMobReco && actMobReco.byId[a.ID];
+    if (st || ms) {
+      const g = st && actReco.groups[acct];
+      const live = g ? g.psus.filter(p => p.connected && !p.canceled) : [];
+      const kind = k => live.filter(p => actPsuKind(p.type) === k);
+      const intOK = !!sold.internetTier && kind('int').length > 0;
+      let lines = kind('mob').length;
+      if (ms && ms.wos) lines = Math.max(lines, ms.wos.reduce((n, w) => n + ((actMobReco.groups[w] || {}).lines || []).filter(l => l.connected && !l.canceled).length, 0));
+      const psus = (intOK ? 1 : 0) + Math.min(sold.mobileLines, lines) + (sold.videoTier && kind('tv').length ? 1 : 0) + (sold.voice && kind('voice').length ? 1 : 0);
+      const code = (sold.internetTier || sold.videoTier || !ms) ? (st ? st.code : ms.code) : ms.code;
+      Object.assign(o, { CoreCode: code === 'partial' && psus ? 'partial' : code, ConnDate: actConnectDate(a) || '', InternetOK: intOK ? 1 : 0, Psus: psus });
+    }
+    const cs = actComReco && actComReco.byId[a.ID];
+    if (cs) {
+      const pos = cs.rows.filter(r => r.amt > 0).map(r => r.pay).sort(), neg = cs.rows.filter(r => r.amt < 0).map(r => r.pay).sort();
+      Object.assign(o, { ComCode: cs.code, PaidAmt: Math.round(cs.paid * 100) / 100, PayDate: pos[pos.length - 1] || '',
+        ChargeAmt: Math.round(cs.charged * 100) / 100, ChargeDate: neg[neg.length - 1] || '' });
+    }
+    if (o.CoreCode || o.ComCode) list.push(o);
+  });
+  // PSUs conectados de toda la tienda por mes fiscal (bono de equipo y residual de Cellmart)
+  const covered = (fm, minSale) => !!minSale && minSale <= nomFmStart(fm);   // el reporte trae el mes completo
+  if (actReco) {
+    const hasMob = Object.values(actReco.groups).some(g => g.psus.some(p => actPsuKind(p.type) === 'mob'));
+    const by = {};
+    Object.values(actReco.groups).forEach(g => { const fm = actFiscalMonth(g.sale); if (fm) by[fm] = (by[fm] || 0) + g.psus.filter(p => p.connected && !p.canceled).length; });
+    Object.entries(by).forEach(([fm, n]) => { if (covered(fm, actReco.meta.minSale)) team[fm] = Object.assign(team[fm] || {}, { core: n, coreHasMob: hasMob, upd: actReco.meta.upd }); });
+  }
+  if (actMobReco) {
+    const by = {};
+    Object.values(actMobReco.groups).forEach(g => { const fm = actFiscalMonth(g.sale); if (fm) by[fm] = (by[fm] || 0) + g.lines.filter(l => l.connected && !l.canceled).length; });
+    Object.entries(by).forEach(([fm, n]) => { if (covered(fm, actMobReco.meta.minSale)) team[fm] = Object.assign(team[fm] || {}, { mob: n }); });
+  }
+  return { list, team };
+}
+async function nomSaveSnapshot() {
+  try {
+    const { list, team } = nomSnapshot();
+    if (!list.length && !Object.keys(team).length) return;
+    const r = await apiPost({ action: 'nomSaveStatus', data: list, team });
+    nomData = null;
+    if (r && r.changed) toast(`💵 Nómina: ${r.changed} venta(s) actualizada(s) con el reporte.`, 'success');
+  } catch (e) {
+    if (!/nomSaveStatus|unknown|invalid action|desconocida/i.test(e.message)) toast('No se guardó el estado para la nómina: ' + escHtml(e.message), 'error');
+  }
+}
+
+// ── Cálculo (lo usan Nómina y Mi pago) ──
+function nomTeamPsus(D, fm) {
+  const t = (D.team || {})[fm];
+  if (!t) return null;
+  return (+t.core || 0) + (t.coreHasMob ? 0 : (+t.mob || 0));
+}
+function nomOwn(D, rep, acct) {
+  const o = (D.own || []).filter(x => x.rep === rep && x.acct && x.acct === acct);
+  if (o.some(x => x.attr === 'Propia')) return 'own';
+  if (o.some(x => x.attr === 'Revisar' || !x.attr)) return 'review';
+  return 'store';
+}
+function nomParts(D, a, rep) {
+  const R = D.config.rates, parts = [], own = nomOwn(D, rep, a.AccountNumber);
+  if (nomHas(a.InternetTier)) parts.push({ label: own === 'own' ? 'Internet · cliente tuyo' : 'Internet · cliente de tienda', amt: own === 'own' ? +R.intOwn : +R.intStore });
+  const lines = Math.max(0, Math.min(+a.MobileLines || 0, 10));
+  if (lines) parts.push({ label: `${lines} línea${lines > 1 ? 's' : ''}`, amt: lines * R.line });
+  if (nomHas(a.VideoTier)) parts.push({ label: 'TV', amt: +R.tv });
+  return { parts, own, total: parts.reduce((s, p) => s + p.amt, 0) };
+}
+function nomState(D, a) {
+  const s = D.status[a.ID] || {}, com = String(s.ComCode || ''), core = String(s.CoreCode || '');
+  if (com === 'charged' || core === 'chargeback') return { code: 'charge', label: 'Chargeback', cls: 'badge-out' };
+  if (NOM_PAID.includes(com)) return { code: 'paid', label: com === 'under' ? 'Cellmart pagó de menos' : 'Pagada por Cellmart', cls: com === 'under' ? 'badge-low' : 'badge-ok' };
+  if (com === 'canceled' || core === 'canceled') return { code: 'canceled', label: 'Cancelada', cls: '' };
+  if (com === 'overdue') return { code: 'wait', label: 'Cellmart no la ha pagado', cls: 'badge-out' };
+  if (core === 'missing') return { code: 'wait', label: 'No aparece en Spectrum', cls: 'badge-out' };
+  if (core === 'partial') return { code: 'wait', label: 'Faltan servicios', cls: 'badge-out' };
+  if (core === 'pending') return { code: 'wait', label: 'Falta conexión', cls: 'badge-low' };
+  if (core === 'ok') return { code: 'wait', label: 'Conectada · esperando pago', cls: 'badge-low' };
+  return { code: 'wait', label: 'Esperando reporte', cls: '' };
+}
+function nomCompute(D, rep, P, edits) {
+  edits = edits || {};
+  const R = D.config.rates, cfg = D.config.reps[rep] || {}, start = cfg.start || '2026-09-29', today = D.today || actToday();
+  const off = edits.off || {};
+  const closed = {}, myPays = D.pays.filter(p => p.rep === rep);
+  myPays.forEach(p => p.items.forEach(it => { closed[it.key] = { amt: it.amt, start: p.start, end: p.end }; }));
+  const acts = D.acts.filter(a => a.Rep === rep && a.OrderDate >= start).sort((x, y) => x.OrderDate.localeCompare(y.OrderDate));
+  const ready = [], waiting = [], lost = [], paidBefore = [], deductions = [];
+  acts.forEach(a => {
+    const st = nomState(D, a), x = nomParts(D, a, rep), key = 'C:' + a.ID, s = D.status[a.ID] || {};
+    const row = { a, st, x, key, s };
+    if (closed[key]) {
+      if (st.code === 'charge' && !closed['CB:' + a.ID] && closed[key].amt > 0)
+        deductions.push({ key: 'CB:' + a.ID, a, label: `Chargeback · ${a.CustomerName || a.AccountNumber}`, amt: -closed[key].amt, on: !off['CB:' + a.ID] });
+      else paidBefore.push(Object.assign(row, { paidIn: closed[key] }));
+      return;
+    }
+    if (!x.total) return;
+    if (st.code === 'paid' && s.PayDate && s.PayDate <= P.end) ready.push(Object.assign(row, { on: !off[key] }));
+    else if (st.code === 'charge' || st.code === 'canceled') lost.push(row);
+    else {
+      const base = [a.OrderDate, String(s.ConnDate || '')].sort().pop(), dl = actPayDeadline(base);
+      row.expect = st.code === 'paid' ? s.PayDate : (dl ? dl.pay : '');
+      waiting.push(row);
+    }
+  });
+  // Bonos por mes fiscal (internets conectados) y bono de equipo; se pagan cuando el mes ya cerró
+  const months = [], bonuses = [];
+  const intOK = a => { const c = nomState(D, a).code;   // chargebacks y canceladas no cuentan para el bono
+    return nomHas(a.InternetTier) && c !== 'charge' && c !== 'canceled' && (String((D.status[a.ID] || {}).InternetOK) === '1' || c === 'paid'); };
+  for (let fm = actFiscalMonth(start), stop = actFiscalMonth(today > P.end ? today : P.end), n = 0; fm <= stop && n < 36; fm = nomFmNext(fm), n++) {
+    const mine = acts.filter(a => actFiscalMonth(a.OrderDate) === fm);
+    const ints = mine.filter(intOK).length, sold = mine.filter(a => nomHas(a.InternetTier)).length;
+    const tier = ints >= R.tier2 ? +R.bonus12 : ints >= R.tier1 ? +R.bonus8 : 0;
+    const team = nomTeamPsus(D, fm), ended = nomFmEnd(fm) < today && nomFmEnd(fm) <= P.end;
+    const noBonus = !!cfg.bonusFrom && fm < cfg.bonusFrom;
+    const m = { fm, ints, sold, tier, team, ended, noBonus, bonusFrom: cfg.bonusFrom };
+    months.push(m);
+    if (!ended || noBonus) continue;
+    const already = Object.entries(closed).filter(([k]) => k.startsWith(`B:${fm}:`)).reduce((s, [, v]) => s + v.amt, 0);
+    if (tier > already && !closed[`B:${fm}:${tier}`]) {
+      const key = `B:${fm}:${tier}`;
+      bonuses.push({ key, label: `Bono ${ints} internets · ${actFmLabel(fm)}`, amt: tier - already, on: !off[key] });
+    }
+    if (team !== null && team >= R.teamGoal && !closed['T:' + fm]) {
+      const key = 'T:' + fm;
+      bonuses.push({ key, label: `Bono de equipo ${team} PSUs · ${actFmLabel(fm)}`, amt: +R.bonusTeam, on: !off[key] });
+    }
+  }
+  const h = D.hours.find(x => x.rep === rep && x.start === P.start && x.end === P.end);
+  // Si este periodo ya se cerró, lo que quede es un pago adicional: sin base ni garantía otra vez
+  const closedHere = myPays.some(p => p.start === P.start && p.end === P.end);
+  const hours = closedHere ? 0 : h ? +h.hours : null;
+  const base = (hours || 0) * (+cfg.hourly || 0);
+  const commissions = ready.filter(r => r.on).reduce((s, r) => s + r.x.total, 0);
+  const ded = deductions.filter(d => d.on).reduce((s, d) => s + d.amt, 0);
+  const bon = bonuses.filter(b => b.on).reduce((s, b) => s + b.amt, 0);
+  const gEnd = actAddDays(start, (+cfg.guaranteeDays || 60) - 1);
+  const gActive = !!cfg.guarantee && P.start <= gEnd && !closedHere;
+  const floor = gActive && hours ? hours * (+cfg.guaranteeRate || 13) : 0;
+  const guarantee = gActive ? Math.max(0, Math.round((floor - (base + commissions + ded + bon)) * 100) / 100) : 0;
+  const adjust = +edits.adjust || 0;
+  const total = Math.round((base + commissions + ded + bon + guarantee + adjust) * 100) / 100;
+  const pending = waiting.reduce((s, r) => s + r.x.total, 0);
+  const sim = cfg.mode === 'sim';
+  // Las horas solo hacen falta mientras corre la garantía (el sueldo por hora lo calcula QuickBooks)
+  const needHours = gActive && hours === null;
+  return { rep, cfg, start, P, sim, needHours, closedHere, ready, waiting, lost, paidBefore, deductions, bonuses, months, hours, base, commissions, ded, bon,
+           gActive, gEnd, floor, guarantee, adjust, total, pending, pays: myPays };
+}
+
+function nomItemRow(r, opts = {}) {
+  const a = r.a;
+  return `<tr>
+    ${opts.check ? `<td><input type="checkbox" ${r.on ? 'checked' : ''} onchange="nomToggle('${escHtml(opts.rep)}','${escHtml(r.key)}',this.checked)"></td>` : ''}
+    <td class="mono">${actFmtDate(a.OrderDate)}</td>
+    <td><div style="font-weight:600">${escHtml(a.CustomerName || '—')}</div><div style="font-size:11px;color:var(--muted)" class="mono">${escHtml(a.AccountNumber || '')}</div></td>
+    <td style="font-size:12px">${r.x.parts.map(p => `${escHtml(p.label)} <span class="mono" style="color:var(--muted)">${fmtMoney(p.amt)}</span>`).join('<br>')}
+      ${r.x.own === 'review' ? '<div><span class="pros-badge pros-b-rev">Atribución por revisar</span></div>' : ''}</td>
+    <td><span class="badge ${r.st.cls}">${escHtml(r.st.label)}</span>
+      ${opts.when === 'pay' && r.s.PayDate ? `<div style="font-size:11px;color:var(--muted);margin-top:3px">Cellmart pagó ${actFmtDate(r.s.PayDate)}</div>` : ''}
+      ${opts.when === 'expect' && r.expect ? `<div style="font-size:11px;color:var(--muted);margin-top:3px">Cellmart paga a más tardar ${actFmtDate(r.expect)}</div>` : ''}
+      ${opts.when === 'paidIn' && r.paidIn ? `<div style="font-size:11px;color:var(--muted);margin-top:3px">Pagada en tu nómina del ${actFmtDate(r.paidIn.start)} al ${actFmtDate(r.paidIn.end)}</div>` : ''}</td>
+    <td class="mono" style="text-align:right;font-weight:700">${fmtMoney(r.x.total)}</td></tr>`;
+}
+function nomTable(rows, opts) {
+  return `<div class="table-wrap" style="overflow-x:auto"><table>
+    <thead><tr>${opts.check ? '<th></th>' : ''}<th>Venta</th><th>Cliente</th><th>Servicios</th><th>Estado</th><th style="text-align:right">Comisión</th></tr></thead>
+    <tbody>${rows.map(r => nomItemRow(r, opts)).join('')}</tbody></table></div>`;
+}
+function nomProgress(R, m, isRep) {
+  const pct = Math.min(100, Math.round(m.ints / R.tier2 * 100));
+  const next = m.noBonus ? `Los bonos cuentan desde ${actFmLabel(m.bonusFrom)}`
+    : m.ints >= R.tier2 ? `¡Llegaste al bono de ${fmtMoney(R.bonus12)}!`
+    : m.ints >= R.tier1 ? `Bono de ${fmtMoney(R.bonus8)} asegurado · ${R.tier2 - m.ints} más para ${fmtMoney(R.bonus12)}`
+    : `${R.tier1 - m.ints} más para el bono de ${fmtMoney(R.bonus8)}`;
+  const teamPct = m.team === null ? 0 : Math.min(100, Math.round(m.team / R.teamGoal * 100));
+  return `<div class="report-grid pros-stats" style="margin-bottom:12px">
+    <div class="stat-card ${m.ints >= R.tier1 ? 'green' : 'blue'}"><div class="stat-label">🌐 Internets conectados</div>
+      <div class="stat-value">${m.ints}<span class="pros-of"> / ${R.tier1} · ${R.tier2}</span></div>
+      <div class="pros-bar"><div style="width:${pct}%"></div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">${next}${m.sold > m.ints ? ` · ${m.sold - m.ints} vendido(s) sin confirmar` : ''}</div></div>
+    <div class="stat-card ${m.team !== null && m.team >= R.teamGoal ? 'green' : 'cyan'}"><div class="stat-label">👥 PSUs de la tienda</div>
+      <div class="stat-value">${m.team === null ? '—' : m.team}<span class="pros-of"> / ${R.teamGoal}</span></div>
+      <div class="pros-bar"><div style="width:${teamPct}%"></div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">${m.team === null ? (isRep ? 'Joel todavía no sube el reporte de este mes.' : 'Sube el Core Report de este mes en 📡 Activaciones.') : `Bono de equipo: ${fmtMoney(R.bonusTeam)} cada una al llegar a ${R.teamGoal}`}</div></div>
+  </div>`;
+}
+
+// ── 💵 Mi pago (asesora) ──
+async function renderMyPay() {
+  if (isManager) { showPage('nomina'); return; }
+  const el = document.getElementById('content');
+  if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
+  if (!prosAuth || prosAuth.user !== currentUser) { prosAuth = null; renderProsPin(); return; }
+  el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  try { nomData = await apiGet({ action: 'actRepPay', user: prosAuth.user, pin: prosAuth.pin }); }
+  catch (e) {
+    if (/PIN|intentos|Usuario/i.test(e.message)) { prosAuth = null; renderProsPin(e.message); return; }
+    el.innerHTML = errorState(/actRepPay|unknown|invalid action|desconocida/i.test(e.message)
+      ? 'El backend todavía no tiene Nomina.gs. Pídele a Joel que lo instale.' : escHtml(e.message));
+    return;
+  }
+  if (!nomPeriod) nomPeriod = nomWeek(nomData.today || actToday());
+  renderMyPayBody();
+}
+function nomShiftPeriod(n) { nomPeriod = nomWeek(nomPeriod.start, n); currentPage === 'nomina' && !nomPreviewRep ? renderNominaBody() : renderMyPayBody(); }
+// Asesoras: el menú 💵 Mi pago solo aparece si Joel prendió "Puede ver Mi pago" (lo revisa Nomina.gs)
+async function nomCheckRepAccess() {
+  const nav = document.getElementById('nav-mipago');
+  if (nav) nav.style.display = 'none';
+  if (isManager || !prosAuth) return;
+  try {
+    const r = await apiGet({ action: 'actRepPay', user: prosAuth.user, pin: prosAuth.pin, check: '1' });
+    if (nav && r && r.canView) nav.style.display = '';
+  } catch (e) { /* sin Nomina.gs o sin acceso: el menú se queda escondido */ }
+}
+function nomPreview(rep) { nomPreviewRep = rep; window.scrollTo(0, 0); renderMyPayBody(); }
+function renderMyPayBody() {
+  const D = nomData, me = nomPreviewRep || D.me, R = D.config.rates, cfg = D.config.reps[me] || {};
+  const el = document.getElementById('content');
+  const banner = nomPreviewRep ? `<div class="act-reco" style="border-color:rgba(255,209,102,.5);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px"><b>👁 Vista previa: así vería ${escHtml(me)} su pantalla de Mi pago.</b>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${cfg.mode === 'sim' ? 'Simulación: ella no está en el plan y no puede verlo.'
+          : cfg.canView ? 'Ella sí puede verlo en su menú.' : 'Ella todavía NO puede verlo (⚙ Plan → "Puede ver Mi pago").'}</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="nomPreviewRep='';renderNominaBody()">← Volver a Nómina</button></div>` : '';
+  if (!nomPreviewRep && cfg.mode !== 'plan') {
+    el.innerHTML = `<div class="page-title">💵 Mi pago</div><div class="act-hint">Todavía no estás en el plan de comisiones. Pregúntale a Joel.</div>`;
+    return;
+  }
+  const C = nomCompute(D, me, nomPeriod);
+  const closedHere = C.pays.filter(p => p.start === nomPeriod.start && p.end === nomPeriod.end);
+  const cur = C.months.find(m => m.fm === actFiscalMonth(D.today)) || C.months[C.months.length - 1] || { ints: 0, sold: 0, team: null, fm: actFiscalMonth(D.today) };
+  const net = C.commissions + C.ded + C.bon;
+  el.innerHTML = `${banner}
+    <div class="page-title">💵 Mi pago</div>
+    <div class="page-subtitle">${escHtml(me)} · la comisión se paga en la nómina siguiente a que Cellmart le paga esa cuenta a MirComm</div>
+    <div class="action-row" style="align-items:center">
+      <button class="btn btn-ghost btn-sm" onclick="nomShiftPeriod(-1)">←</button>
+      <div style="font-weight:700">Semana ${nomPeriodLabel(nomPeriod)}</div>
+      <button class="btn btn-ghost btn-sm" onclick="nomShiftPeriod(1)">→</button>
+      ${nomPreviewRep ? '' : '<button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="renderMyPay()">↻ Actualizar</button>'}
+    </div>
+    ${closedHere.length ? closedHere.map(p => `<div class="act-reco" style="border-color:rgba(0,232,135,.45)">
+      <div style="font-weight:700">✅ Nómina cerrada: ${fmtMoney(p.total)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">${p.hours} h · base ${fmtMoney(p.base)} · comisiones ${fmtMoney(p.commissions)}${p.deductions ? ` · descuentos ${fmtMoney(p.deductions)}` : ''}${p.bonuses ? ` · bonos ${fmtMoney(p.bonuses)}` : ''}${p.guarantee ? ` · garantía ${fmtMoney(p.guarantee)}` : ''}${p.adjust ? ` · ajuste ${fmtMoney(p.adjust)}` : ''}</div>
+      ${p.note ? `<div style="font-size:12px;margin-top:4px">${escHtml(p.note)}</div>` : ''}</div>`).join('') : ''}
+    <div class="report-grid pros-stats">
+      <div class="stat-card green"><div class="stat-label">💵 Listo para cobrar</div><div class="stat-value">${fmtMoney(net)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${C.ready.length} venta(s) pagada(s) por Cellmart${C.bon ? ` · bonos ${fmtMoney(C.bon)}` : ''}${C.ded ? ` · descuentos ${fmtMoney(C.ded)}` : ''}</div></div>
+      <div class="stat-card yellow"><div class="stat-label">⏳ En camino</div><div class="stat-value">${fmtMoney(C.pending)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${C.waiting.length} venta(s) esperando a Cellmart</div></div>
+      ${C.closedHere ? '' : `<div class="stat-card blue"><div class="stat-label">🕒 Horas del periodo</div><div class="stat-value">${C.hours === null ? '—' : C.hours}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${C.hours === null ? 'Las mismas de Connecteam' : `Base ${fmtMoney(C.base)} (${fmtMoney(cfg.hourly)}/h)`}</div></div>`}
+      ${C.hours !== null && !C.closedHere ? `<div class="stat-card cyan"><div class="stat-label">Total estimado</div><div class="stat-value">${fmtMoney(C.total)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${C.guarantee ? `Incluye ${fmtMoney(C.guarantee)} de garantía ($${cfg.guaranteeRate}/h)` : 'Antes de impuestos'}</div></div>` : ''}
+    </div>
+    <div class="pros-section-title">Este mes · ${actFmLabel(cur.fm)}</div>
+    ${nomProgress(R, cur, true)}
+    ${C.gActive ? `<div class="act-hint">🛡️ Garantía activa hasta el ${actFmtDate(C.gEnd)}: si base más comisiones no llega a $${cfg.guaranteeRate}/h en un periodo, MirComm completa la diferencia.</div>` : ''}
+    ${C.ready.length || C.bonuses.length || C.deductions.length ? `<div class="pros-section-title">✅ Listo para tu siguiente pago</div>
+      ${C.closedHere ? '<div style="font-size:12px;color:var(--muted);margin:-4px 0 8px">Esto no entró en la nómina cerrada de este periodo; pasa a la siguiente.</div>' : ''}
+      ${C.ready.length ? nomTable(C.ready, { when: 'pay' }) : ''}
+      ${C.bonuses.concat(C.deductions).map(b => `<div class="ml-mail"><span style="flex:1">${escHtml(b.label)}</span><span class="mono" style="font-weight:700;color:${b.amt < 0 ? 'var(--red)' : 'var(--green)'}">${fmtMoney(b.amt)}</span></div>`).join('')}` : ''}
+    <div class="pros-section-title">⏳ En camino</div>
+    ${C.waiting.length ? nomTable(C.waiting.slice().reverse(), { when: 'expect' }) : `<div class="act-hint">No tienes ventas esperando pago.</div>`}
+    ${C.lost.length ? `<div class="pros-section-title">❌ No se pagan</div>${nomTable(C.lost.slice().reverse(), {})}
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">Canceladas o desconectadas antes de ${R.chargebackDays} días. Si crees que es un error, avísale a Joel.</div>` : ''}
+    ${C.paidBefore.length ? `<details style="margin-top:16px"><summary style="cursor:pointer;font-weight:700">Ya pagadas (${C.paidBefore.length})</summary>
+      <div style="margin-top:10px">${nomTable(C.paidBefore.slice().reverse(), { when: 'paidIn' })}</div></details>` : ''}
+    ${C.pays.length ? `<div class="pros-section-title">Mis nóminas</div>
+      <div class="table-wrap" style="overflow-x:auto"><table><thead><tr><th>Periodo</th><th>Horas</th><th style="text-align:right">Comisiones y bonos</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>${C.pays.slice().sort((a, b) => b.end.localeCompare(a.end)).map(p => `<tr><td class="mono">${actFmtDate(p.start)} – ${actFmtDate(p.end)}</td><td>${p.hours}</td>
+        <td class="mono" style="text-align:right">${fmtMoney(p.commissions + p.deductions + p.bonuses)}</td><td class="mono" style="text-align:right;font-weight:700">${fmtMoney(p.total)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    <div style="font-size:12px;color:var(--muted);margin-top:14px;line-height:1.6">
+      Tarifas: internet ${fmtMoney(R.intOwn)} si el cliente es tuyo (registrado en 🎯 Prospectos antes de la venta) o ${fmtMoney(R.intStore)} si llegó a la tienda ·
+      línea ${fmtMoney(R.line)} · TV ${fmtMoney(R.tv)} · bono ${fmtMoney(R.bonus8)} con ${R.tier1} internets y ${fmtMoney(R.bonus12)} con ${R.tier2} o más en el mes (29 al 28) ·
+      ${fmtMoney(R.bonusTeam)} si la tienda llega a ${R.teamGoal} PSUs.${D.statusUpdated ? ` Datos de Cellmart al ${escHtml(D.statusUpdated)}.` : ''}</div>`;
+}
+
+// ── 💵 Nómina (manager) ──
+async function renderNomina() {
+  if (!isManager) { showPage('mipago'); return; }
+  const el = document.getElementById('content');
+  if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
+  el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  try { nomData = await apiGet({ action: 'nomGet' }); }
+  catch (e) {
+    el.innerHTML = errorState(/nomGet|unknown|invalid action|desconocida|solo para el manager/i.test(e.message)
+      ? 'Falta instalar Nomina.gs en Apps Script (y la línea nominaRouter_ en Code.gs), luego Deploy → New version.' : escHtml(e.message));
+    return;
+  }
+  if (!nomPeriod) nomPeriod = nomWeek(nomData.today || actToday());
+  nomPreviewRep = '';
+  renderNominaBody();
+}
+function nomReps(D) {
+  const order = { plan: 0, sim: 1 };
+  return Object.entries(D.config.reps).filter(([, c]) => c.mode === 'plan' || c.mode === 'sim')
+    .sort((a, b) => order[a[1].mode] - order[b[1].mode]).map(([n]) => n);
+}
+function nomToggle(rep, key, on) {
+  const e = nomEdits[rep] = nomEdits[rep] || { off: {} };
+  if (on) delete e.off[key]; else e.off[key] = true;
+  renderNominaBody();
+}
+function nomSetPeriod() {
+  const s = document.getElementById('nom-start').value, e = document.getElementById('nom-end').value;
+  if (!s || !e || e < s) { toast('Revisa las fechas del periodo.', 'error'); return; }
+  nomPeriod = { start: s, end: e }; nomEdits = {}; renderNominaBody();
+}
+function renderNominaBody() {
+  const D = nomData, P = nomPeriod, el = document.getElementById('content');
+  const reps = nomReps(D);
+  const all = reps.map(r => nomCompute(D, r, P, nomEdits[r]));
+  const unpaid = all.filter(c => !c.sim && !c.pays.some(p => p.start === P.start && p.end === P.end));
+  const missingStart = reps.filter(r => !D.config.reps[r].start);
+  el.innerHTML = `
+    <div class="page-title">💵 Nómina de asesoras</div>
+    <div class="page-subtitle">Semana de pago (${NOM_DAYS[+(D.config.payroll || {}).weekStart || 0]} a ${NOM_DAYS[((+(D.config.payroll || {}).weekStart || 0) + 6) % 7]}, se paga el sábado) · comisiones de lo que Cellmart ya pagó · bonos del mes fiscal cerrado · descuentos por chargeback</div>
+    <div class="action-row" style="align-items:flex-end;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="nomEdits={};nomShiftPeriod(-1)">← Semana</button>
+      <div class="form-group" style="margin:0"><label class="form-label">Desde</label><input class="form-input" type="date" id="nom-start" value="${P.start}" onchange="nomSetPeriod()"></div>
+      <div class="form-group" style="margin:0"><label class="form-label">Hasta</label><input class="form-input" type="date" id="nom-end" value="${P.end}" onchange="nomSetPeriod()"></div>
+      <button class="btn btn-ghost btn-sm" onclick="nomEdits={};nomShiftPeriod(1)">Semana →</button>
+      <button class="btn btn-ghost" style="margin-left:auto" onclick="openNomConfig()">⚙ Plan</button>
+      <button class="btn btn-ghost" onclick="nomExportCSV()">⬇ CSV</button>
+      <button class="btn btn-ghost" onclick="nomData=null;renderNomina()">↻</button>
+    </div>
+    <div class="act-hint">${D.statusUpdated ? `Estado de Cellmart guardado al <b>${escHtml(D.statusUpdated)}</b>.` : '<b>Todavía no hay estado de Cellmart guardado.</b>'}
+      Para actualizarlo sube el <b>Commission Report</b> (y el Core/Mobile Report) en 📡 Activaciones: se guarda solo para la nómina.
+      ${missingStart.length ? `<div style="color:var(--yellow);margin-top:6px">⚠️ Falta la fecha de inicio del plan de ${missingStart.join(', ')} (⚙ Plan).</div>` : ''}</div>
+    ${unpaid.length ? `<div class="report-grid pros-stats">${unpaid.map(c => `<div class="stat-card ${c.needHours ? 'yellow' : 'green'}">
+      <div class="stat-label">${escHtml(c.rep)} · para QuickBooks</div><div class="stat-value">${c.needHours ? '—' : fmtMoney(c.commissions + c.ded + c.bon + c.guarantee + c.adjust)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">${c.needHours ? 'Faltan las horas (garantía activa)' : `Commission ${fmtMoney(c.commissions + c.ded)} · Bonus ${fmtMoney(c.bon)}${c.guarantee ? ` · Garantía ${fmtMoney(c.guarantee)}` : ''}`}</div></div>`).join('')}</div>` : ''}
+    ${all.map(nomRepCard).join('')}
+    ${nomHistory(D)}`;
+}
+function nomRepCard(C) {
+  const D = nomData, P = nomPeriod, R = D.config.rates, rep = C.rep, e = nomEdits[rep] || {};
+  const closedHere = C.pays.filter(p => p.start === P.start && p.end === P.end);
+  const cur = C.months.filter(m => m.fm <= actFiscalMonth(P.end)).pop();
+  const line = (label, v, strong) => `<div class="total-row${strong ? ' grand' : ''}"><span>${label}</span><span>${fmtMoney(v)}</span></div>`;
+  return `<div class="act-reco" id="nom-card-${escHtml(rep)}">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div class="page-title" style="font-size:20px;margin:0">${escHtml(rep)}</div>
+      ${C.sim ? '<span class="pros-badge pros-b-rev">🧪 Simulación · no se paga</span>' : ''}
+      <div style="font-size:12px;color:var(--muted)">${C.sim ? 'ventas' : 'plan'} desde ${actFmtDate(C.start)}${C.gActive ? ` · 🛡️ garantía $${C.cfg.guaranteeRate}/h hasta ${actFmtDate(C.gEnd)}` : ''}${C.cfg.bonusFrom ? ` · bonos desde ${actFmLabel(C.cfg.bonusFrom).split(' (')[0]}` : ''}</div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="nomPreview('${escHtml(rep)}')">👁 Ver como ${escHtml(rep)}</button>
+    </div>
+    ${closedHere.map(p => `<div class="act-reco-box" style="border-color:rgba(0,232,135,.45)">✅ <b>Cerrada ${escHtml(p.closedAt)}: ${fmtMoney(p.total)}</b>
+      <span style="color:var(--muted)">· ${p.hours} h · base ${fmtMoney(p.base)} · comisiones ${fmtMoney(p.commissions)} · descuentos ${fmtMoney(p.deductions)} · bonos ${fmtMoney(p.bonuses)} · garantía ${fmtMoney(p.guarantee)}${p.adjust ? ` · ajuste ${fmtMoney(p.adjust)}` : ''}</span>
+      <button class="btn btn-ghost btn-sm" style="margin-left:8px;color:var(--red)" onclick="nomReopen('${escHtml(p.id)}')">Reabrir</button></div>`).join('')}
+    <div class="pros-two" style="grid-template-columns:minmax(0,1fr) 300px">
+      <div style="min-width:0">
+        ${C.ready.length ? `<div class="pros-section-title" style="margin-top:0">Comisiones pagadas por Cellmart (${C.ready.length})</div>${nomTable(C.ready, { check: true, rep, when: 'pay' })}`
+          : `<div class="act-hint" style="margin-bottom:10px">Ninguna venta nueva pagada por Cellmart hasta el ${actFmtDate(P.end)}.</div>`}
+        ${C.bonuses.length || C.deductions.length ? `<div class="pros-section-title">Bonos y descuentos</div>
+          ${C.bonuses.concat(C.deductions).map(b => `<label class="ml-mail" style="cursor:pointer"><input type="checkbox" ${b.on ? 'checked' : ''} onchange="nomToggle('${escHtml(rep)}','${escHtml(b.key)}',this.checked)">
+            <span style="flex:1">${escHtml(b.label)}</span><span class="mono" style="font-weight:700;color:${b.amt < 0 ? 'var(--red)' : 'var(--green)'}">${fmtMoney(b.amt)}</span></label>`).join('')}` : ''}
+        ${cur ? `<div class="pros-section-title">Mes ${actFmLabel(cur.fm)}</div>${nomProgress(R, cur, false)}` : ''}
+        ${C.waiting.length ? `<details><summary style="cursor:pointer;font-size:13px;color:var(--muted)">Esperando a Cellmart (${C.waiting.length}) · ${fmtMoney(C.pending)}</summary>
+          <div style="margin-top:8px">${nomTable(C.waiting.slice().reverse(), { when: 'expect' })}</div></details>` : ''}
+        ${C.lost.length ? `<details style="margin-top:6px"><summary style="cursor:pointer;font-size:13px;color:var(--muted)">No se pagan (${C.lost.length})</summary>
+          <div style="margin-top:8px">${nomTable(C.lost.slice().reverse(), {})}</div></details>` : ''}
+      </div>
+      ${C.sim ? `<div>
+        <div class="pros-section-title" style="margin-top:0">Lo que ganaría con el plan</div>
+        ${line('Comisiones esta semana', C.commissions)}
+        ${C.ded ? line('Descuentos (chargebacks)', C.ded) : ''}
+        ${line('Bonos', C.bon)}
+        ${line('Total extra esta semana', C.commissions + C.ded + C.bon, true)}
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5">Además, ${fmtMoney(C.pending)} en ventas esperando a Cellmart.
+          Es solo para que compares: no se cierra nómina ni se le avisa nada a ${escHtml(rep)}.</div>
+      </div>` : `<div>
+        <div class="form-group" ${C.closedHere ? 'style="display:none"' : ''}><label class="form-label">Horas de la semana (Connecteam)${C.gActive ? '' : ' · opcional'}</label>
+          <div style="display:flex;gap:6px"><input class="form-input" type="number" min="0" step="0.25" id="nom-h-${escHtml(rep)}" value="${C.hours === null ? '' : C.hours}" placeholder="Ej. 50">
+          <button class="btn btn-ghost btn-sm" onclick="nomSaveHours('${escHtml(rep)}')">Guardar</button></div></div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:4px 0 6px">Para QuickBooks</div>
+        ${line('Commission', C.commissions + C.ded)}
+        ${C.ded ? `<div style="font-size:11px;color:var(--muted);margin:-4px 0 6px">Ya trae ${fmtMoney(C.ded)} de chargebacks descontados</div>` : ''}
+        ${line('Bonus', C.bon)}
+        ${C.gActive ? line(`Garantía ($${C.cfg.guaranteeRate}/h × ${C.hours ?? 0} h = ${fmtMoney(C.floor)})`, C.guarantee) : ''}
+        ${C.hours ? line(`Base de referencia (${C.hours} h × ${fmtMoney(C.cfg.hourly)})`, C.base) : ''}
+        <div class="form-row" style="margin-top:8px">
+          <div class="form-group"><label class="form-label">Ajuste $</label><input class="form-input" type="number" step="0.01" value="${e.adjust || ''}" onchange="(nomEdits['${escHtml(rep)}']=nomEdits['${escHtml(rep)}']||{off:{}}).adjust=+this.value||0;renderNominaBody()"></div>
+          <div class="form-group"><label class="form-label">Nota</label><input class="form-input" id="nom-note-${escHtml(rep)}" value="${escHtml(e.note || '')}" onchange="(nomEdits['${escHtml(rep)}']=nomEdits['${escHtml(rep)}']||{off:{}}).note=this.value"></div>
+        </div>
+        ${line(C.hours ? 'Total con base' : 'Total encima del sueldo', C.total, true)}
+        <div style="font-size:11px;color:var(--muted);margin:6px 0 10px">Antes de impuestos. El sueldo por hora lo calcula QuickBooks con las horas de Connecteam.</div>
+        ${C.closedHere ? `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Esta semana ya está cerrada. Lo pendiente pasa solo a la siguiente, o ciérralo aquí como pago adicional.</div>` : ''}
+        <button class="btn btn-primary btn-full" ${C.needHours || (C.closedHere && !C.total) ? 'disabled' : ''} title="${C.needHours ? 'Primero guarda las horas' : ''}" onclick="nomClose('${escHtml(rep)}')">${C.closedHere ? 'Cerrar pago adicional' : 'Cerrar nómina de ' + escHtml(rep)}</button>
+      </div>`}
+    </div>
+  </div>`;
+}
+function nomHistory(D) {
+  const ps = D.pays.slice().sort((a, b) => b.end.localeCompare(a.end) || a.rep.localeCompare(b.rep));
+  if (!ps.length) return '';
+  return `<div class="pros-section-title">Nóminas cerradas</div>
+    <div class="table-wrap" style="overflow-x:auto"><table><thead><tr><th>Periodo</th><th>Asesora</th><th>Horas</th><th style="text-align:right">Base</th><th style="text-align:right">Comisiones</th><th style="text-align:right">Desc.</th><th style="text-align:right">Bonos</th><th style="text-align:right">Garantía</th><th style="text-align:right">Total</th><th></th></tr></thead>
+    <tbody>${ps.map(p => `<tr><td class="mono">${actFmtDate(p.start)} – ${actFmtDate(p.end)}</td><td>${escHtml(p.rep)}</td><td>${p.hours}</td>
+      <td class="mono" style="text-align:right">${fmtMoney(p.base)}</td><td class="mono" style="text-align:right">${fmtMoney(p.commissions)}</td>
+      <td class="mono" style="text-align:right">${p.deductions ? fmtMoney(p.deductions) : '—'}</td><td class="mono" style="text-align:right">${p.bonuses ? fmtMoney(p.bonuses) : '—'}</td>
+      <td class="mono" style="text-align:right">${p.guarantee ? fmtMoney(p.guarantee) : '—'}</td><td class="mono" style="text-align:right;font-weight:700">${fmtMoney(p.total)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="nomPeriod={start:'${p.start}',end:'${p.end}'};nomEdits={};renderNominaBody()">Ver</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+async function nomSaveHours(rep) {
+  const v = document.getElementById('nom-h-' + rep).value;
+  if (v === '' || !(+v >= 0)) { toast('Escribe las horas.', 'error'); return; }
+  try {
+    await apiGet({ action: 'nomSaveHours', start: nomPeriod.start, end: nomPeriod.end, rep, hours: v });
+    const h = nomData.hours.find(x => x.rep === rep && x.start === nomPeriod.start && x.end === nomPeriod.end);
+    if (h) h.hours = +v; else nomData.hours.push({ rep, start: nomPeriod.start, end: nomPeriod.end, hours: +v });
+    toast(`Horas de ${rep} guardadas.`, 'success'); renderNominaBody();
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+async function nomClose(rep) {
+  const C = nomCompute(nomData, rep, nomPeriod, nomEdits[rep]);
+  if (C.sim) { toast(`${rep} está en simulación: no se cierra nómina.`, 'error'); return; }
+  if (C.needHours) { toast('Primero guarda las horas (la garantía está activa).', 'error'); return; }
+  if (!C.total && !C.ready.length && !C.deductions.some(d => d.on)) { toast('No hay nada que pagar esta semana.', 'error'); return; }
+  const items = C.ready.filter(r => r.on).map(r => ({ key: r.key, label: `${r.a.CustomerName || r.a.AccountNumber} (${actFmtDate(r.a.OrderDate)})`, amt: r.x.total }))
+    .concat(C.bonuses.filter(b => b.on).map(b => ({ key: b.key, label: b.label, amt: b.amt })))
+    .concat(C.deductions.filter(d => d.on).map(d => ({ key: d.key, label: d.label, amt: d.amt })));
+  if (!confirm(`¿Cerrar la nómina de ${rep} de la semana ${nomPeriodLabel(nomPeriod)}?\n\nPara QuickBooks: Commission ${fmtMoney(C.commissions + C.ded)} · Bonus ${fmtMoney(C.bon)}${C.guarantee ? ' · Garantía ' + fmtMoney(C.guarantee) : ''}\n\nLo que se incluya ya no vuelve a aparecer en otra nómina.`)) return;
+  try {
+    const note = (nomEdits[rep] || {}).note || '';
+    await apiPost({ action: 'nomClose', data: { rep, start: nomPeriod.start, end: nomPeriod.end, hours: C.hours || 0, base: C.base, commissions: C.commissions,
+      deductions: C.ded, bonuses: C.bon, guarantee: C.guarantee, adjust: C.adjust, total: C.total, items, note } });
+    delete nomEdits[rep];
+    toast(`Nómina de ${rep} cerrada.`, 'success');
+    nomData = await apiGet({ action: 'nomGet' }); renderNominaBody();
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+async function nomReopen(id) {
+  if (!confirm('¿Reabrir esta nómina? Se borra el cierre y sus ventas vuelven a quedar pendientes de pago.')) return;
+  try { await apiGet({ action: 'nomReopen', id }); nomData = await apiGet({ action: 'nomGet' }); renderNominaBody(); toast('Nómina reabierta.', 'success'); }
+  catch (e) { toast(escHtml(e.message), 'error'); }
+}
+function nomExportCSV() {
+  const D = nomData, P = nomPeriod, rows = [['Periodo', 'Asesora', 'Concepto', 'Venta', 'Cuenta', 'Cliente', 'Monto']];
+  nomReps(D).filter(r => D.config.reps[r].mode === 'plan').forEach(rep => {
+    const C = nomCompute(D, rep, P, nomEdits[rep]), per = `${P.start} a ${P.end}`;
+    rows.push([per, rep, 'QuickBooks · Commission', '', '', '', C.commissions + C.ded]);
+    rows.push([per, rep, 'QuickBooks · Bonus', '', '', '', C.bon]);
+    if (C.hours) rows.push([per, rep, `Horas ${C.hours} (base de referencia)`, '', '', '', C.base]);
+    C.ready.filter(r => r.on).forEach(r => rows.push([per, rep, 'Comisión: ' + r.x.parts.map(p => p.label).join(' + '), r.a.OrderDate, r.a.AccountNumber, r.a.CustomerName, r.x.total]));
+    C.bonuses.filter(b => b.on).concat(C.deductions.filter(d => d.on)).forEach(b => rows.push([per, rep, b.label, '', '', '', b.amt]));
+    if (C.guarantee) rows.push([per, rep, 'Garantía', '', '', '', C.guarantee]);
+    if (C.adjust) rows.push([per, rep, 'Ajuste: ' + ((nomEdits[rep] || {}).note || ''), '', '', '', C.adjust]);
+    rows.push([per, rep, 'TOTAL', '', '', '', C.total]);
+  });
+  actCsv(rows, `nomina_${P.start}_${P.end}.csv`);
+}
+function openNomConfig() {
+  const c = nomData.config, R = c.rates;
+  const names = [...new Set(EMPLOYEES.filter(n => n !== 'Joel').concat(Object.keys(c.reps)))];
+  const num = (id, v, label) => `<div class="form-group"><label class="form-label">${label}</label><input class="form-input" type="number" step="0.01" id="nc-${id}" value="${v}"></div>`;
+  openModal(`
+    <div class="modal-title">⚙ Plan de comisiones <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-row">${num('intOwn', R.intOwn, 'Internet cliente propio')}${num('intStore', R.intStore, 'Internet cliente de tienda')}</div>
+    <div class="form-row">${num('line', R.line, 'Por línea móvil')}${num('tv', R.tv, 'TV')}</div>
+    <div class="form-row">${num('tier1', R.tier1, 'Internets para bono 1')}${num('bonus8', R.bonus8, 'Bono 1 $')}</div>
+    <div class="form-row">${num('tier2', R.tier2, 'Internets para bono 2')}${num('bonus12', R.bonus12, 'Bono 2 $ (en lugar del 1)')}</div>
+    <div class="form-row">${num('teamGoal', R.teamGoal, 'PSUs de la tienda (equipo)')}${num('bonusTeam', R.bonusTeam, 'Bono de equipo $')}</div>
+    <div class="form-group"><label class="form-label">La semana de pago empieza el</label>
+      <select class="form-input form-select" id="nc-weekStart">${NOM_DAYS.map((d, i) => `<option value="${i}" ${+(c.payroll || {}).weekStart === i ? 'selected' : ''}>${d}</option>`).join('')}</select>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Se paga cada sábado. Debe coincidir con el periodo que usas en QuickBooks.</div></div>
+    ${names.map(n => { const r = c.reps[n] || { mode: 'off', canView: false, hourly: 10, start: '', bonusFrom: '', guarantee: false, guaranteeRate: 13, guaranteeDays: 60 };
+      return `<div class="act-reco-box">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label"><b>${escHtml(n)}</b></label>
+            <select class="form-input form-select" id="nc-${n}-mode">
+              <option value="plan" ${r.mode === 'plan' ? 'selected' : ''}>En el plan de comisiones</option>
+              <option value="sim" ${r.mode === 'sim' ? 'selected' : ''}>Simulación (solo yo la veo)</option>
+              <option value="off" ${r.mode === 'off' || !r.mode ? 'selected' : ''}>Fuera</option></select></div>
+          <div class="form-group"><label class="form-label">&nbsp;</label>
+            <label class="pros-check" style="margin:8px 0 0"><input type="checkbox" id="nc-${n}-canView" ${r.canView ? 'checked' : ''}> Puede ver 💵 Mi pago</label></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Base $/h</label><input class="form-input" type="number" step="0.25" id="nc-${n}-hourly" value="${r.hourly}"></div>
+          <div class="form-group"><label class="form-label">Inicio (ventas que cuentan)</label><input class="form-input" type="date" id="nc-${n}-start" value="${escHtml(r.start || '')}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Bonos desde el mes fiscal</label>
+          <input class="form-input" type="month" id="nc-${n}-bonusFrom" value="${escHtml(r.bonusFrom || '')}">
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Ej. noviembre = del 29 oct al 28 nov.</div></div>
+        <label class="pros-check" style="margin:0 0 8px"><input type="checkbox" id="nc-${n}-guarantee" ${r.guarantee ? 'checked' : ''}> Garantía de transición</label>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Garantía $/h</label><input class="form-input" type="number" step="0.25" id="nc-${n}-grate" value="${r.guaranteeRate}"></div>
+          <div class="form-group"><label class="form-label">Días de garantía</label><input class="form-input" type="number" id="nc-${n}-gdays" value="${r.guaranteeDays}"></div>
+        </div></div>`; }).join('')}
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Solo cuentan las ventas desde el inicio del plan. Chargeback: se descuenta si Cellmart lo cobra o Spectrum la marca desconectada antes de ${R.chargebackDays} días.</div>
+    <button class="btn btn-primary btn-full" onclick="nomSaveConfig()">Guardar plan</button>`, true);
+}
+async function nomSaveConfig() {
+  const g = id => document.getElementById('nc-' + id), c = nomData.config;
+  const rates = Object.assign({}, c.rates);
+  ['intOwn', 'intStore', 'line', 'tv', 'tier1', 'bonus8', 'tier2', 'bonus12', 'teamGoal', 'bonusTeam'].forEach(k => { rates[k] = +g(k).value || 0; });
+  const reps = {};
+  [...new Set(EMPLOYEES.filter(n => n !== 'Joel').concat(Object.keys(c.reps)))].forEach(n => {
+    reps[n] = { mode: g(n + '-mode').value, canView: g(n + '-canView').checked, hourly: +g(n + '-hourly').value || 0,
+      start: g(n + '-start').value, bonusFrom: g(n + '-bonusFrom').value,
+      guarantee: g(n + '-guarantee').checked, guaranteeRate: +g(n + '-grate').value || 0, guaranteeDays: +g(n + '-gdays').value || 0 };
+  });
+  const payroll = Object.assign({}, c.payroll, { weekStart: +g('weekStart').value || 0 });
+  try {
+    const r = await apiPost({ action: 'nomSaveConfig', config: { rates, payroll, reps } });
+    nomData.config = r.config; closeModal(); toast('Plan guardado.', 'success'); renderNominaBody();
+  } catch (e) { toast(escHtml(e.message), 'error'); }
 }
 
 function errorState(msg) {
