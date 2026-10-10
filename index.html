@@ -2488,7 +2488,7 @@ function noSheetNotice() {
 // The Cellmart core report (.xlsx) is reconciled in the browser — nothing is uploaded.
 
 // Spectrum Rep ID → employee (keep in sync with ACT_REPS in Activaciones.gs)
-const ACT_REPS = { CMMCL4423: 'Joel', CMMLB4896: 'Lizbeth', CMMLB4898: 'Lizbeth' /* , 'CMM?????': 'Alondra' */ };
+const ACT_REPS = { CMMCL4423: 'Joel', CMMLB4896: 'Lizbeth', CMMLB4898: 'Alondra' };
 // Type of the FIRST line of a mobile order (the rest of the same order are always incremental)
 const ACT_MOBILE_TYPES = ['Primera', 'Incremental', 'AdicionalNoNuestra'];
 const ACT_MOBILE_TYPE_INFO = {
@@ -2630,7 +2630,8 @@ function actAddDays(ymd, n) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 // Rep IDs que otra persona usó por un tiempo (igual que NOM_REP_HANDOVER en Nomina.gs):
-// Alondra vendió con los IDs de Lizbeth hasta el domingo 11 oct 2026.
+// Lizbeth estuvo fuera y Alondra también vendió con el ID de Lizbeth (CMMLB4896) hasta el domingo 11 oct 2026.
+// CMMLB4898 siempre ha sido de Alondra (ACT_REPS).
 const ACT_REP_HANDOVER = [
   { owner: 'Lizbeth', ids: ['CMMLB4896', 'CMMLB4898'], from: '2026-06-01', to: '2026-10-11', name: 'Alondra' }
 ];
