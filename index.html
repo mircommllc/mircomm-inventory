@@ -478,6 +478,9 @@
     <div class="nav-item manager-only" data-page="nomina" onclick="showPage('nomina')">
       <span class="icon">💵</span> Nómina
     </div>
+    <div class="nav-item manager-only" data-page="socios" onclick="showPage('socios')">
+      <span class="icon">🤝</span> Socios
+    </div>
     <div class="nav-section manager-only">Stock</div>
     <div class="nav-item manager-only" data-page="receive" onclick="showPage('receive')">
       <span class="icon">📥</span> Receive Stock
@@ -680,7 +683,7 @@ function saveConfig() {
 // ─── NAVIGATION ──────────────────────────────────────────────────────
 function showPage(page) {
   // Block non-managers from manager pages
-  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina'];
+  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios'];
   if (managerPages.includes(page) && !isManager) return;
   if (page === 'nomina') nomPreviewRep = '';
   if (page === 'mylines' && isManager) page = 'activations';
@@ -702,6 +705,7 @@ function loadCurrentPage() {
     case 'mylines':      renderMyLines(); break;
     case 'mipago':       renderMyPay(); break;
     case 'nomina':       renderNomina(); break;
+    case 'socios':       renderSocios(); break;
   }
 }
 
@@ -2730,7 +2734,8 @@ async function renderActivations() {
   try {
     const [rows, emails, repMap, txs] = await Promise.all([apiGet({ action: 'getActivations' }),
       apiGet({ action: 'getMobileEmails' }).catch(() => null), apiGet({ action: 'getRepMap' }).catch(() => null),
-      apiGet({ action: 'getTransactions', store: currentStore, startDate: actAddDays(actToday(), -75), endDate: actToday() }).catch(() => null)]);
+      apiGet({ action: 'getTransactions', store: currentStore, startDate: actAddDays(actToday(), -75), endDate: actToday() }).catch(() => null),
+      (socLinksCache = null, socLoadLinks())]);
     actPosTx = Array.isArray(txs) ? txs : null;
     if (repMap && typeof repMap === 'object' && !Array.isArray(repMap)) Object.assign(ACT_REPS, repMap);
     actData = Array.isArray(rows) ? rows : [];
@@ -2890,7 +2895,7 @@ function renderActTable() {
       const owner = actRepOwner(a);
       return `<tr onclick="openActDetail('${escHtml(a.ID)}')">
         <td class="mono">${actFmtDate(a.OrderDate)}</td>
-        <td><div style="font-weight:600">${escHtml(a.CustomerName||'—')}</div>${a.Source==='Manual'?'<div style="font-size:11px;color:var(--muted)">registro manual</div>':a.Source==='Asesora'?`<div style="font-size:11px;color:var(--muted)">registrada por ${escHtml(a.EnteredBy||'asesora')}</div>`:''}</td>
+        <td><div style="font-weight:600">${escHtml(a.CustomerName||'—')}</div>${socActBadge(a)}${a.Source==='Manual'?'<div style="font-size:11px;color:var(--muted)">registro manual</div>':a.Source==='Asesora'?`<div style="font-size:11px;color:var(--muted)">registrada por ${escHtml(a.EnteredBy||'asesora')}</div>`:''}</td>
         <td class="mono">${escHtml(a.AccountNumber||'')}</td>
         <td>${escHtml(actRepName(a))}${a.SoldBy && owner && owner !== a.SoldBy ? `<div style="font-size:11px;color:var(--yellow)">con ID de ${escHtml(owner)}</div>` : ''}</td>
         <td>${actSvcChips(s)}</td>
@@ -3028,6 +3033,7 @@ function openActForm(id, pre) {
       <div class="form-group"><label class="form-label">Cliente *</label><input class="form-input" id="af-name" value="${escHtml(a.CustomerName||'')}"></div>
       <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="af-phone" type="tel" value="${escHtml(a.Phone||'')}"></div>
     </div>
+    <div id="af-socio-box"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Líneas móviles</label><input class="form-input" type="number" min="0" max="10" id="af-lines" value="${escHtml(a.MobileLines || (id ? '' : '1'))}"></div>
       <div class="form-group"><label class="form-label">Tipo de la primera línea</label>
@@ -3050,6 +3056,7 @@ function openActForm(id, pre) {
     <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" id="af-notes" rows="2" placeholder="Ej. port-in de AT&T, teléfono regalado">${escHtml(a.Notes||'')}</textarea></div>
     <button class="btn btn-primary btn-full" onclick="actSaveForm('${escHtml(id||'')}')">Guardar</button>`);
   if (a.AccountNumber) actFormAcct(a.ID || '', !!id || !!(pre && pre.MobileType));
+  socFillActSelect(id || '');
 }
 function actFormAcct(id, keepType) {
   const acct = actAcct(document.getElementById('af-acct')?.value);
@@ -3082,6 +3089,7 @@ async function actSaveForm(id) {
       !confirm('Ya hay líneas móviles registradas en esta cuenta. ¿Registrar de todos modos?')) return;
   try {
     const saved = await apiGet({ action: 'saveActivation', data: JSON.stringify(rec) });
+    await socAfterActSave(saved);
     const i = actData.findIndex(x => x.ID === saved.ID);
     if (i >= 0) actData[i] = saved; else actData.push(saved);
     if (actReco) actReconcile(actReco.groups, actReco.meta);
@@ -4806,6 +4814,564 @@ async function nomSaveConfig() {
 function errorState(msg) {
   return `<div class="empty-state"><div class="icon">⚠️</div><p style="color:var(--red)">${msg}</p>
     <button class="btn btn-ghost" style="margin-top:12px" onclick="loadCurrentPage()">Retry</button></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 🤝 SOCIOS — referidos de socios y su pago (antes "Partner Commission Tracker")
+// Backend: Socios.gs (Sheet "MirComm Commissions"). Solo manager.
+// Reglas: Spectrum escalonado $75 (1–10 del mes) / $100 (11+) · plan fijo (Imelda) $80 Spectrum
+//         AT&T, Viasat y Tracfone $40 para todos (no cuentan para el escalón) · una comisión por venta (el internet)
+//         Se le paga al socio cuando te pagan (Cellmart o la compañía) + 7 días.
+// ═══════════════════════════════════════════════════════════════════════
+let socData = null;
+let socTab = 'pagar';
+let socFilter = { partner: '', status: 'open', carrier: '', q: '' };
+let socLinksCache = null;            // para 📡 Activaciones (socios + qué activación está ligada a quién)
+let socPayState = null;
+const SOC_STATUS = {
+  lead: ['📞 Lead', 'pros-b-new'], pending: ['Venta · sin pagar', 'pros-b-fu'], paid: ['✓ Pagado', 'pros-b-sold'],
+  'lost-direct': ['Perdido · se fue directo', 'pros-b-lost'], 'lost-existing': ['Perdido · ya tenía servicio', 'pros-b-lost'],
+  'lost-other': ['Perdido · otro motivo', 'pros-b-lost'], chargedback: ['⚡ Chargeback', 'pros-b-lost']
+};
+const SOC_CARRIERS = ['Spectrum', 'AT&T', 'Viasat', 'Tracfone'];
+const SOC_PKGS = {
+  Spectrum: ['Internet', 'Internet + TV', 'Internet + Móvil', 'Internet + TV + Móvil', 'Internet + Voz', 'Solo móvil (no paga)'],
+  'AT&T': ['Internet', 'Fibra'], Viasat: ['Internet satelital'], Tracfone: ['Home Internet 5G']
+};
+
+async function renderSocios() {
+  if (!isManager) { showPage('pos'); return; }
+  const el = document.getElementById('content');
+  if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
+  el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  try { socData = await apiGet({ action: 'socGet' }); }
+  catch (e) {
+    el.innerHTML = errorState(/socGet|unknown|invalid action|desconocida|solo para el manager/i.test(e.message)
+      ? 'Falta instalar Socios.gs en Apps Script (y la línea sociosRouter_ en Code.gs), luego Deploy → New version.' : escHtml(e.message));
+    return;
+  }
+  socLinksCache = null;
+  renderSociosBody();
+}
+async function socPost(action, data, okMsg) {
+  try {
+    const r = await apiPost({ action, data });
+    if (r && r.partners) socData = r;
+    socLinksCache = null;
+    if (okMsg) toast(okMsg, 'success');
+    return r;
+  } catch (e) { toast(escHtml(e.message), 'error'); return null; }
+}
+
+// ── Ayudantes ──
+function socP(id) { return (socData.partners.find(p => p.id === id) || { name: '¿socio borrado?' }); }
+function socCar(r) { return SOC_CARRIERS.includes(r.carrier) ? r.carrier : 'Other'; }
+function socFirst(n) { return String(n || '').trim().split(/\s+/)[0] || ''; }
+function socEndOfMonth(ymd) {
+  const [y, m] = String(ymd).split('-').map(Number);
+  const d = new Date(y, m, 0);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function socPlanLabel(p) {
+  const C = socData.config;
+  return p.rateType === 'flat' ? `$${+p.flatRate || C.flat} fijo (Spectrum)` : `Escalonado $${C.tier1} / $${C.tier2}`;
+}
+// Ventas de Spectrum del socio en un mes calendario (cuentan para el escalón)
+function socMonthSales(pid, ym) {
+  return socData.referrals.filter(r => r.partnerId === pid && ['pending', 'paid', 'chargedback'].includes(r.status) &&
+    socCar(r) === 'Spectrum' && !/solo m[oó]vil/i.test(r.package || '') && String(r.saleDate || '').slice(0, 7) === ym).length;
+}
+// Cuándo te pagan a ti y cuándo le toca al socio
+function socTiming(r) {
+  const C = socData.config, today = socData.today, car = socCar(r);
+  const cm = r.actId ? (socData.cm || {})[r.actId] : null;
+  let me = '', how = '', blocker = '';
+  if (r.paidToMeDate) { me = r.paidToMeDate; how = 'manual'; }
+  else if (cm && NOM_PAID.includes(cm.ComCode) && cm.PayDate) { me = cm.PayDate; how = 'cellmart'; }
+  if (cm && (cm.ComCode === 'charged' || cm.CoreCode === 'chargeback')) blocker = 'Cellmart hizo chargeback';
+  else if (cm && (cm.ComCode === 'canceled' || cm.CoreCode === 'canceled')) blocker = 'Cancelada en Spectrum';
+  let expect = '', est = false;
+  if (!me && car === 'Spectrum') {
+    const base = [r.saleDate, r.installDate || (cm && cm.ConnDate) || ''].filter(Boolean).sort().pop();
+    const s = base && actPayDeadline(base);
+    if (s) expect = s.pay; else if (base) { expect = actAddDays(base, C.estDays); est = true; }
+  }
+  const payMe = me || expect;
+  const due = payMe ? actAddDays(payMe, C.delayDays) : '';
+  const deadline = r.saleDate ? actAddDays(socEndOfMonth(r.saleDate), C.deadlineDays) : '';
+  const ready = r.status === 'pending' && !blocker && !!due && due <= today && (!!me || car === 'Spectrum');
+  return { me, how, expect, est, due, deadline, late: !!(due && deadline && due > deadline), ready, blocker, cm, car };
+}
+function socWhenText(t) {
+  if (t.blocker) return `<span style="color:var(--red)">⛔ ${escHtml(t.blocker)}</span>`;
+  if (t.me) return `Te pagaron ${actFmtDate(t.me)} ${t.how === 'cellmart' ? '<span class="pros-badge pros-b-sold">Cellmart ✓</span>' : '<span class="pros-badge pros-b-sold">✓</span>'}`;
+  if (t.expect) return `Cellmart paga ${t.est ? '~' : ''}${actFmtDate(t.expect)}${t.est ? ' <span class="pros-badge pros-b-exp">estimado</span>' : ' <span class="pros-badge pros-b-exp">según calendario</span>'}`;
+  if (t.car !== 'Spectrum') return `<span style="color:var(--yellow)">Esperando que te pague ${escHtml(t.car === 'Other' ? 'la compañía' : t.car)}</span>`;
+  return '<span style="color:var(--muted)">Falta fecha de venta</span>';
+}
+function socGroups() {
+  const out = {};
+  socData.partners.forEach(p => out[p.id] = { p, ready: [], wait: [], cbs: [], debt: +p.pendingDebt || 0 });
+  socData.referrals.forEach(r => {
+    const g = out[r.partnerId]; if (!g) return;
+    if (r.status === 'pending') { const t = socTiming(r); (t.ready ? g.ready : g.wait).push({ r, t }); }
+    if (r.status === 'chargedback' && r.chargebackDeducted !== 'true' && +r.chargebackAmount > 0) g.cbs.push(r);
+  });
+  Object.values(out).forEach(g => {
+    g.gross = g.ready.reduce((s, x) => s + (+x.r.commission || 0), 0);
+    g.ded = g.cbs.reduce((s, r) => s + (+r.chargebackAmount || 0), 0) + g.debt;
+    g.net = Math.max(0, g.gross - g.ded);
+    g.waitAmt = g.wait.reduce((s, x) => s + (+x.r.commission || 0), 0);
+  });
+  return out;
+}
+
+// ── Página ──
+function renderSociosBody() {
+  const D = socData, el = document.getElementById('content'), G = socGroups(), gs = Object.values(G);
+  const readyNet = gs.reduce((s, g) => s + (g.ready.length ? g.net : 0), 0);
+  const readyN = gs.filter(g => g.ready.length).length;
+  const waitAmt = gs.reduce((s, g) => s + g.waitAmt, 0);
+  const leads = D.referrals.filter(r => r.status === 'lead').length;
+  const cbAmt = gs.reduce((s, g) => s + g.ded, 0);
+  const tabs = [['pagar', '💸 Por pagar'], ['referidos', '📋 Referidos'], ['socios', '👥 Socios'], ['pagos', '🧾 Pagos hechos']];
+  el.innerHTML = `
+    <div class="page-title">🤝 Socios</div>
+    <div class="page-subtitle">Referidos de tus socios y su pago · Spectrum $${D.config.tier1} (1–${D.config.tierCut} del mes) / $${D.config.tier2} (${D.config.tierCut + 1}+) · plan fijo $${D.config.flat} · AT&T, Viasat y Tracfone $${D.config.other} · se paga ${D.config.delayDays} días después de que te pagan</div>
+    <div class="report-grid pros-stats">
+      <div class="stat-card green"><div class="stat-label">Por pagar ya</div><div class="stat-value">${fmtMoney(readyNet)}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">${readyN} socio${readyN === 1 ? '' : 's'}</div></div>
+      <div class="stat-card cyan"><div class="stat-label">Esperando que te paguen</div><div class="stat-value">${fmtMoney(waitAmt)}</div></div>
+      <div class="stat-card blue"><div class="stat-label">Leads abiertos</div><div class="stat-value">${leads}</div></div>
+      <div class="stat-card ${cbAmt ? 'red' : 'yellow'}"><div class="stat-label">Chargebacks por descontar</div><div class="stat-value">${fmtMoney(cbAmt)}</div></div>
+    </div>
+    ${socAlerts(G)}
+    <div class="action-row" style="flex-wrap:wrap;gap:8px">
+      <div class="pros-chips">${tabs.map(([k, l]) => `<span class="chip ${socTab === k ? 'on' : ''}" onclick="socTab='${k}';renderSociosBody()">${l}</span>`).join('')}</div>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="socOpenRef('')">＋ Referido</button>
+        <button class="btn btn-ghost" onclick="socOpenPartner('')">＋ Socio</button>
+        <button class="btn btn-ghost" onclick="socOpenConfig()">⚙ Reglas</button>
+        <button class="btn btn-ghost" onclick="renderSocios()">↻</button>
+      </div>
+    </div>
+    <div id="soc-body">${socTab === 'pagar' ? socPayTab(G) : socTab === 'referidos' ? socRefTab() : socTab === 'socios' ? socPartnersTab() : socPaysTab()}</div>`;
+}
+function socAlerts(G) {
+  const D = socData, out = [];
+  D.referrals.forEach(r => {
+    if (r.status !== 'paid' && r.status !== 'pending') return;
+    const t = socTiming(r);
+    if (t.blocker === 'Cellmart hizo chargeback')
+      out.push(`⚡ <b>${escHtml(r.name)}</b> (${escHtml(socP(r.partnerId).name)}): Cellmart hizo chargeback.
+        ${r.status === 'paid' ? 'Ya le pagaste al socio: se le descuenta en su siguiente pago.' : 'Todavía no le pagas: ya no se le paga.'}
+        <button class="btn btn-ghost btn-sm" onclick="socChargeback('${r.id}', '${(t.cm && t.cm.ChargeDate) || D.today}')">Aplicar chargeback</button>`);
+  });
+  gsLate(G).forEach(x => out.push(`⚠️ <b>${escHtml(x.r.name)}</b> (${escHtml(socP(x.r.partnerId).name)}): el plazo del acuerdo para pagarle vence el <b>${actFmtDate(x.t.deadline)}</b>${x.t.due ? ` y le toca el ${actFmtDate(x.t.due)}` : ''}.`));
+  const oldLeads = D.referrals.filter(r => r.status === 'lead' && r.createdAt && actDaysBetween(String(r.createdAt).slice(0, 10), D.today) > 45);
+  if (oldLeads.length) out.push(`📞 ${oldLeads.length} lead${oldLeads.length > 1 ? 's' : ''} de hace más de 45 días: márcalos como vendidos o perdidos.
+    <button class="btn btn-ghost btn-sm" onclick="socTab='referidos';socFilter={partner:'',status:'lead',carrier:'',q:''};renderSociosBody()">Ver</button>`);
+  return out.length ? `<div class="act-reco-box" style="border-color:rgba(255,209,102,.45)">${out.map(x => `<div style="margin:4px 0">${x}</div>`).join('')}</div>` : '';
+}
+function gsLate(G) {
+  const today = socData.today, out = [];
+  Object.values(G).forEach(g => g.ready.concat(g.wait).forEach(x => {
+    if (x.t.deadline && (x.t.late || x.t.deadline < today) && actDaysBetween(today, x.t.deadline) <= 10) out.push(x);
+  }));
+  return out;
+}
+
+// ── 💸 Por pagar ──
+function socPayTab(G) {
+  const C = socData.config;
+  const gs = Object.values(G).filter(g => g.ready.length || g.wait.length || g.cbs.length || g.debt)
+    .sort((a, b) => (b.ready.length ? b.net + 1e6 : b.waitAmt) - (a.ready.length ? a.net + 1e6 : a.waitAmt));
+  if (!gs.length) return `<div class="act-hint">No hay nada pendiente de pagar. Cuando un socio te mande un cliente, regístralo con <b>＋ Referido</b>; cuando se active, escoge el socio en 📡 Activaciones.</div>`;
+  return gs.map(g => {
+    const p = g.p, ym = socData.today.slice(0, 7), n = socMonthSales(p.id, ym);
+    const row = (x, ready) => `<div class="ml-mail">
+        <span style="flex:1;min-width:180px"><b style="cursor:pointer" onclick="socOpenRef('${x.r.id}')">${escHtml(x.r.name)}</b>
+          <span style="font-size:12px;color:var(--muted)">· ${escHtml(socCar(x.r) === 'Other' ? 'Otra' : socCar(x.r))} · venta ${actFmtDate(x.r.saleDate) || '—'}</span>
+          <div style="font-size:12px;color:var(--muted)">${socWhenText(x.t)}${!ready && x.t.due ? ` · al socio: <b>${actFmtDate(x.t.due)}</b>` : ''}${x.t.late ? ` <span style="color:var(--yellow)">⚠️ pasa el plazo (${actFmtDate(x.t.deadline)})</span>` : ''}</div></span>
+        ${!ready && !x.t.me && !x.t.blocker ? `<button class="btn btn-ghost btn-sm" onclick="socPaidMe('${x.r.id}')">✅ Ya me pagaron</button>` : ''}
+        <span class="mono" style="font-weight:700">${fmtMoney(+x.r.commission || 0)}</span></div>`;
+    return `<div class="act-reco">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+        <div class="page-title" style="font-size:19px;margin:0;cursor:pointer" onclick="socOpenPartner('${p.id}')">${escHtml(p.name)}</div>
+        <span class="pros-badge ${p.rateType === 'flat' ? 'pros-b-rev' : 'pros-b-new'}">${escHtml(socPlanLabel(p))}</span>
+        ${p.rateType !== 'flat' ? `<span style="font-size:12px;color:var(--muted)">${n} venta${n === 1 ? '' : 's'} Spectrum este mes${n < C.tierCut ? ` · ${C.tierCut - n} más para $${C.tier2}` : ` · ya está en $${C.tier2}`}</span>` : ''}
+        <span style="font-size:12px;color:var(--muted);margin-left:auto">${escHtml(p.payment || 'Zelle')}${p.payHandle ? ': ' + escHtml(p.payHandle) : p.phone ? ': ' + escHtml(p.phone) : ''}</span>
+      </div>
+      ${g.ready.length ? `<div class="pros-section-title" style="margin:8px 0 4px">Listo para pagar (${g.ready.length})</div>${g.ready.map(x => row(x, true)).join('')}` : ''}
+      ${g.cbs.map(r => `<div class="ml-mail"><span style="flex:1">↩ Chargeback · ${escHtml(r.name)} <span style="font-size:12px;color:var(--muted)">${actFmtDate(r.chargebackDate)}</span></span><span class="mono" style="color:var(--red);font-weight:700">−${fmtMoney(+r.chargebackAmount)}</span></div>`).join('')}
+      ${g.debt ? `<div class="ml-mail"><span style="flex:1">↩ Saldo de chargebacks de un pago anterior</span><span class="mono" style="color:var(--red);font-weight:700">−${fmtMoney(g.debt)}</span></div>` : ''}
+      ${g.ready.length ? `<div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap">
+          <div class="total-row grand" style="flex:1;margin:0;padding-top:8px"><span>A pagar</span><span>${fmtMoney(g.net)}</span></div>
+          <button class="btn btn-primary" onclick="socOpenPay('${p.id}')">💸 Pagar a ${escHtml(socFirst(p.name))}</button></div>`
+        : g.cbs.length || g.debt ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">Se descuenta de su siguiente pago.</div>` : ''}
+      ${g.wait.length ? `<details style="margin-top:8px" ${g.ready.length ? '' : 'open'}><summary style="cursor:pointer;font-size:13px;color:var(--muted)">Esperando que te paguen (${g.wait.length}) · ${fmtMoney(g.waitAmt)}</summary>
+        <div style="margin-top:6px">${g.wait.sort((a, b) => (a.t.due || '9').localeCompare(b.t.due || '9')).map(x => row(x, false)).join('')}</div></details>` : ''}
+    </div>`;
+  }).join('');
+}
+async function socPaidMe(id) {
+  const r = socData.referrals.find(x => x.id === id); if (!r) return;
+  const car = socCar(r) === 'Other' ? 'la compañía' : socCar(r);
+  const d = prompt(`¿Qué día te pagó ${car} por ${r.name}? (AAAA-MM-DD)`, socData.today);
+  if (!d) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d.trim())) { toast('Usa el formato AAAA-MM-DD.', 'error'); return; }
+  if (await socPost('socPaidToMe', { ids: [id], date: d.trim() }, 'Listo. Le toca al socio en ' + socData.config.delayDays + ' días.')) renderSociosBody();
+}
+
+// ── Pagar a un socio ──
+function socOpenPay(pid) {
+  const g = socGroups()[pid]; if (!g) return;
+  socPayState = { pid, on: {} };
+  g.ready.forEach(x => socPayState.on[x.r.id] = true);
+  const p = g.p;
+  const item = (x, on) => `<label class="ml-mail" style="cursor:pointer"><input type="checkbox" ${on ? 'checked' : ''} onchange="socPayState.on['${x.r.id}']=this.checked;socPayCalc()">
+      <span style="flex:1">${escHtml(x.r.name)} <span style="font-size:12px;color:var(--muted)">· ${escHtml(socCar(x.r))} · venta ${actFmtDate(x.r.saleDate)}${on ? '' : ` · le toca ${x.t.due ? actFmtDate(x.t.due) : 'cuando te paguen'}`}</span></span>
+      <span class="mono" style="font-weight:700">${fmtMoney(+x.r.commission || 0)}</span></label>`;
+  openModal(`
+    <div class="modal-title">💸 Pagar a ${escHtml(p.name)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="pros-section-title" style="margin-top:0">Ventas</div>
+    ${g.ready.map(x => item(x, true)).join('')}
+    ${g.wait.length ? `<details style="margin:6px 0"><summary style="cursor:pointer;font-size:12px;color:var(--muted)">Adelantar alguna que todavía no te pagan (${g.wait.length})</summary>${g.wait.map(x => item(x, false)).join('')}</details>` : ''}
+    ${g.cbs.length || g.debt ? `<div class="pros-section-title">Descuentos</div>
+      ${g.cbs.map(r => `<div class="total-row"><span>↩ Chargeback · ${escHtml(r.name)}</span><span style="color:var(--red)">−${fmtMoney(+r.chargebackAmount)}</span></div>`).join('')}
+      ${g.debt ? `<div class="total-row"><span>↩ Saldo anterior</span><span style="color:var(--red)">−${fmtMoney(g.debt)}</span></div>` : ''}` : ''}
+    <div id="soc-pay-total"></div>
+    <div class="form-row" style="margin-top:10px">
+      <div class="form-group"><label class="form-label">Fecha del pago</label><input class="form-input" type="date" id="sp-date" value="${socData.today}"></div>
+      <div class="form-group"><label class="form-label">Cómo</label><select class="form-input form-select" id="sp-method">${['Zelle', 'Efectivo', 'Cheque'].map(m => `<option ${m === (p.payment || 'Zelle') ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Nota (opcional)</label><input class="form-input" id="sp-note"></div>
+    <button class="btn btn-primary btn-full" id="sp-btn" onclick="socConfirmPay()">Confirmar pago</button>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Primero mándale el dinero por ${escHtml(p.payment || 'Zelle')}${p.payHandle ? ` (${escHtml(p.payHandle)})` : ''}; luego confirma aquí para marcarlo pagado.</div>`);
+  socPayCalc();
+}
+function socPayCalc() {
+  const g = socGroups()[socPayState.pid], all = g.ready.concat(g.wait);
+  const gross = all.filter(x => socPayState.on[x.r.id]).reduce((s, x) => s + (+x.r.commission || 0), 0);
+  const net = Math.max(0, gross - g.ded), carry = Math.max(0, g.ded - gross);
+  document.getElementById('soc-pay-total').innerHTML = `
+    <div class="total-row" style="margin-top:10px"><span>Ventas</span><span>${fmtMoney(gross)}</span></div>
+    ${g.ded ? `<div class="total-row"><span>Descuentos</span><span>−${fmtMoney(g.ded)}</span></div>` : ''}
+    <div class="total-row grand"><span>Total a mandar</span><span>${fmtMoney(net)}</span></div>
+    ${carry ? `<div style="font-size:12px;color:var(--yellow)">Los chargebacks son más que las ventas: ${fmtMoney(carry)} pasan a su siguiente pago.</div>` : ''}`;
+  const b = document.getElementById('sp-btn'); if (b) b.disabled = !gross;
+}
+async function socConfirmPay() {
+  const ids = Object.keys(socPayState.on).filter(k => socPayState.on[k]);
+  const b = document.getElementById('sp-btn'); if (b) b.disabled = true;
+  const r = await socPost('socPay', { partnerId: socPayState.pid, ids, date: document.getElementById('sp-date').value,
+    method: document.getElementById('sp-method').value, note: document.getElementById('sp-note').value }, 'Pago registrado.');
+  if (!r) { if (b) b.disabled = false; return; }
+  renderSociosBody();
+  socShowSummary(r.pay);
+}
+function socSummaryText(pay) {
+  const items = JSON.parse(pay.items || '[]'), cbs = JSON.parse(pay.chargebacks || '[]');
+  const p = socP(pay.partnerId);
+  let t = `Hola ${socFirst(p.name || pay.partnerName)}, te mandé ${fmtMoney(+pay.net)} por ${pay.method} (${actFmtDate(pay.date)}) por tus referidos:\n`;
+  items.forEach(i => t += `• ${i.name} — ${fmtMoney(+i.amt)}\n`);
+  cbs.forEach(c => t += `• Descuento (se canceló el servicio de ${c.name}) — −${fmtMoney(+c.amt)}\n`);
+  if (+pay.prevDebt) t += `• Descuento pendiente anterior — −${fmtMoney(+pay.prevDebt)}\n`;
+  if (+pay.carryOver) t += `Quedan ${fmtMoney(+pay.carryOver)} por descontar en el siguiente pago.\n`;
+  return t + `¡Gracias por recomendarnos! — Joel, MirComm`;
+}
+function socShowSummary(pay) {
+  const p = socP(pay.partnerId), txt = socSummaryText(pay), ph = phoneDigits(p.phone);
+  openModal(`
+    <div class="modal-title">✅ Resumen para ${escHtml(socFirst(p.name || pay.partnerName))} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <textarea class="form-input" id="soc-sum" rows="9" style="font-size:13px">${escHtml(txt)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('soc-sum').value).then(()=>toast('Copiado.','success'))">📋 Copiar</button>
+      ${ph.length === 10 ? `<a class="btn btn-ghost" href="sms:${ph}?&body=${encodeURIComponent(txt)}">💬 Mandar por mensaje</a>` : ''}
+      <button class="btn btn-ghost" style="margin-left:auto" onclick="closeModal()">Listo</button>
+    </div>`);
+}
+
+// ── 📋 Referidos ──
+function socRefTab() {
+  const D = socData, f = socFilter, q = f.q.toLowerCase();
+  const groups = { open: ['lead', 'pending'], lead: ['lead'], pending: ['pending'], paid: ['paid'], lost: ['lost-direct', 'lost-existing', 'lost-other'], chargedback: ['chargedback'], all: null };
+  const rows = D.referrals.filter(r => (!f.partner || r.partnerId === f.partner) && (!groups[f.status] || groups[f.status].includes(r.status || 'lead')) &&
+      (!f.carrier || socCar(r) === f.carrier) && (!q || [r.name, r.phone, r.address, r.account, r.notes].join(' ').toLowerCase().includes(q)))
+    .sort((a, b) => String(b.saleDate || b.createdAt).localeCompare(String(a.saleDate || a.createdAt)));
+  const total = rows.reduce((s, r) => s + (['lost-direct', 'lost-existing', 'lost-other'].includes(r.status) ? 0 : +r.commission || 0), 0);
+  const sel = (id, opts, v, fn) => `<select class="form-input form-select" style="width:auto" onchange="${fn}">${opts.map(([k, l]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  return `<div class="action-row" style="flex-wrap:wrap;gap:8px">
+      ${sel('', [['', 'Todos los socios']].concat(D.partners.slice().sort((a, b) => a.name.localeCompare(b.name)).map(p => [p.id, p.name + (p.active === 'no' ? ' (inactivo)' : '')])), f.partner, "socFilter.partner=this.value;renderSociosBody()")}
+      ${sel('', [['open', 'Abiertos (leads y ventas sin pagar)'], ['lead', 'Leads'], ['pending', 'Ventas sin pagar'], ['paid', 'Pagados'], ['chargedback', 'Chargebacks'], ['lost', 'Perdidos'], ['all', 'Todos']], f.status, "socFilter.status=this.value;renderSociosBody()")}
+      ${sel('', [['', 'Todas las compañías']].concat(SOC_CARRIERS.map(c => [c, c])).concat([['Other', 'Otra']]), f.carrier, "socFilter.carrier=this.value;renderSociosBody()")}
+      <input class="form-input" style="width:auto;flex:1;min-width:160px" placeholder="Buscar nombre, teléfono, cuenta…" value="${escHtml(f.q)}" oninput="socFilter.q=this.value;clearTimeout(window._socQ);window._socQ=setTimeout(()=>{renderSociosBody();const i=document.querySelector('#soc-body input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},350)">
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin:-4px 0 8px">${rows.length} referido${rows.length === 1 ? '' : 's'} · ${fmtMoney(total)} en comisiones</div>
+    <div class="table-wrap" style="overflow-x:auto"><table><thead><tr><th>Cliente</th><th>Socio</th><th>Compañía</th><th>Venta</th><th style="text-align:right">Comisión</th><th>Estado</th><th>Pago al socio</th></tr></thead>
+    <tbody>${rows.map(r => {
+      const t = r.status === 'pending' ? socTiming(r) : null, st = SOC_STATUS[r.status || 'lead'] || [r.status, ''];
+      return `<tr style="cursor:pointer" onclick="socOpenRef('${r.id}')">
+        <td><div style="font-weight:600">${escHtml(r.name)}</div><div style="font-size:11px;color:var(--muted)">${escHtml(r.phone || '')}${r.actId ? ' · 📡 ligada' : ''}</div></td>
+        <td>${escHtml(socP(r.partnerId).name)}</td>
+        <td>${escHtml(socCar(r) === 'Other' ? 'Otra' : socCar(r))}<div style="font-size:11px;color:var(--muted)">${escHtml(r.package || '')}</div></td>
+        <td class="mono">${actFmtDate(r.saleDate) || '—'}</td>
+        <td class="mono" style="text-align:right;font-weight:700">${fmtMoney(+r.commission || 0)}${r.commissionManual === 'yes' ? ' ✍️' : ''}</td>
+        <td><span class="pros-badge ${st[1]}">${st[0]}</span></td>
+        <td style="font-size:12px">${r.status === 'paid' ? 'Pagado ' + actFmtDate(r.paidDate) : r.status === 'chargedback' ? (r.chargebackDeducted === 'true' ? 'Descontado' : 'Por descontar') : t ? (t.ready ? '<b style="color:var(--green)">Ya</b>' : t.due ? actFmtDate(t.due) : 'Cuando te paguen') + (t.late ? ' ⚠️' : '') : '—'}</td></tr>`;
+    }).join('') || '<tr><td colspan="7" style="color:var(--muted)">Nada con estos filtros.</td></tr>'}</tbody></table></div>`;
+}
+
+// ── Referido: nuevo / editar ──
+function socOpenRef(id, pre) {
+  const D = socData;
+  const r = id ? D.referrals.find(x => x.id === id) : Object.assign({ status: 'lead', carrier: 'Spectrum' }, pre || {});
+  if (!r) return;
+  const locked = r.status === 'paid' || r.status === 'chargedback';
+  const car = SOC_CARRIERS.includes(r.carrier) ? r.carrier : (id ? socCar(r) : 'Spectrum');
+  const partners = D.partners.filter(p => p.active !== 'no' || p.id === r.partnerId).sort((a, b) => a.name.localeCompare(b.name));
+  const linkedIds = new Set(D.referrals.filter(x => x.actId && x.id !== r.id).map(x => x.actId));
+  const act = r.actId ? D.acts.find(a => a.ID === r.actId) : null;
+  const nm = String(r.name || '').toLowerCase().split(/\s+/)[0] || '#';
+  const acts = D.acts.filter(a => !linkedIds.has(a.ID)).sort((a, b) => {
+    const am = String(a.CustomerName).toLowerCase().includes(nm) || (r.phone && phoneDigits(a.Phone) === phoneDigits(r.phone));
+    const bm = String(b.CustomerName).toLowerCase().includes(nm) || (r.phone && phoneDigits(b.Phone) === phoneDigits(r.phone));
+    return (bm - am) || b.OrderDate.localeCompare(a.OrderDate);
+  });
+  const t = r.status === 'pending' ? socTiming(r) : null;
+  const cbOk = r.status === 'paid' && r.paidDate && actDaysBetween(r.paidDate, D.today) <= D.config.cbDays;
+  openModal(`
+    <div class="modal-title">${id ? '✏️ Referido' : '＋ Nuevo referido'} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${locked ? `<div class="act-hint" style="margin-bottom:12px">${r.status === 'paid' ? `✓ Pagado al socio el <b>${actFmtDate(r.paidDate)}</b>: ${fmtMoney(+r.commission)}. Solo se pueden cambiar los datos del cliente.`
+      : `⚡ Chargeback del ${actFmtDate(r.chargebackDate)} · ${+r.chargebackAmount ? fmtMoney(+r.chargebackAmount) + (r.chargebackDeducted === 'true' ? ' (ya descontado)' : ' (se descuenta en su siguiente pago)') : 'no se le había pagado'}.`}</div>` : ''}
+    <div class="form-group"><label class="form-label">Socio *</label>
+      <select class="form-input form-select" id="sr-partner" ${locked ? 'disabled' : ''}><option value="">Escoge…</option>${partners.map(p => `<option value="${p.id}" ${p.id === r.partnerId ? 'selected' : ''}>${escHtml(p.name)}${p.rateType === 'flat' ? ' · $' + (+p.flatRate || D.config.flat) + ' fijo' : ''}</option>`).join('')}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cliente *</label><input class="form-input" id="sr-name" value="${escHtml(r.name || '')}"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="sr-phone" type="tel" value="${escHtml(r.phone || '')}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="sr-address" value="${escHtml(r.address || '')}"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Compañía</label>
+        <select class="form-input form-select" id="sr-carrier" ${locked ? 'disabled' : ''} onchange="document.getElementById('sr-pkgs').innerHTML=(SOC_PKGS[this.value]||[]).map(x=>'<option value=&quot;'+x+'&quot;>').join('')">${SOC_CARRIERS.map(c => `<option ${c === car ? 'selected' : ''}>${c}</option>`).join('')}${car === 'Other' ? '<option value="Other" selected>Otra</option>' : ''}</select></div>
+      <div class="form-group"><label class="form-label">Paquete</label><input class="form-input" id="sr-package" list="sr-pkgs" ${locked ? 'disabled' : ''} value="${escHtml(r.package || '')}" placeholder="Ej. Internet + TV">
+        <datalist id="sr-pkgs">${(SOC_PKGS[car] || []).map(x => `<option value="${escHtml(x)}">`).join('')}</datalist></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Fecha de venta</label><input class="form-input" type="date" id="sr-sale" ${locked ? 'disabled' : ''} value="${escHtml(r.saleDate || '')}"></div>
+      <div class="form-group"><label class="form-label">Fecha de instalación</label><input class="form-input" type="date" id="sr-install" ${locked ? 'disabled' : ''} value="${escHtml(r.installDate || '')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cuenta</label><input class="form-input mono" id="sr-account" inputmode="numeric" value="${escHtml(r.account || '')}"></div>
+      <div class="form-group"><label class="form-label">Estado</label>
+        <select class="form-input form-select" id="sr-status" ${locked ? 'disabled' : ''} onchange="document.getElementById('sr-disp').style.display=this.value.startsWith('lost')?'':'none'">
+          ${(locked ? [r.status] : ['lead', 'pending', 'lost-direct', 'lost-existing', 'lost-other']).map(s => `<option value="${s}" ${s === (r.status || 'lead') ? 'selected' : ''}>${(SOC_STATUS[s] || [s])[0]}</option>`).join('')}</select>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Con fecha de venta pasa solo a "Venta · sin pagar".</div></div>
+    </div>
+    <div class="form-group" id="sr-disp" style="${String(r.status).startsWith('lost') ? '' : 'display:none'}"><label class="form-label">¿Por qué se perdió?</label><input class="form-input" id="sr-dispnote" value="${escHtml(r.dispositionNote || '')}"></div>
+    ${!locked ? `<div class="form-group"><label class="form-label">Comisión</label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="sr-manual" ${r.commissionManual === 'yes' ? 'checked' : ''} onchange="document.getElementById('sr-comm').disabled=!this.checked"> Ponerla a mano</label>
+        <input class="form-input" type="number" min="0" step="1" id="sr-comm" style="width:110px" value="${+r.commission || ''}" ${r.commissionManual === 'yes' ? '' : 'disabled'}>
+        <span style="font-size:12px;color:var(--muted)">${id ? `Ahora: <b>${fmtMoney(+r.commission || 0)}</b>. ` : ''}Si no, se calcula sola con las reglas.</span></div></div>` : ''}
+    ${t ? `<div class="act-hint" style="margin-bottom:12px">${socWhenText(t)}${t.due ? ` · al socio: <b>${actFmtDate(t.due)}</b>` : ''}${t.deadline ? ` · plazo del acuerdo: ${actFmtDate(t.deadline)}${t.late ? ' ⚠️' : ''}` : ''}
+      <div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:12px">Te pagaron (${escHtml(t.car === 'Spectrum' ? 'Cellmart' : t.car)}):</span>
+        <input class="form-input" type="date" id="sr-paidme" style="width:auto" value="${escHtml(r.paidToMeDate || '')}"><span style="font-size:11px;color:var(--muted)">${t.car === 'Spectrum' ? 'Solo si no viene en el Commission Report.' : 'Pon el día en que te pagaron para que le toque al socio.'}</span></div></div>` : ''}
+    <div class="form-group"><label class="form-label">📡 Activación</label>
+      ${act ? `<div class="ml-mail" style="border:0;padding:0"><span style="flex:1">Ligada: <b>${escHtml(act.CustomerName)}</b> · cuenta <span class="mono">${escHtml(act.AccountNumber)}</span> · ${actFmtDate(act.OrderDate)} · ${escHtml(act.InternetTier ? 'Internet ' + act.InternetTier : 'sin internet')}${+act.MobileLines ? ' · ' + act.MobileLines + ' línea(s)' : ''}</span>
+          ${!locked ? `<button class="btn btn-ghost btn-sm" onclick="socUnlink('${r.actId}')">Quitar</button>` : ''}</div>`
+      : r.actId ? `<div style="font-size:13px;color:var(--muted)">Ligada a la activación ${escHtml(r.actId)}</div>`
+      : `<select class="form-input form-select" id="sr-act"><option value="">— Sin ligar —</option>${acts.slice(0, 250).map(a => `<option value="${a.ID}">${actFmtDate(a.OrderDate)} · ${escHtml(a.CustomerName)} · ${escHtml(a.AccountNumber)}${a.InternetTier ? ' · Internet ' + escHtml(a.InternetTier) : ''}${+a.MobileLines ? ' · ' + a.MobileLines + ' lín.' : ''}</option>`).join('')}</select>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Al ligarla se ponen solos la cuenta, la fecha de venta y el paquete, y el estado de Cellmart (pagada, chargeback) sale del Commission Report.</div>`}</div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" id="sr-notes" rows="2">${escHtml(r.notes || '')}</textarea></div>
+    <button class="btn btn-primary btn-full" id="sr-btn" onclick="socSaveRef('${id || ''}')">Guardar</button>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      ${r.status === 'paid' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="socChargeback('${r.id}')">⚡ Chargeback${cbOk ? '' : ' (pasaron más de ' + D.config.cbDays + ' días)'}</button>` : ''}
+      ${r.status === 'pending' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="socChargeback('${r.id}')">⚡ Se canceló (chargeback)</button>` : ''}
+      ${r.status === 'chargedback' && !(r.chargebackDeducted === 'true' && +r.chargebackAmount) ? `<button class="btn btn-ghost btn-sm" onclick="socUndoChargeback('${r.id}')">Deshacer chargeback</button>` : ''}
+      ${id && !locked ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);margin-left:auto" onclick="socDeleteRef('${r.id}')">Borrar</button>` : ''}
+    </div>`);
+}
+async function socSaveRef(id) {
+  const v = k => (document.getElementById(k)?.value || '').trim();
+  const data = { id, partnerId: v('sr-partner'), name: v('sr-name'), phone: v('sr-phone'), address: v('sr-address'),
+    carrier: v('sr-carrier'), package: v('sr-package'), saleDate: v('sr-sale'), installDate: v('sr-install'), account: v('sr-account'),
+    status: v('sr-status'), dispositionNote: v('sr-dispnote'), notes: v('sr-notes'),
+    commissionManual: !!document.getElementById('sr-manual')?.checked, commission: v('sr-comm') };
+  if (document.getElementById('sr-paidme')) data.paidToMeDate = v('sr-paidme');
+  if (!data.name) { toast('Escribe el nombre del cliente.', 'error'); return; }
+  if (!data.partnerId && !document.getElementById('sr-partner').disabled) { toast('Escoge el socio.', 'error'); return; }
+  const actId = v('sr-act');
+  if (data.saleDate && data.status === 'lead') data.status = 'pending';
+  if (data.saleDate && data.carrier === 'Spectrum') { const s = actPayDeadline([data.saleDate, data.installDate].filter(Boolean).sort().pop()); data.paymentDate = s ? s.pay : ''; }
+  const b = document.getElementById('sr-btn'); if (b) b.disabled = true;
+  const r = await socPost('socSaveReferral', data, actId ? '' : 'Guardado.');
+  if (!r) { if (b) b.disabled = false; return; }
+  if (actId) {
+    const l = await socPost('socLink', { actId, partnerId: data.partnerId, refId: r.id }, 'Guardado y ligado a la activación.');
+    if (l) { try { socData = await apiGet({ action: 'socGet' }); } catch (e) {} }
+  }
+  closeModal(); renderSociosBody();
+}
+async function socUnlink(actId) {
+  const r = socData.referrals.find(x => x.actId === actId);
+  if (!confirm('¿Quitar la activación de este referido?' + (r && r.source === 'activacion' ? ' Como se creó desde la activación, se borra el referido.' : ''))) return;
+  const l = await socPost('socLink', { actId, partnerId: '' }, 'Listo.');
+  if (l) { try { socData = await apiGet({ action: 'socGet' }); } catch (e) {} closeModal(); renderSociosBody(); }
+}
+async function socDeleteRef(id) {
+  if (!confirm('¿Borrar este referido? Solo si te equivocaste.')) return;
+  if (await socPost('socDeleteReferral', { id }, 'Borrado.')) { closeModal(); renderSociosBody(); }
+}
+async function socChargeback(id, date) {
+  const r = socData.referrals.find(x => x.id === id); if (!r) return;
+  const msg = r.status === 'paid'
+    ? `¿Chargeback de ${r.name}? Se le descuentan ${fmtMoney(+r.commission)} a ${socP(r.partnerId).name} en su siguiente pago.`
+    : `¿Marcar ${r.name} como cancelada? Todavía no le pagas al socio, así que ya no se le paga.`;
+  if (!confirm(msg)) return;
+  if (await socPost('socChargeback', { id, date: date || socData.today }, 'Chargeback registrado.')) { closeModal(); renderSociosBody(); }
+}
+async function socUndoChargeback(id) {
+  if (!confirm('¿Deshacer el chargeback?')) return;
+  if (await socPost('socChargeback', { id, undo: true }, 'Listo.')) { closeModal(); renderSociosBody(); }
+}
+
+// ── 👥 Socios ──
+function socPartnersTab() {
+  const D = socData, ym = D.today.slice(0, 7), yr = D.today.slice(0, 4);
+  const stats = p => {
+    const rs = D.referrals.filter(r => r.partnerId === p.id);
+    const sales = rs.filter(r => ['pending', 'paid', 'chargedback'].includes(r.status));
+    return { month: socMonthSales(p.id, ym), year: sales.filter(r => String(r.saleDate).startsWith(yr)).length,
+      paid: rs.filter(r => r.status === 'paid').reduce((s, r) => s + (+r.commission || 0), 0),
+      owed: rs.filter(r => r.status === 'pending').reduce((s, r) => s + (+r.commission || 0), 0),
+      leads: rs.filter(r => r.status === 'lead').length };
+  };
+  const card = p => { const s = stats(p); return `<div class="act-reco" style="margin:0">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:16px">${escHtml(p.name)}</b>
+        <span class="pros-badge ${p.rateType === 'flat' ? 'pros-b-rev' : 'pros-b-new'}">${escHtml(socPlanLabel(p))}</span>${p.active === 'no' ? '<span class="pros-badge pros-b-exp">inactivo</span>' : ''}</div>
+      <div style="font-size:12px;color:var(--muted);margin:4px 0 8px">${escHtml(p.property || '')}${p.phone ? ' · ' + escHtml(p.phone) : ''}</div>
+      <div class="total-row"><span>Este mes (Spectrum)</span><span>${s.month}${p.rateType !== 'flat' ? ` → $${s.month >= D.config.tierCut ? D.config.tier2 : D.config.tier1}` : ''}</span></div>
+      <div class="total-row"><span>Ventas ${yr}</span><span>${s.year}</span></div>
+      <div class="total-row"><span>Leads abiertos</span><span>${s.leads}</span></div>
+      <div class="total-row"><span>Sin pagar</span><span>${fmtMoney(s.owed)}</span></div>
+      <div class="total-row"><span>Pagado (total)</span><span>${fmtMoney(s.paid)}</span></div>
+      ${+p.pendingDebt ? `<div class="total-row"><span>Saldo por descontar</span><span style="color:var(--red)">−${fmtMoney(+p.pendingDebt)}</span></div>` : ''}
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="socOpenPartner('${p.id}')">✏️ Editar</button>
+        <button class="btn btn-ghost btn-sm" onclick="socTab='referidos';socFilter={partner:'${p.id}',status:'all',carrier:'',q:''};renderSociosBody()">Ver referidos</button>
+        <button class="btn btn-ghost btn-sm" onclick="socOpenRef('',{partnerId:'${p.id}'})">＋ Referido</button></div></div>`; };
+  const act = D.partners.filter(p => p.active !== 'no').sort((a, b) => stats(b).year - stats(a).year || a.name.localeCompare(b.name));
+  const off = D.partners.filter(p => p.active === 'no');
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px">${act.map(card).join('')}</div>
+    ${off.length ? `<details style="margin-top:14px"><summary style="cursor:pointer;color:var(--muted)">Inactivos (${off.length})</summary><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;margin-top:10px">${off.map(card).join('')}</div></details>` : ''}`;
+}
+function socOpenPartner(id) {
+  const D = socData, p = id ? D.partners.find(x => x.id === id) : { rateType: 'tiered', payment: 'Zelle', active: 'yes' };
+  if (!p) return;
+  openModal(`
+    <div class="modal-title">${id ? '✏️ ' + escHtml(p.name) : '＋ Nuevo socio'} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nombre *</label><input class="form-input" id="spn-name" value="${escHtml(p.name || '')}"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="spn-phone" type="tel" value="${escHtml(p.phone || '')}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Negocio / propiedades</label><input class="form-input" id="spn-property" value="${escHtml(p.property || '')}" placeholder="Ej. Mission Property Management"></div>
+    <div class="form-group"><label class="form-label">Plan para Spectrum</label>
+      <label class="ml-mail" style="cursor:pointer"><input type="radio" name="spn-plan" value="tiered" ${p.rateType !== 'flat' ? 'checked' : ''}> Escalonado: $${D.config.tier1} las primeras ${D.config.tierCut} del mes, $${D.config.tier2} de la ${D.config.tierCut + 1} en adelante</label>
+      <label class="ml-mail" style="cursor:pointer"><input type="radio" name="spn-plan" value="flat" ${p.rateType === 'flat' ? 'checked' : ''}> Fijo: $<input class="form-input" type="number" min="0" id="spn-flat" style="width:90px;display:inline-block" value="${+p.flatRate || D.config.flat}"> por venta</label>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">AT&T, Viasat y Tracfone siempre son $${D.config.other} para todos.</div></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cómo se le paga</label><select class="form-input form-select" id="spn-payment">${['Zelle', 'Efectivo', 'Cheque'].map(m => `<option ${m === (p.payment || 'Zelle') ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Zelle (teléfono o correo)</label><input class="form-input" id="spn-handle" value="${escHtml(p.payHandle || '')}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" id="spn-notes" rows="2">${escHtml(p.notes || '')}</textarea></div>
+    <label style="font-size:13px;display:flex;gap:6px;align-items:center;margin-bottom:12px"><input type="checkbox" id="spn-active" ${p.active !== 'no' ? 'checked' : ''}> Activo</label>
+    <button class="btn btn-primary btn-full" onclick="socSavePartner('${id || ''}')">Guardar</button>
+    ${id ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);margin-top:10px" onclick="socDeletePartner('${id}')">Borrar socio</button>` : ''}`);
+}
+async function socSavePartner(id) {
+  const v = k => (document.getElementById(k)?.value || '').trim();
+  const data = { id, name: v('spn-name'), phone: v('spn-phone'), property: v('spn-property'), payment: v('spn-payment'), payHandle: v('spn-handle'),
+    notes: v('spn-notes'), rateType: document.querySelector('input[name="spn-plan"]:checked')?.value || 'tiered', flatRate: v('spn-flat'),
+    active: document.getElementById('spn-active').checked ? 'yes' : 'no' };
+  if (!data.name) { toast('Escribe el nombre.', 'error'); return; }
+  if (await socPost('socSavePartner', data, 'Socio guardado.')) { closeModal(); renderSociosBody(); }
+}
+async function socDeletePartner(id) {
+  if (!confirm('¿Borrar este socio? Si tiene referidos, solo se marca como inactivo.')) return;
+  const r = await socPost('socDeletePartner', { id });
+  if (r) { toast(r.result === 'inactive' ? 'Tiene referidos: quedó como inactivo.' : 'Socio borrado.', 'success'); closeModal(); renderSociosBody(); }
+}
+
+// ── 🧾 Pagos hechos ──
+function socPaysTab() {
+  const pays = socData.pays || [];
+  if (!pays.length) return `<div class="act-hint">Todavía no hay pagos hechos desde la app. Los pagos viejos del portal siguen marcados en cada referido como "Pagado".</div>`;
+  const latest = {};
+  pays.forEach(p => { if (!latest[p.partnerId] || String(p.createdAt) > String(latest[p.partnerId].createdAt)) latest[p.partnerId] = p; });
+  return `<div class="table-wrap" style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Socio</th><th>Ventas</th><th style="text-align:right">Comisiones</th><th style="text-align:right">Descuentos</th><th style="text-align:right">Pagado</th><th>Cómo</th><th></th></tr></thead>
+    <tbody>${pays.map(p => `<tr><td class="mono">${actFmtDate(p.date)}</td><td>${escHtml(p.partnerName)}</td><td>${JSON.parse(p.items || '[]').length}</td>
+      <td class="mono" style="text-align:right">${fmtMoney(+p.gross)}</td><td class="mono" style="text-align:right">${+p.deductions ? '−' + fmtMoney(+p.deductions) : '—'}</td>
+      <td class="mono" style="text-align:right;font-weight:700">${fmtMoney(+p.net)}</td><td>${escHtml(p.method)}</td>
+      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="socShowSummary(socData.pays.find(x=>x.id==='${p.id}'))">Resumen</button>
+        ${latest[p.partnerId] === p ? `<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="socUndoPay('${p.id}')">Deshacer</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
+}
+async function socUndoPay(id) {
+  if (!confirm('¿Deshacer este pago? Las ventas vuelven a "sin pagar". Solo si lo registraste por error.')) return;
+  if (await socPost('socUndoPay', { id }, 'Pago deshecho.')) renderSociosBody();
+}
+
+// ── ⚙ Reglas ──
+function socOpenConfig() {
+  const C = socData.config;
+  const f = (k, label, hint) => `<div class="form-group"><label class="form-label">${label}</label><input class="form-input" type="number" min="0" id="sc-${k}" value="${C[k]}">${hint ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${hint}</div>` : ''}</div>`;
+  openModal(`
+    <div class="modal-title">⚙ Reglas de socios <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-row">${f('tier1', 'Spectrum escalonado: $ ventas 1 a N')}${f('tierCut', 'N (cuántas ventas al mes a la primera tarifa)')}</div>
+    <div class="form-row">${f('tier2', 'Spectrum escalonado: $ de la N+1 en adelante')}${f('flat', 'Plan fijo: $ para socios nuevos', 'A Imelda se le cambia en su ficha.')}</div>
+    <div class="form-row">${f('other', 'AT&T, Viasat y Tracfone: $')}${f('delayDays', 'Días después de que te pagan', 'Para revisar y preparar el pago.')}</div>
+    <div class="form-row">${f('deadlineDays', 'Plazo del acuerdo: días después del fin de mes')}${f('cbDays', 'Ventana de chargeback (días después de pagarle)')}</div>
+    ${f('estDays', 'Sin calendario de Cellmart (2027): Cellmart paga ~ días después de la venta', 'Mientras no esté el calendario 2027. Agrégalo al PAY_SCHEDULE cuando lo tengas.')}
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Al guardar se recalculan solo los referidos sin pagar. Lo ya pagado no cambia.</div>
+    <button class="btn btn-primary btn-full" onclick="socSaveConfig()">Guardar reglas</button>`);
+}
+async function socSaveConfig() {
+  const data = {};
+  Object.keys(socData.config).forEach(k => { const el = document.getElementById('sc-' + k); if (el && el.value !== '') data[k] = +el.value; });
+  if (await socPost('socSaveConfig', data, 'Reglas guardadas.')) { closeModal(); renderSociosBody(); }
+}
+
+// ── 📡 Activaciones: "🤝 Referido por" ──
+async function socLoadLinks() {
+  if (socLinksCache) return socLinksCache;
+  try { socLinksCache = await apiGet({ action: 'socLinks' }); } catch (e) { socLinksCache = null; }
+  if (!socLinksCache || !socLinksCache.links || !Array.isArray(socLinksCache.partners)) socLinksCache = { partners: [], links: {}, off: true };
+  return socLinksCache;
+}
+function socActBadge(a) {
+  const l = socLinksCache && socLinksCache.links && socLinksCache.links[a.ID];
+  if (!l) return '';
+  const p = (socLinksCache.partners || []).find(x => x.id === l.partnerId);
+  return `<div style="font-size:11px;color:var(--cyan)">🤝 ${escHtml(p ? p.name : 'socio')}</div>`;
+}
+async function socFillActSelect(actId) {
+  const box = document.getElementById('af-socio-box'); if (!box) return;
+  const L = await socLoadLinks();
+  if (!document.getElementById('af-socio-box')) return;
+  if (L.off) { box.innerHTML = ''; return; }
+  const cur = actId && L.links[actId] ? L.links[actId].partnerId : '';
+  const paid = actId && L.links[actId] && ['paid', 'chargedback'].includes(L.links[actId].status);
+  box.innerHTML = `<div class="form-group"><label class="form-label">🤝 Referido por (socio)</label>
+    <select class="form-input form-select" id="af-socio" data-cur="${escHtml(cur)}" ${paid ? 'disabled' : ''}><option value="">— Nadie —</option>
+      ${L.partners.filter(p => p.active || p.id === cur).sort((a, b) => a.name.localeCompare(b.name)).map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${escHtml(p.name)}</option>`).join('')}</select>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">${paid ? 'Ya se le pagó al socio por esta venta.' : 'Se crea o se completa el referido en 🤝 Socios. Solo se le paga el internet, no las líneas.'}</div></div>`;
+}
+async function socAfterActSave(saved) {
+  const sel = document.getElementById('af-socio');
+  if (!sel || sel.disabled || sel.value === (sel.dataset.cur || '')) return;
+  try {
+    const r = await apiPost({ action: 'socLink', data: { actId: saved.ID, partnerId: sel.value } });
+    socLinksCache = r && r.links ? r : null;
+    toast(sel.value ? '🤝 Ligada al socio ' + escHtml(sel.options[sel.selectedIndex].text) + '.' : '🤝 Se quitó el socio.', 'success');
+  } catch (e) { toast('No se ligó al socio: ' + escHtml(e.message), 'error'); }
 }
 </script>
 </body>
