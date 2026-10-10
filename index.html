@@ -3401,14 +3401,17 @@ function openMlForm(msgId, pre) {
   const reps = mlData.reps || [];
   const repOpts = (myIds.length ? myIds.map(id => ({ id, name: mlData.me.name })) : []).concat(reps.filter(r => !myIds.includes(r.id)))
     .map((r, i) => `<option value="${escHtml(r.id)}" ${i === 0 ? 'selected' : ''}>${escHtml(r.id)} (${escHtml(r.name)})</option>`).join('');
-  const minDate = actAddDays(mlData.today, -7);
+  // Una venta de la caja lleva la fecha de esa venta (o hasta 3 días después); lo demás, máximo 7 días atrás
+  const minDate = pre.PosSaleID && pre.OrderDate ? pre.OrderDate : actAddDays(mlData.today, -7);
+  const maxDate = pre.PosSaleID && pre.OrderDate ? [actAddDays(pre.OrderDate, 3), mlData.today].sort()[0] : mlData.today;
+  const dateVal = pre.PosSaleID && pre.OrderDate ? (e && e.OrderDate >= minDate && e.OrderDate <= maxDate ? e.OrderDate : pre.OrderDate) : (e ? e.OrderDate : mlData.today);
   openModal(`
     <div class="modal-title">📱 Registrar línea <button class="modal-close" onclick="closeModal()">✕</button></div>
     ${e ? `<div class="act-hint" style="margin-bottom:12px">Del correo de Spectrum: <b>${escHtml(mlTitle(e.FirstName))}</b> · orden #${escHtml(e.OrderNumber)} · ${actFmtDate(e.OrderDate)}</div>` : ''}
     ${pre.PosSaleID ? `<div class="act-hint" style="margin-bottom:12px">De la venta <b>${escHtml(pre.PosSaleID)}</b> en caja${pre.gift ? ' · 🎁 teléfono regalado' : ''}. Completa lo que falte.</div>` : ''}
     <div class="form-row">
       <div class="form-group"><label class="form-label">Fecha de la venta *</label>
-        <input class="form-input" type="date" id="ml-date" min="${minDate}" max="${mlData.today}" value="${escHtml(e ? e.OrderDate : (pre.OrderDate || mlData.today))}"></div>
+        <input class="form-input" type="date" id="ml-date" min="${minDate}" max="${maxDate}" value="${escHtml(dateVal)}"></div>
       <div class="form-group"><label class="form-label">Número de cuenta Spectrum *</label>
         <input class="form-input mono" id="ml-acct" inputmode="numeric" placeholder="8260…" value="${escHtml(pre.AccountNumber || '')}" oninput="mlAcctChanged()" onblur="mlCheckAcct()"></div>
     </div>
@@ -3523,7 +3526,7 @@ async function mlSave(force) {
     else renderMyLines();
   } catch (e) {
     if (btn) btn.disabled = false;
-    toast(escHtml(e.message), 'error');
+    toast(escHtml(/7 días/.test(e.message) && mlFormPre.PosSaleID ? 'Falta un cambio de una línea en Activaciones.gs para registrar ventas de más de 7 días. Avísale a Joel.' : e.message), 'error');
   }
 }
 async function mlDelete(id) {
@@ -4037,7 +4040,6 @@ async function posRegisterPending(saleId) {
         _from: `De la venta ${p.SaleID} en caja (${posFmtTime(p.Date)}, cobró ${p.Employee})${e ? ` · orden #${e.OrderNumber} del correo de Spectrum` : ''}.` }));
     } else {
       if (!prosAuth) { toast('Vuelve a entrar con tu PIN.', 'error'); return; }
-      if (actDaysBetween(pre.OrderDate, actToday()) > 7) { toast('Pasó más de una semana: pídele a Joel que la registre.', 'error'); return; }
       if (!mlData) mlData = await mlApi('actRepList');
       const e = posEmailMatch(mlData.emails, pre.CustomerName, pre.OrderDate);
       openMlForm(e ? e.MsgId : null, pre);
