@@ -410,7 +410,7 @@
 <div class="login-screen" id="login-screen">
   <div class="login-box">
     <div class="login-logo">MirComm</div>
-    <div class="login-sub">Palmhurst · Inventory</div>
+    <div class="login-sub">Palmhurst · Store Hub</div>
     <label class="login-label">Who are you?</label>
     <div class="employee-grid">
       <button class="emp-btn" onclick="selectEmployee('Alondra')">Alondra</button>
@@ -807,15 +807,15 @@ function renderInventoryTable(data, filter='') {
               if (qty === 0) badge = `<span class="badge badge-out low-stock-badge">Out</span>`;
               else if (qty <= min) badge = `<span class="badge badge-low low-stock-badge">Low</span>`;
               return `<tr>
-                <td class="mono">${p.Barcode}</td>
-                <td style="font-weight:500">${p.Name}</td>
-                <td><span class="tag">${p.Category||'—'}</span></td>
+                <td class="mono">${escHtml(p.Barcode)}</td>
+                <td style="font-weight:500">${escHtml(p.Name)}</td>
+                <td><span class="tag">${escHtml(p.Category||'—')}</span></td>
                 <td class="mono">$${parseFloat(p.Price||0).toFixed(2)}</td>
                 <td style="font-weight:600;color:${qty===0?'var(--red)':qty<=min?'var(--yellow)':'var(--text)'}">${qty}</td>
                 <td>${badge}</td>
                 <td>
-                  <button class="btn btn-ghost btn-sm" onclick="editProduct('${p.Barcode}')">Edit</button>
-                  <button class="btn btn-danger btn-sm" onclick="deleteProductPrompt('${p.Barcode}','${p.Name.replace(/'/g,"\\'")}')">Del</button>
+                  <button class="btn btn-ghost btn-sm" onclick="editProduct('${escHtml(p.Barcode)}')">Edit</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteProductPrompt('${escHtml(p.Barcode)}')">Del</button>
                 </td>
               </tr>`;
             }).join('')}
@@ -849,15 +849,15 @@ function editProduct(barcode) {
   if (!p) return;
   openModal(`
     <div class="modal-title">✏️ Edit Product <button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="form-group"><label class="form-label">Barcode</label><input class="form-input" value="${p.Barcode}" disabled style="opacity:.5"></div>
-    <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="ep-name" value="${p.Name}"></div>
-    <div class="form-group"><label class="form-label">Category</label><input class="form-input" id="ep-cat" value="${p.Category||''}"></div>
+    <div class="form-group"><label class="form-label">Barcode</label><input class="form-input" value="${escHtml(p.Barcode)}" disabled style="opacity:.5"></div>
+    <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="ep-name" value="${escHtml(p.Name)}"></div>
+    <div class="form-group"><label class="form-label">Category</label><input class="form-input" id="ep-cat" value="${escHtml(p.Category||'')}"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Price ($)</label><input class="form-input" id="ep-price" type="number" step="0.01" value="${p.Price}"></div>
       <div class="form-group"><label class="form-label">Min Qty Alert</label><input class="form-input" id="ep-min" type="number" value="${p.MinQty}"></div>
     </div>
     <div class="form-group"><label class="form-label">Current Quantity</label><input class="form-input" id="ep-qty" type="number" value="${p.Quantity}"></div>
-    <button class="btn btn-primary btn-full" onclick="saveEditProduct('${p.Barcode}')">Save Changes</button>
+    <button class="btn btn-primary btn-full" onclick="saveEditProduct('${escHtml(p.Barcode)}')">Save Changes</button>
   `);
 }
 async function saveEditProduct(barcode) {
@@ -872,12 +872,14 @@ async function saveEditProduct(barcode) {
   } catch(e) { toast(e.message, 'error'); }
 }
 function deleteProductPrompt(barcode, name) {
+  const prod = stockData.find(x => String(x.Barcode) === String(barcode));
+  name = escHtml(prod ? prod.Name : (name || barcode));
   openModal(`
     <div class="modal-title">🗑 Delete Product <button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="margin-bottom:20px;color:var(--muted)">Delete <strong style="color:var(--text)">${name}</strong>? This cannot be undone.</p>
     <div style="display:flex;gap:10px">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-danger" style="flex:1" onclick="confirmDelete('${barcode}')">Delete</button>
+      <button class="btn btn-danger" style="flex:1" onclick="confirmDelete('${escHtml(barcode)}')">Delete</button>
     </div>`);
 }
 async function confirmDelete(barcode) {
@@ -1371,6 +1373,16 @@ function confirmCustomerAndSale() {
   const errEl = document.getElementById('cu-error');
   if (phone.length < 10) { errEl.textContent = 'Ingresa un teléfono válido (10 dígitos).'; return; }
   if (!name) { errEl.textContent = 'El nombre es obligatorio.'; return; }
+  // Correo y fecha de nacimiento son opcionales: mejor vacíos que inventados (se usan para promociones y cumpleaños).
+  const email = document.getElementById('cu-email').value.trim();
+  if (email && (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || /^mircommllc@gmail\.com$/i.test(email))) {
+    errEl.textContent = 'Correo no válido. Si el cliente no tiene o no lo quiere dar, déjalo vacío (no uses el de la tienda).'; return;
+  }
+  const dob = document.getElementById('cu-dob').value;
+  if (dob) {
+    const age = (Date.now() - new Date(dob + 'T12:00:00')) / 31557600000;
+    if (!(age >= 13 && age <= 110)) { errEl.textContent = 'Fecha de nacimiento no válida. Si no la sabes, déjala vacía (no pongas la fecha de hoy).'; return; }
+  }
 
   const hasGift = cart.some(i => i.gift && isPhoneCategory(i.category));   // only a gifted PHONE requires a Spectrum line
   pendingSpectrumAccount = null;
@@ -1437,7 +1449,7 @@ async function completeSale() {
 function receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax, total, payment, customer, now, opts) {
   opts = opts || {};
   const lines = items.map(i => {
-    let line = `  ${i.name.padEnd(24,' ')} x${i.qty}  ${i.gift ? 'REGALO' : '$'+(i.price*i.qty).toFixed(2)}`;
+    let line = `  ${escHtml(String(i.name || '')).padEnd(24,' ')} x${i.qty}  ${i.gift ? 'REGALO' : '$'+(i.price*i.qty).toFixed(2)}`;
     if (isPhoneCategory(i.category)) line += `\n    IMEI: ${i.barcode}`;
     if (i.category === 'SIM Card') line += `\n    Serial: ${i.barcode}`;
     return line;
@@ -1451,11 +1463,11 @@ function receiptContentHTML(saleId, items, subtotal, discount, discountDesc, tax
 Palmhurst, TX 78573
 (956) 603-6505
 ${opts.copy ? '*** COPIA · REIMPRESIÓN ***\n' : ''}${now.toLocaleString()}
-Sale ID: ${saleId}  |  Rep: ${opts.rep || currentUser}${customer&&customer.name?`\nCliente: ${customer.name}`:''}
+Sale ID: ${escHtml(saleId)}  |  Rep: ${escHtml(opts.rep || currentUser)}${customer&&customer.name?`\nCliente: ${escHtml(customer.name)}`:''}
 ────────────────────────────────
 ${lines}
 ────────────────────────────────
-Subtotal:        $${subtotal.toFixed(2)}${discount>0?`\nDiscount (${discountDesc||'—'}): -$${discount.toFixed(2)}`:''}
+Subtotal:        $${subtotal.toFixed(2)}${discount>0?`\nDiscount (${escHtml(discountDesc||'—')}): -$${discount.toFixed(2)}`:''}
 Tax (8.25%):     $${tax.toFixed(2)}
 TOTAL:           $${total.toFixed(2)}
 Payment:         ${String(payment || '').toUpperCase()}
@@ -1518,7 +1530,7 @@ async function loadTransactions() {
             <td class="mono">${tx.SaleID}</td>
             <td style="font-size:12px">${new Date(tx.Date).toLocaleString()}</td>
             <td>${tx.Employee||'—'}</td>
-            <td style="font-size:12px">${items.map(i=>`${i.name} ×${i.qty}`).join(', ').substring(0,50)}${items.length>2?'…':''}</td>
+            <td style="font-size:12px">${escHtml(items.map(i=>`${i.name} ×${i.qty}`).join(', ').substring(0,50))}${items.length>2?'…':''}</td>
             <td><span class="tag">${tx.Payment||'cash'}</span></td>
             <td class="mono">${parseFloat(tx.DiscountAmount||0)>0?`$${parseFloat(tx.DiscountAmount).toFixed(2)}`:'—'}</td>
             <td class="mono" style="font-weight:600">$${parseFloat(tx.Total||0).toFixed(2)}</td>
@@ -1585,9 +1597,9 @@ async function loadReport() {
       <div class="table-wrap"><table>
         <thead><tr><th>Barcode</th><th>Product</th><th>Category</th><th>Price</th><th>On Hand</th><th>Sold</th><th>Revenue</th><th>Received</th></tr></thead>
         <tbody>${r.rows.sort((a,b)=>b.soldRev-a.soldRev).map(p=>`<tr>
-          <td class="mono">${p.Barcode}</td>
-          <td style="font-weight:500">${p.Name}</td>
-          <td><span class="tag">${p.Category||'—'}</span></td>
+          <td class="mono">${escHtml(p.Barcode)}</td>
+          <td style="font-weight:500">${escHtml(p.Name)}</td>
+          <td><span class="tag">${escHtml(p.Category||'—')}</span></td>
           <td class="mono">$${parseFloat(p.Price||0).toFixed(2)}</td>
           <td style="font-weight:600">${p.Quantity}</td>
           <td style="color:${p.soldQty>0?'var(--green)':'var(--muted)'};font-weight:600">${p.soldQty}</td>
