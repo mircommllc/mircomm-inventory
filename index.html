@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MirComm Inventory — Palmhurst</title>
+<title>MirComm Store Hub — Palmhurst</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -434,7 +434,7 @@
 <!-- TOP BAR -->
 <div class="topbar">
   <div class="logo">MirComm</div>
-  <div style="color:var(--muted);font-size:12px;font-weight:600">INVENTORY</div>
+  <div style="color:var(--muted);font-size:12px;font-weight:600">STORE HUB</div>
   <div class="topbar-right">
     <span class="user-badge" id="user-badge"></span>
     <span class="manager-badge" id="manager-badge" style="display:none">⚡ Manager</span>
@@ -607,6 +607,7 @@ async function checkPin(val) {
       mgrToken = r.token;
       currentUser = 'Joel';
       isManager = true;
+      prosAuth = null; prosData = null; prosMgrTried = false;
       nomData = null; nomPeriod = null; nomEdits = {};
       errEl.textContent = '';
       completeLogin();
@@ -651,7 +652,7 @@ function logout(msg) {
   closeModal();
   document.getElementById('rep-pin-box').style.display = 'none';
   document.getElementById('rep-pin-error').textContent = '';
-  prosAuth = null; prosData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {};
+  prosAuth = null; prosData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {}; prosMgrTried = false;
   posPending = []; posPendingAt = 0; posPaintPending();
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('pin-input').value = '';
@@ -1858,6 +1859,7 @@ const PROS_RESULTS = ['Interesado', 'Pidió precio o información', 'Va a venir 
 const PROS_DAILY_GOAL = 10;
 
 let prosAuth = null;          // { user, pin, manager, code } — solo en memoria
+let prosMgrTried = false;     // Joel (manager) entra a Prospectos con su sesión, sin el PIN de 6 dígitos (una vez por login)
 let prosData = null;          // respuesta de prosList
 let prosFilter = { view: 'activos', q: '', rep: '', canal: '', fm: '' };
 let prosForm = {};            // estado del formulario de nuevo prospecto
@@ -1919,11 +1921,20 @@ function prosChannelIcon(c) { return (PROS_CHANNELS.find(x => x.id === c) || {})
 async function renderProspects() {
   const el = document.getElementById('content');
   if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
+  // Manager: ya entró con su PIN de manager; el backend (SesionManager.gs) acepta esa sesión.
+  if (isManager && (!prosAuth || prosAuth.user !== currentUser) && !prosMgrTried) {
+    prosMgrTried = true;
+    prosAuth = { user: currentUser, pin: '', manager: true, code: '', session: true };
+    prosData = null;
+  }
   if (!prosAuth || prosAuth.user !== currentUser) { prosAuth = null; prosData = null; renderProsPin(); return; }
   if (!prosData) {
     el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
     try { prosData = await prosApi('prosList'); }
     catch (e) {
+      if (prosAuth && prosAuth.session && /PIN|intentos|Usuario/i.test(e.message)) {
+        prosAuth = null; renderProsPin('Para entrar sin PIN falta instalar SesionManager.gs en Apps Script. Mientras, escribe tu PIN.'); return;
+      }
       if (/PIN|intentos|Usuario/i.test(e.message)) { prosAuth = null; renderProsPin(e.message); return; }
       el.innerHTML = errorState(/Acción desconocida|unknown|invalid action/i.test(e.message)
         ? 'El backend todavía no tiene Prospectos. Agrega Prospectos.gs y haz Deploy → New version.' : escHtml(e.message));
