@@ -4550,7 +4550,7 @@ function actComBadge(cs) {
   const s = ACT_COM_STATUS[cs.code] || { label: cs.code, cls: '' };
   return `<span class="badge ${s.cls}" title="${escHtml(cs.issues.join(' · '))}">${s.label}</span>`;
 }
-function actLoadCommissionReport(file, grid) {
+function actParseCommission(grid) {
   const hi = grid.findIndex(r => r.some(c => /^commission paid$/i.test(String(c).trim())));
   const H = grid[hi].map(h => String(h).trim().toLowerCase());
   const col = name => H.indexOf(name.toLowerCase());
@@ -4572,6 +4572,10 @@ function actLoadCommissionReport(file, grid) {
     if (!o.acct) adjustments.push(o); else rows.push(o);
   });
   const pays = [...new Set(rows.concat(adjustments).map(r => r.pay).filter(Boolean))].sort();
+  return { rows, adjustments, pays };
+}
+function actLoadCommissionReport(file, grid) {
+  const { rows, adjustments, pays } = actParseCommission(grid);
   const meta = { file: file.name, minPay: pays[0] || '', maxPay: pays[pays.length - 1] || '', items: rows.length };
   actComReconcile(rows, adjustments, meta);
   actFilter.fm = '';
@@ -5761,6 +5765,8 @@ async function renderSocios() {
   }
   socLinksCache = null;
   renderSociosBody();
+  socAutoLink();
+  socLoadReport();
 }
 async function socPost(action, data, okMsg) {
   try {
@@ -5797,6 +5803,7 @@ function socTiming(r) {
   let me = '', how = '', blocker = '';
   if (r.paidToMeDate) { me = r.paidToMeDate; how = 'manual'; }
   else if (cm && NOM_PAID.includes(cm.ComCode) && cm.PayDate) { me = cm.PayDate; how = 'cellmart'; }
+  else if (car === 'Spectrum') { const rp = socReportPay(r); if (rp) { me = rp.pay; how = 'reporte'; } }
   if (cm && (cm.ComCode === 'charged' || cm.CoreCode === 'chargeback')) blocker = 'Cellmart hizo chargeback';
   else if (cm && (cm.ComCode === 'canceled' || cm.CoreCode === 'canceled')) blocker = 'Cancelada en Spectrum';
   let expect = '', est = false;
@@ -5813,11 +5820,82 @@ function socTiming(r) {
 }
 function socWhenText(t) {
   if (t.blocker) return `<span style="color:var(--red)">⛔ ${escHtml(t.blocker)}</span>`;
-  if (t.me) return `Te pagaron ${actFmtDate(t.me)} ${t.how === 'cellmart' ? '<span class="pros-badge pros-b-sold">Cellmart ✓</span>' : '<span class="pros-badge pros-b-sold">✓</span>'}`;
+  if (t.me) return `Te pagaron ${actFmtDate(t.me)} ${t.how === 'cellmart' ? '<span class="pros-badge pros-b-sold">Cellmart ✓</span>' : t.how === 'reporte' ? '<span class="pros-badge pros-b-sold" title="Lo encontré en el Commission Report guardado">Commission Report ✓</span>' : '<span class="pros-badge pros-b-sold">✓</span>'}`;
   if (t.expect) return `Cellmart paga ${t.est ? '~' : ''}${actFmtDate(t.expect)}${t.est ? ' <span class="pros-badge pros-b-exp">estimado</span>' : ' <span class="pros-badge pros-b-exp">según calendario</span>'}`;
   if (t.car !== 'Spectrum') return `<span style="color:var(--yellow)">Esperando que te pague ${escHtml(t.car === 'Other' ? 'la compañía' : t.car)}</span>`;
   return '<span style="color:var(--muted)">Falta fecha de venta</span>';
 }
+// ── Referidos ↔ activaciones y pagos de Cellmart, sin hacerlo a mano ──
+const SOC_NAME_SKIP = ['jr', 'sr', 'ii', 'iii', 'de', 'la', 'del', 'los', 'las', 'y'];
+function socNameTokens(n) {
+  return String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]+/g, ' ')
+    .split(' ').filter(t => t.length > 1 && !SOC_NAME_SKIP.includes(t));
+}
+// Mismo cliente si todas las palabras del nombre más corto están en el otro (mínimo nombre y apellido)
+function socSameName(a, b) {
+  const x = socNameTokens(a), y = socNameTokens(b);
+  if (x.length < 2 || y.length < 2) return false;
+  const [sh, lo] = x.length <= y.length ? [x, y] : [y, x];
+  return sh.every(t => lo.includes(t));
+}
+let socReportRows = null;   // pagos del Commission Report guardado (Reportes.gs)
+// ¿Cellmart ya pagó esta venta? Se busca en el Commission Report guardado por cuenta, o por nombre ±10 días de la venta
+function socReportPay(r) {
+  if (!socReportRows || !r.saleDate) return null;
+  const acct = String(r.account || '').replace(/\D/g, '');
+  const hit = socReportRows.filter(x => x.amt > 0 && !/^single play - mobile$|incremental/i.test(x.bundle) &&
+    ((acct && x.acct === acct) || (socSameName(r.name, x.name) && x.sale && Math.abs(actDaysBetween(r.saleDate, x.sale)) <= 10)))
+    .sort((a, b) => a.pay.localeCompare(b.pay))[0];
+  return hit ? { pay: hit.pay, amt: hit.amt } : null;
+}
+// Referidos vendidos (pendientes) que todavía no están ligados: se buscan en Activaciones por cuenta, teléfono o nombre
+function socAutoMatches() {
+  const D = socData; if (!D || !D.acts) return [];
+  const taken = new Set(D.referrals.filter(r => r.actId).map(r => r.actId));
+  const dig = v => String(v || '').replace(/\D/g, '');
+  const out = [];
+  D.referrals.forEach(r => {
+    if (r.actId || r.status !== 'pending' || !r.saleDate || (r.carrier && r.carrier !== 'Spectrum')) return;
+    const ph = dig(r.phone).slice(-10), acct = dig(r.account), mob = /m[oó]vil|l[ií]nea/i.test(r.package || '');
+    const c = D.acts.filter(a => !taken.has(a.ID) && (a.InternetTier || a.VideoTier || mob)).map(a => {
+      const days = a.OrderDate ? Math.abs(actDaysBetween(r.saleDate, a.OrderDate)) : 999;
+      const ok = (acct && dig(a.AccountNumber) === acct) || (ph.length === 10 && dig(a.Phone).slice(-10) === ph && days <= 45) ||
+        (socSameName(r.name, a.CustomerName) && days <= 10);
+      return ok ? { a, days } : null;
+    }).filter(Boolean).sort((x, y) => x.days - y.days);
+    if (!c.length) return;
+    // Si salen varias cuentas distintas es dudoso: se deja para ligarlo a mano
+    if (new Set(c.map(x => dig(x.a.AccountNumber) || x.a.ID)).size > 1) return;
+    out.push({ r, a: c[0].a }); taken.add(c[0].a.ID);
+  });
+  return out;
+}
+let socAutoBusy = false;
+async function socAutoLink() {
+  if (socAutoBusy) return;
+  const m = socAutoMatches(); if (!m.length) return;
+  socAutoBusy = true;
+  const done = [];
+  try {
+    for (const { r, a } of m) {
+      try { await apiPost({ action: 'socLink', data: { actId: a.ID, partnerId: r.partnerId, refId: r.id } }); done.push(r.name); }
+      catch (e) { console.warn('socAutoLink', r.name, e.message); }
+    }
+    if (done.length) {
+      try { socData = await apiGet({ action: 'socGet' }); } catch (e) {}
+      socLinksCache = null;
+      toast(`🔗 Ligué solo${done.length > 1 ? 's' : ''} ${done.length} referido${done.length > 1 ? 's' : ''} con su activación: ${escHtml(done.join(', '))}`, 'success');
+      if (currentPage === 'socios') renderSociosBody();
+    }
+  } finally { socAutoBusy = false; }
+}
+async function socLoadReport() {
+  await actEnsureSaved();
+  const g = actSaved && actSaved.commission && actSaved.commission.grid;
+  socReportRows = g ? actParseCommission(g).rows : null;
+  if (socReportRows && currentPage === 'socios') renderSociosBody();
+}
+
 function socGroups() {
   const out = {};
   socData.partners.forEach(p => out[p.id] = { p, ready: [], wait: [], cbs: [], debt: +p.pendingDebt || 0 });
