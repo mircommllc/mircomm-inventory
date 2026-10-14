@@ -291,6 +291,21 @@
   .pros-check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: -6px 0 14px; cursor: pointer; }
   .pros-check input { width: 16px; height: 16px; }
   .pros-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .seg-temp { font-size: 14px; margin-left: 2px; }
+  .seg-b-int { background: rgba(255,209,102,.14); color: var(--yellow); }
+  .seg-b-cita { background: rgba(176,102,255,.16); color: #C59BFF; }
+  .seg-task.seg-late { border-color: rgba(255,68,85,.45); }
+  .pros-section-title.seg-red { color: var(--red); }
+  .pros-section-title.seg-warn { color: var(--yellow); }
+  .seg-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+  .seg-qual { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; }
+  .seg-qual summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+  .seg-day { margin-bottom: 6px; }
+  .seg-funnel { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .seg-frow { display: grid; grid-template-columns: 90px 1fr 36px; gap: 10px; align-items: center; font-size: 13px; }
+  .seg-frow > div { background: var(--surface2); border-radius: 6px; height: 14px; overflow: hidden; }
+  .seg-fbar { height: 100%; border-radius: 6px; padding: 0 !important; }
+  .seg-frow b { text-align: right; }
   .pros-subrow td { color: var(--muted); font-size: 12px; padding-top: 4px !important; padding-bottom: 4px !important; }
   @media (max-width: 1600px) { .pros-two { grid-template-columns: 1fr; } }
 
@@ -574,7 +589,7 @@ async function repLogin() {
     mgrToken = r.token;
     currentUser = repLoginName; isManager = false;
     prosAuth = { user: repLoginName, pin, manager: !!r.user.manager, code: r.user.code || '' };
-    prosData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {};
+    prosData = null; segData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {};
     err.textContent = ''; err.style.color = '';
     document.getElementById('rep-pin-box').style.display = 'none';
     completeLogin();
@@ -607,7 +622,7 @@ async function checkPin(val) {
       mgrToken = r.token;
       currentUser = 'Joel';
       isManager = true;
-      prosAuth = null; prosData = null; prosMgrTried = false;
+      prosAuth = null; prosData = null; segData = null; prosMgrTried = false;
       nomData = null; nomPeriod = null; nomEdits = {};
       errEl.textContent = '';
       completeLogin();
@@ -652,7 +667,7 @@ function logout(msg) {
   closeModal();
   document.getElementById('rep-pin-box').style.display = 'none';
   document.getElementById('rep-pin-error').textContent = '';
-  prosAuth = null; prosData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {}; prosMgrTried = false;
+  prosAuth = null; prosData = null; segData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {}; prosMgrTried = false;
   posPending = []; posPendingAt = 0; posPaintPending();
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('pin-input').value = '';
@@ -1942,7 +1957,7 @@ async function renderProspects() {
   if (!prosAuth || prosAuth.user !== currentUser) { prosAuth = null; prosData = null; renderProsPin(); return; }
   if (!prosData) {
     el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-    try { prosData = await prosApi('prosList'); }
+    try { prosData = await prosApi('prosList'); await segLoad(); }
     catch (e) {
       if (prosAuth && prosAuth.session && /PIN|intentos|Usuario/i.test(e.message)) {
         prosAuth = null; renderProsPin('Para entrar sin PIN falta instalar SesionManager.gs en Apps Script. Mientras, escribe tu PIN.'); return;
@@ -1953,6 +1968,7 @@ async function renderProspects() {
       return;
     }
   }
+  if (!segData) await segLoad();
   if (prosAuth.manager) renderProsManager(); else renderProsRep();
 }
 function renderProsPin(err) {
@@ -1977,7 +1993,7 @@ async function prosLogin() {
     prosAuth = { user: currentUser, pin };
     const r = await prosApi('prosLogin');
     Object.assign(prosAuth, { manager: r.user.manager, code: r.user.code });
-    prosData = null; mlData = null;
+    prosData = null; segData = null; mlData = null;
     loadCurrentPage();
   } catch (e) {
     prosAuth = null;
@@ -1986,7 +2002,7 @@ async function prosLogin() {
   }
 }
 async function prosReload() {
-  try { prosData = await prosApi('prosList'); renderProspects(); }
+  try { prosData = await prosApi('prosList'); await segLoad(); renderProspects(); }
   catch (e) { toast(escHtml(e.message), 'error'); }
 }
 function prosReplace(p) {
@@ -2007,6 +2023,7 @@ function renderProsRep() {
   const own = soldMonth.filter(p => p.Atribucion === 'Propia').length;
   const rev = soldMonth.filter(p => p.Atribucion === 'Revisar' || !p.Atribucion).length;
   const pct = Math.min(100, Math.round(contactsToday / PROS_DAILY_GOAL * 100));
+  const sd = segOn() ? segDayLists(all) : null;
   el.innerHTML = `
     <div class="page-title">🎯 Mis prospectos</div>
     <div class="page-subtitle">${escHtml(prosAuth.user)}${prosAuth.code ? ` · tu código: <b style="color:var(--cyan)">${escHtml(prosAuth.code)}</b>` : ''}</div>
@@ -2014,12 +2031,15 @@ function renderProsRep() {
       <div class="stat-card ${contactsToday >= PROS_DAILY_GOAL ? 'green' : 'yellow'}"><div class="stat-label">Contactos hoy</div>
         <div class="stat-value">${contactsToday}<span class="pros-of"> / ${PROS_DAILY_GOAL}</span></div>
         <div class="pros-bar"><div style="width:${pct}%"></div></div></div>
-      <div class="stat-card ${due.length ? 'red' : 'blue'}"><div class="stat-label">Seguimientos para hoy</div><div class="stat-value">${due.length}</div></div>
+      ${sd ? `<div class="stat-card ${sd.late.length ? 'red' : 'green'}"><div class="stat-label">Vencidos</div><div class="stat-value">${sd.late.length}</div></div>
+      <div class="stat-card blue"><div class="stat-label">Para hoy</div><div class="stat-value">${sd.today.length}</div></div>`
+      : `<div class="stat-card ${due.length ? 'red' : 'blue'}"><div class="stat-label">Seguimientos para hoy</div><div class="stat-value">${due.length}</div></div>`}
       <div class="stat-card cyan"><div class="stat-label">Prospectos activos</div><div class="stat-value">${all.filter(prosIsActive).length}</div></div>
       <div class="stat-card green"><div class="stat-label">Ventas propias del mes</div><div class="stat-value">${own}${rev ? `<span class="pros-of"> +${rev} en revisión</span>` : ''}</div></div>
     </div>
     <button class="btn btn-primary btn-full pros-new-btn" onclick="openProsNew()">＋ Nuevo prospecto</button>
-    ${due.length ? `<div class="pros-section-title">📅 Para hoy</div><div class="pros-list">${due.map(prosCard).join('')}</div>` : ''}
+    ${segData && (segOn() || segData.missing) ? segDayHtml(all, false) : ''}
+    ${!segOn() && due.length ? `<div class="pros-section-title">📅 Para hoy</div><div class="pros-list">${due.map(prosCard).join('')}</div>` : ''}
     <div class="pros-section-title">Todos mis prospectos</div>
     <div class="action-row" style="margin-bottom:12px">
       ${prosViewChips()}
@@ -2071,19 +2091,20 @@ function prosCard(p) {
         <div class="pros-name">${escHtml(p.Nombre)}</div>
         <div class="pros-sub">${prosChannelIcon(p.Canal)} ${escHtml(p.Canal)}${p.Detalle ? ' · ' + escHtml(p.Detalle) : ''}</div>
       </div>
-      <div style="text-align:right;flex:none">${prosStatusBadge(p)} ${prosAttrBadge(p)}</div>
+      <div style="text-align:right;flex:none">${segOn() && active ? segTempBadge(p) + ' ' + segEtapaBadge(p) : prosStatusBadge(p)} ${prosAttrBadge(p)}</div>
     </div>
     <div class="pros-meta">
       <a href="tel:+1${ph}" class="mono">${fmtPhone(ph)}</a>
       ${p.Interes ? `<span>${escHtml(p.Interes)}</span>` : ''}
-      ${active && p.ProximoSeguimiento ? `<span style="color:${p.ProximoSeguimiento <= prosToday() ? 'var(--yellow)' : 'var(--muted)'}">Seguimiento: ${prosShortDate(p.ProximoSeguimiento)}</span>` : ''}
+      ${segOn() && active ? (segOpenTask(p.ID) ? `<span style="color:${segIsLate(segOpenTask(p.ID)) ? 'var(--red)' : 'var(--text)'}">${segFmtTask(segOpenTask(p.ID))}</span>` : `<span style="color:var(--yellow)">⚠️ Sin siguiente paso</span>`) : ''}
+      ${!segOn() && active && p.ProximoSeguimiento ? `<span style="color:${p.ProximoSeguimiento <= prosToday() ? 'var(--yellow)' : 'var(--muted)'}">Seguimiento: ${prosShortDate(p.ProximoSeguimiento)}</span>` : ''}
       ${active && left !== null ? `<span style="color:${left <= 5 ? 'var(--red)' : 'var(--muted)'}">Vence en ${left} día${left === 1 ? '' : 's'}</span>` : ''}
       ${prosAuth.manager ? `<span>👤 ${escHtml(p.Asesora)}</span>` : ''}
     </div>
     ${active ? `<div class="pros-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openProsContact('${p.ID}')">📞 Registrar contacto</button>
-      <a class="btn btn-ghost btn-sm" href="sms:+1${ph}">💬 SMS</a>
-      <a class="btn btn-ghost btn-sm" href="https://wa.me/1${ph}" target="_blank" rel="noopener">WhatsApp</a>
+      <button class="btn btn-ghost btn-sm" onclick="openSegResult('${p.ID}')">✅ Registrar resultado</button>
+      <a class="btn btn-ghost btn-sm" href="${segOn() ? segSmsLink(p, segMsgKind(segOpenTask(p.ID))) : 'sms:+1' + ph}">💬 SMS</a>
+      <a class="btn btn-ghost btn-sm" href="${segOn() ? segWaLink(p, segMsgKind(segOpenTask(p.ID))) : 'https://wa.me/1' + ph}" target="_blank" rel="noopener">WhatsApp</a>
       <button class="btn btn-ghost btn-sm" onclick="openProsSold('${p.ID}')">✅ Se vendió</button>
     </div>` : ''}
   </div>`;
@@ -2113,6 +2134,7 @@ function renderProsManager() {
       <button class="btn btn-ghost" onclick="prosExportCSV()">⬇ CSV</button>
     </div>
     <div id="pros-mgr-summary"></div>
+    <div id="seg-mgr">${segManagerHtml()}</div>
     <div id="pros-review"></div>
     <div class="pros-section-title">Prospectos</div>
     <div class="action-row" style="margin-bottom:12px">
@@ -2206,7 +2228,7 @@ function prosTable(list) {
   if (!list.length) return `<div class="empty-state" style="padding:30px"><div class="icon">🎯</div><p>Sin resultados</p></div>`;
   return `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">${list.length} prospecto(s)</div>
     <div class="table-wrap" style="overflow-x:auto"><table>
-    <thead><tr><th>Registrado</th><th>Asesora</th><th>Nombre</th><th>Teléfono</th><th>Canal</th><th>Contactos</th><th>Vence</th><th>Estado</th></tr></thead>
+    <thead><tr><th>Registrado</th><th>Asesora</th><th>Nombre</th><th>Teléfono</th><th>Canal</th><th>Contactos</th>${segOn() ? '<th>Siguiente paso</th>' : ''}<th>Vence</th><th>Estado</th></tr></thead>
     <tbody>${list.map(p => `<tr class="cust-row" onclick="openProsDetail('${p.ID}')">
       <td style="font-size:12px;white-space:nowrap">${prosShortDate(p.Creado)}</td>
       <td>${escHtml(p.Asesora)}</td>
@@ -2214,8 +2236,9 @@ function prosTable(list) {
       <td class="mono" style="white-space:nowrap">${fmtPhone(String(p.Telefono))}</td>
       <td style="font-size:12px">${prosChannelIcon(p.Canal)} ${escHtml(p.Canal)}${p.Detalle ? `<div style="color:var(--muted)">${escHtml(p.Detalle)}</div>` : ''}</td>
       <td>${escHtml(p.Contactos || '0')}</td>
+      ${segOn() ? `<td style="font-size:12px;white-space:nowrap;color:${segOpenTask(p.ID) && segIsLate(segOpenTask(p.ID)) ? 'var(--red)' : 'inherit'}">${segOpenTask(p.ID) ? segFmtTask(segOpenTask(p.ID)) : segActive(p) ? '<span style="color:var(--yellow)">⚠️ Sin paso</span>' : '—'}</td>` : ''}
       <td style="font-size:12px;white-space:nowrap">${prosIsActive(p) ? prosShortDate(p.VenceEl) : '—'}</td>
-      <td>${prosStatusBadge(p)} ${prosAttrBadge(p)}</td></tr>`).join('')}</tbody></table></div>`;
+      <td>${segOn() ? segTempBadge(p) + ' ' + segEtapaBadge(p) : prosStatusBadge(p)} ${prosAttrBadge(p)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 async function prosRunMatch(btn) {
   btn.disabled = true;
@@ -2270,12 +2293,34 @@ function openProsNew() {
     <div class="form-group"><label class="form-label">Le interesa</label>
       <div class="pros-chips" id="pn-int">${PROS_INTERESTS.map(i =>
         `<span class="chip ${prosForm.interes.includes(i) ? 'on' : ''}" onclick="prosToggleInterest(this,'${i}')">${i}</span>`).join('')}</div></div>
+    ${segOn() ? `<details class="seg-qual" open style="margin-bottom:14px"><summary>📋 Calificación rápida (recomendado)</summary>
+      <div class="form-row" style="margin-top:12px">
+        <div class="form-group"><label class="form-label">Compañía actual</label>
+          <select class="form-input form-select" id="pn-comp"><option value="">—</option>${SEG_COMPANIAS.map(c => `<option>${c}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="form-label">Paga al mes ($)</label><input class="form-input" id="pn-paga" inputmode="decimal" placeholder="Ej. 85"></div>
+      </div>
+      <div class="form-group"><label class="form-label">¿Cuándo se puede cambiar?</label><div class="pros-chips" data-q="CuandoCambia">${SEG_CUANDO.map(o => `<span class="chip" data-v="${o}" onclick="segPickQ(this)">${o}</span>`).join('')}</div></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">¿Él/ella decide?</label><div class="pros-chips" data-q="Decide">${SEG_SINO.map(o => `<span class="chip" data-v="${o}" onclick="segPickQ(this)">${o}</span>`).join('')}</div></div>
+        <div class="form-group"><label class="form-label">¿Hay cobertura?</label><div class="pros-chips" data-q="Cobertura">${SEG_SINO.map(o => `<span class="chip" data-v="${o}" onclick="segPickQ(this)">${o}</span>`).join('')}</div></div>
+      </div></details>
+    <div class="form-label">Primer paso</div>
+    <div class="form-row">
+      <div class="form-group"><select class="form-input form-select" id="pn-ptipo">${SEG_TIPOS.map(t => `<option ${t === 'Mensaje' ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="form-group"><input class="form-input" id="pn-prox" type="date" value="${prosToday()}" min="${prosToday()}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Hora (opcional)</label><input class="form-input" id="pn-phora" type="time"></div>
+      ${prosAuth.manager ? `<div class="form-group"><label class="form-label">Asesora</label>
+        <select class="form-input form-select" id="pn-asesora">${users.map(u => `<option>${escHtml(u.name)}</option>`).join('')}</select></div>` : '<div></div>'}
+    </div>
+    <div class="pros-hint" style="margin:-6px 0 14px">Lo normal: mensaje de bienvenida hoy mismo. Después el sistema te va sugiriendo los siguientes pasos.</div>` : `
     <div class="form-row">
       <div class="form-group"><label class="form-label">Próximo seguimiento</label>
         <input class="form-input" id="pn-prox" type="date" value="${prosForm.proximo}"></div>
       ${prosAuth.manager ? `<div class="form-group"><label class="form-label">Asesora</label>
         <select class="form-input form-select" id="pn-asesora">${users.map(u => `<option>${escHtml(u.name)}</option>`).join('')}</select></div>` : '<div></div>'}
-    </div>
+    </div>`}
     <div class="form-group"><label class="form-label">Notas</label>
       <textarea class="form-input" id="pn-notas" rows="2" placeholder="Qué busca, cuánto paga hoy, cuándo se muda…"></textarea></div>
     <button class="btn btn-primary btn-full" id="pn-save" onclick="prosSaveNew()">Registrar prospecto</button>
@@ -2345,6 +2390,14 @@ async function prosSaveNew() {
       ...(prosAuth.manager ? { asesora: v('pn-asesora') } : {})
     });
     if (r.prospect.Asesora === prosAuth.user || prosAuth.manager) prosReplace(r.prospect);
+    if (segOn()) {
+      try {
+        const sg = await segApi('segInit', { id: r.prospect.ID, tipo: v('pn-ptipo'), fecha: v('pn-prox'), hora: v('pn-phora'),
+          nota: v('pn-ptipo') === 'Mensaje' ? 'Mensaje de bienvenida' : '',
+          Compania: v('pn-comp'), PagaMes: v('pn-paga'), CuandoCambia: segQ('CuandoCambia'), Decide: segQ('Decide'), Cobertura: segQ('Cobertura') });
+        segApplyInfo(sg.info); if (sg.task) segData.tasks.push(sg.task);
+      } catch (e) { toast('El prospecto se guardó, pero no su primer paso: ' + escHtml(e.message), 'error'); }
+    }
     closeModal(); renderProspects();
     toast(r.warning ? escHtml(r.warning) : (r.prospect.Asesora !== prosAuth.user && !prosAuth.manager
       ? `Registrado a nombre de ${escHtml(r.prospect.Asesora)}.` : 'Prospecto registrado.'), r.warning ? 'info' : 'success');
@@ -2407,7 +2460,12 @@ async function prosSaveSold(id) {
   const btn = document.getElementById('ps-save'); btn.disabled = true;
   try {
     const r = await prosApi('prosSold', { id, cuenta: document.getElementById('ps-cuenta').value, fecha: document.getElementById('ps-fecha').value });
-    prosReplace(r.prospect); closeModal(); renderProspects();
+    prosReplace(r.prospect);
+    if (segOn()) {
+      try { const sg = await segApi('segClose', { id, etapa: 'Vendido' }); segApplyInfo(sg.info);
+        segData.tasks.forEach(t => { if (t.ProspectoID === id && t.Estado === 'Pendiente') t.Estado = 'Cancelada'; }); } catch (e) {}
+    }
+    closeModal(); renderProspects();
     const a = r.prospect.Atribucion;
     toast(a === 'Propia' ? '¡Venta propia confirmada!' : a === 'Tienda' ? 'Vendido. Cuenta como venta de tienda.' : 'Vendido. Joel revisará la venta.', a === 'Propia' ? 'success' : 'info');
   } catch (e) { toast(escHtml(e.message), 'error'); btn.disabled = false; }
@@ -2421,13 +2479,14 @@ function openProsDetail(id) {
   const active = prosIsActive(p);
   const m = prosAuth.manager;
   openModal(`
-    <div class="modal-title">${escHtml(p.Nombre)} ${prosStatusBadge(p)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-title">${escHtml(p.Nombre)} ${segOn() ? segTempBadge(p) + ' ' + segEtapaBadge(p) : prosStatusBadge(p)} <button class="modal-close" onclick="closeModal()">✕</button></div>
     <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
       <a class="btn btn-primary btn-sm" href="tel:+1${p.Telefono}">📞 ${fmtPhone(String(p.Telefono))}</a>
       <a class="btn btn-ghost btn-sm" href="sms:+1${p.Telefono}">💬 SMS</a>
-      ${active ? `<button class="btn btn-ghost btn-sm" onclick="openProsContact('${id}')">Registrar contacto</button>
+      ${active ? `${segOn() ? '' : `<button class="btn btn-ghost btn-sm" onclick="openSegResult('${id}')">✅ Registrar resultado</button>`}
         <button class="btn btn-ghost btn-sm" onclick="openProsSold('${id}')">✅ Se vendió</button>` : ''}
     </div>
+    ${segDetailHtml(p)}
     <div class="cust-meta">
       ${field('Canal', `${p.Canal}${p.Detalle ? ' · ' + p.Detalle : ''}${p.Codigo ? ' · código ' + p.Codigo : ''}`)}
       ${field('Registrado', p.Creado + (p.RegistradoPor && p.RegistradoPor !== p.Asesora ? ` por ${p.RegistradoPor}` : ''))}
@@ -2445,13 +2504,13 @@ function openProsDetail(id) {
       <div class="form-group"><label class="form-label">Código postal</label><input class="form-input" id="pd-zip" value="${escHtml(p.Zip)}" maxlength="5"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Próximo seguimiento</label><input class="form-input" id="pd-prox" type="date" value="${escHtml(p.ProximoSeguimiento)}"></div>
+      ${segOn() ? `<input type="hidden" id="pd-prox" value="${escHtml(p.ProximoSeguimiento)}">` : `<div class="form-group"><label class="form-label">Próximo seguimiento</label><input class="form-input" id="pd-prox" type="date" value="${escHtml(p.ProximoSeguimiento)}"></div>`}
       <div class="form-group"><label class="form-label">Le interesa</label><input class="form-input" id="pd-int" value="${escHtml(p.Interes)}"></div>
     </div>
     <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" id="pd-notas" rows="2">${escHtml(p.Notas)}</textarea></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
       <button class="btn btn-primary btn-sm" onclick="prosSaveDetail('${id}')">Guardar cambios</button>
-      ${active ? `<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="prosSetStatus('${id}','Perdido')">Marcar como perdido</button>` : ''}
+      ${active ? `<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="${segOn() ? `openSegResult('${id}','Perdido')` : `prosSetStatus('${id}','Perdido')`}">Marcar como perdido</button>` : ''}
       ${p.Estado === 'Perdido' && !p.Vencido ? `<button class="btn btn-ghost btn-sm" onclick="prosSetStatus('${id}','En seguimiento')">Reactivar</button>` : ''}
       ${m && p.Estado === 'Vendido' ? `<button class="btn btn-ghost btn-sm" onclick="prosReview('${id}','Propia')">Propia</button>
         <button class="btn btn-ghost btn-sm" onclick="prosReview('${id}','Tienda')">Tienda</button>` : ''}
@@ -2468,7 +2527,9 @@ async function prosSaveDetail(id) {
   const v = x => document.getElementById(x).value;
   try {
     const r = await prosApi('prosUpdate', { id, Direccion: v('pd-dir'), Zip: v('pd-zip'), ProximoSeguimiento: v('pd-prox'), Interes: v('pd-int'), Notas: v('pd-notas') });
-    prosReplace(r.prospect); closeModal(); renderProspects(); toast('Cambios guardados.', 'success');
+    prosReplace(r.prospect);
+    await segSaveDetail(id);
+    closeModal(); renderProspects(); toast('Cambios guardados.', 'success');
   } catch (e) { toast(escHtml(e.message), 'error'); }
 }
 async function prosSetStatus(id, Estado) {
@@ -2476,6 +2537,10 @@ async function prosSetStatus(id, Estado) {
   try {
     const r = await prosApi('prosUpdate', { id, Estado });
     prosReplace(r.prospect); closeModal(); renderProspects();
+    if (Estado !== 'Perdido' && segOn()) {
+      try { const sg = await segApi('segSave', { id, Etapa: 'Contactado' }); segApplyInfo(sg.info); } catch (e) {}
+      if (!segOpenTask(id)) openSegSchedule(id);
+    }
   } catch (e) { toast(escHtml(e.message), 'error'); }
 }
 async function prosDelete(id) {
@@ -2484,6 +2549,506 @@ async function prosDelete(id) {
     await prosApi('prosDelete', { id });
     prosData.prospects = prosData.prospects.filter(p => p.ID !== id); closeModal(); renderProspects();
   } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+
+// ─── 📈 SEGUIMIENTO DE PROSPECTOS (Seguimiento.gs) ──────────────────────
+// Regla: todo prospecto activo siempre tiene un siguiente paso (tarea con fecha).
+const SEG_ETAPAS = ['Nuevo', 'Contactado', 'Interesado', 'Cita', 'Vendido', 'Perdido', 'Futuro'];
+const SEG_ETAPA_CLS = { Nuevo: 'pros-b-new', Contactado: 'pros-b-fu', Interesado: 'seg-b-int', Cita: 'seg-b-cita', Vendido: 'pros-b-sold', Perdido: 'pros-b-lost', Futuro: 'pros-b-exp' };
+const SEG_TIPOS = ['Llamada', 'Mensaje', 'WhatsApp', 'Cita en tienda', 'Visita'];
+const SEG_TIPO_ICON = { 'Llamada': '📞', 'Mensaje': '💬', 'WhatsApp': '🟢', 'Cita en tienda': '🏪', 'Visita': '🚗' };
+const SEG_TEMP_ICON = { Caliente: '🔥', Tibio: '🌤', 'Frío': '❄️' };
+// Cadencia: día desde que se registró → qué hacer
+const SEG_CADENCIA = [
+  { dia: 0, tipo: 'Mensaje', nota: 'Mensaje de bienvenida', msg: 'bienvenida' },
+  { dia: 1, tipo: 'Llamada', nota: 'Primera llamada', msg: 'seguimiento' },
+  { dia: 3, tipo: 'Mensaje', nota: 'Mensaje con invitación a la tienda', msg: 'oferta' },
+  { dia: 7, tipo: 'Llamada', nota: 'Segunda llamada', msg: 'seguimiento' },
+  { dia: 14, tipo: 'Llamada', nota: 'Último intento', msg: 'ultimo' }
+];
+const SEG_RESULTADOS = [
+  { v: 'Interesado', contesto: 1, etapa: 'Interesado' },
+  { v: 'Pidió precio o información', contesto: 1, etapa: 'Interesado' },
+  { v: 'Va a venir a la tienda', contesto: 1, etapa: 'Cita', paso: 'cita' },
+  { v: 'Me pidió que le llame después', contesto: 1, etapa: 'Contactado' },
+  { v: 'Ya tiene contrato con otra compañía', contesto: 1, etapa: 'Contactado', paso: 'futuro' },
+  { v: 'No le interesa', contesto: 1, paso: 'perdido', motivo: 'No le interesa' },
+  { v: 'No contestó', contesto: 0 },
+  { v: 'Número equivocado', contesto: 0, paso: 'perdido', motivo: 'Número equivocado' }
+];
+const SEG_MOTIVOS = ['No contesta', 'Precio', 'Ya tiene contrato', 'No hay cobertura', 'No le interesa', 'Se fue con otra compañía', 'Número equivocado', 'Otro'];
+const SEG_CUANDO = ['Ya', '1–3 meses', 'Más de 3 meses'];
+const SEG_SINO = ['Sí', 'No', 'No sé'];
+const SEG_COMPANIAS = ['Spectrum', 'AT&T', 'T-Mobile', 'Verizon', 'Xfinity', 'Viasat', 'Starlink', 'Ninguna', 'Otra'];
+const SEG_MAX_SIN_RESPUESTA = 5;
+
+let segData = null;            // { info: [], tasks: [], missing? }
+let segForm = {};              // estado del modal de resultado
+
+function segApi(action, params = {}) {
+  return apiGet({ action, user: prosAuth.user, pin: prosAuth.pin, ...params });
+}
+async function segLoad() {
+  try { segData = await segApi('segList'); segData.missing = false; }
+  catch (e) {
+    segData = { info: [], tasks: [], missing: true,
+      error: /desconocida|unknown|invalid action|solo para el manager/i.test(e.message) ? '' : e.message };
+  }
+}
+function segOn() { return segData && !segData.missing; }
+function segInfo(id) { return (segData && segData.info.find(r => r.ProspectoID === id)) || null; }
+function segTasksOf(id) { return segData ? segData.tasks.filter(t => t.ProspectoID === id) : []; }
+function segOpenTask(id) {
+  return segTasksOf(id).filter(t => t.Estado === 'Pendiente').sort((a, b) => segKey(a).localeCompare(segKey(b)))[0] || null;
+}
+function segKey(t) { return `${t.Fecha} ${t.Hora || '99:99'}`; }
+function segDue(t) { return prosDate(`${t.Fecha} ${t.Hora || '23:59'}`); }
+function segIsLate(t) { return t.Fecha < prosToday() || (t.Fecha === prosToday() && t.Hora && segDue(t) < new Date()); }
+function segAddDays(ymd, n) { const d = prosDate(ymd) || new Date(); d.setDate(d.getDate() + n); return prosYmd(d); }
+function segFirst(name) { return String(name || '').trim().split(/\s+/)[0] || ''; }
+function segEtapa(p) {
+  if (p.Estado === 'Vendido') return 'Vendido';
+  if (p.Estado === 'Perdido') return 'Perdido';
+  const i = segInfo(p.ID);
+  return (i && i.Etapa) || 'Nuevo';
+}
+function segEtapaBadge(p) {
+  const e = segEtapa(p);
+  return `<span class="pros-badge ${SEG_ETAPA_CLS[e] || ''}">${escHtml(e)}</span>`;
+}
+function segTempBadge(p) {
+  const t = (segInfo(p.ID) || {}).Temperatura;
+  return t ? `<span class="seg-temp" title="${escHtml(t)}">${SEG_TEMP_ICON[t] || ''}</span>` : '';
+}
+function segTempCalc(q) {
+  if (q.Cobertura === 'No' || q.CuandoCambia === 'Más de 3 meses') return 'Frío';
+  if (q.CuandoCambia === 'Ya' && q.Decide !== 'No') return 'Caliente';
+  return 'Tibio';
+}
+function segFmtTask(t) {
+  const d = prosDate(t.Fecha), today = prosToday();
+  const day = t.Fecha === today ? 'Hoy' : t.Fecha === segAddDays(today, 1) ? 'Mañana' : t.Fecha === segAddDays(today, -1) ? 'Ayer'
+    : d ? d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }) : t.Fecha;
+  return `${SEG_TIPO_ICON[t.Tipo] || '•'} ${escHtml(t.Tipo)} · ${day}${t.Hora ? ' ' + segFmtHora(t.Hora) : ''}`;
+}
+function segFmtHora(h) {
+  const m = String(h || '').match(/^(\d{2}):(\d{2})/); if (!m) return '';
+  const H = +m[1]; return `${H % 12 || 12}:${m[2]} ${H < 12 ? 'am' : 'pm'}`;
+}
+// Siguiente paso sugerido según la cadencia (día 0, 1, 3, 7, 14 desde el registro)
+function segSuggest(p) {
+  const done = segTasksOf(p.ID).filter(t => t.Estado === 'Hecha').length;
+  const step = SEG_CADENCIA[Math.min(done + 1, SEG_CADENCIA.length - 1)];
+  const base = String(p.Creado || prosToday()).slice(0, 10);
+  let fecha = segAddDays(base, step.dia);
+  const tomorrow = segAddDays(prosToday(), 1);
+  if (fecha < tomorrow) fecha = tomorrow;
+  return { tipo: step.tipo, fecha, nota: step.nota, paso: String(Math.min(done + 2, SEG_CADENCIA.length)), msg: step.msg };
+}
+
+// Mensajes listos (ella los puede cambiar antes de enviar)
+function segMessage(p, kind) {
+  const n = segFirst(p.Nombre), me = prosAuth.user;
+  const t = {
+    bienvenida: `Hola ${n}, soy ${me} de MirComm en Palmhurst 👋 Mucho gusto. Quedé de escribirte para ayudarte con tu servicio de internet y teléfono. ¿A qué hora te puedo llamar para platicarte tus opciones?`,
+    seguimiento: `Hola ${n}, soy ${me} de MirComm. Te escribo para darle seguimiento a lo que platicamos. ¿Tienes unos minutos hoy para una llamada?`,
+    oferta: `Hola ${n}, soy ${me} de MirComm 😊 Te invito a pasar a la tienda (4415 N. Conway Ave. Ste. 180, Palmhurst) para revisar tu dirección y darte las opciones de internet y líneas que te convienen. Te atendemos en español, en persona y sin vueltas. ¿Qué día te queda bien?`,
+    cita: `Hola ${n}, soy ${me} de MirComm. Te confirmo tu cita en la tienda: 4415 N. Conway Ave. Ste. 180, Palmhurst. ¡Te esperamos!`,
+    ultimo: `Hola ${n}, soy ${me} de MirComm. No te quiero molestar: si más adelante necesitas internet o una línea, aquí estoy para ayudarte. ¡Que tengas buen día!`
+  };
+  return t[kind] || t.seguimiento;
+}
+function segMsgKind(t) {
+  if (!t) return 'seguimiento';
+  if (t.Tipo === 'Cita en tienda') return 'cita';
+  const c = SEG_CADENCIA.find(x => x.nota === t.Nota);
+  return c ? c.msg : 'seguimiento';
+}
+function segWaLink(p, kind) { return `https://wa.me/1${phoneDigits(p.Telefono)}?text=${encodeURIComponent(segMessage(p, kind))}`; }
+function segSmsLink(p, kind) { return `sms:+1${phoneDigits(p.Telefono)}?&body=${encodeURIComponent(segMessage(p, kind))}`; }
+
+// ── Pantalla "Mi día" (asesora) ──
+function segActive(p) { return prosIsActive(p) || (prosStatus(p) === 'Vencido' && p.Estado !== 'Perdido' && p.Estado !== 'Vendido'); }
+function segDayLists(list) {
+  const today = prosToday(), week = segAddDays(today, 7);
+  const byId = Object.fromEntries(list.map(p => [p.ID, p]));
+  const open = segData.tasks.filter(t => t.Estado === 'Pendiente' && byId[t.ProspectoID] && segActive(byId[t.ProspectoID]))
+    .sort((a, b) => segKey(a).localeCompare(segKey(b)));
+  return {
+    byId,
+    late: open.filter(segIsLate),
+    today: open.filter(t => t.Fecha === today && !segIsLate(t)),
+    next: open.filter(t => t.Fecha > today && t.Fecha <= week),
+    orphan: list.filter(p => segActive(p) && !open.some(t => t.ProspectoID === p.ID))
+  };
+}
+function segTaskCard(t, p, showRep) {
+  const kind = segMsgKind(t), late = segIsLate(t);
+  return `<div class="pros-card seg-task ${late ? 'seg-late' : ''}">
+    <div class="pros-card-top" onclick="openProsDetail('${p.ID}')">
+      <div style="min-width:0">
+        <div class="pros-name">${escHtml(p.Nombre)} ${segTempBadge(p)}</div>
+        <div class="pros-sub" style="color:${late ? 'var(--red)' : 'var(--text)'}">${segFmtTask(t)}${late ? ' · vencido' : ''}</div>
+        ${t.Nota ? `<div class="pros-sub">${escHtml(t.Nota)}</div>` : ''}
+      </div>
+      <div style="text-align:right;flex:none">${segEtapaBadge(p)}${showRep ? `<div class="pros-sub">👤 ${escHtml(p.Asesora)}</div>` : ''}</div>
+    </div>
+    <div class="pros-actions">
+      <a class="btn btn-primary btn-sm" href="tel:+1${phoneDigits(p.Telefono)}">📞 Llamar</a>
+      <a class="btn btn-ghost btn-sm" href="${segWaLink(p, kind)}" target="_blank" rel="noopener">🟢 WhatsApp</a>
+      <a class="btn btn-ghost btn-sm" href="${segSmsLink(p, kind)}">💬 SMS</a>
+      <button class="btn btn-ghost btn-sm" onclick="openSegResult('${p.ID}')">✅ Registrar resultado</button>
+      <button class="btn btn-ghost btn-sm" onclick="openSegMove('${t.ID}')">🕑 Cambiar fecha</button>
+    </div>
+  </div>`;
+}
+function segDayHtml(list, showRep) {
+  if (!segData) return '';
+  if (segData.missing) return segMissingNotice();
+  const d = segDayLists(list);
+  const sec = (title, cls, items) => items.length ? `<div class="pros-section-title ${cls}">${title} (${items.length})</div>
+    <div class="pros-list">${items.map(t => segTaskCard(t, d.byId[t.ProspectoID], showRep)).join('')}</div>` : '';
+  const orphan = d.orphan.length ? `<div class="pros-section-title seg-warn">⚠️ Sin siguiente paso (${d.orphan.length})</div>
+    <div class="pros-hint" style="margin:-4px 0 10px">Cada prospecto necesita una fecha para el siguiente contacto.</div>
+    <div class="pros-list">${d.orphan.map(p => `<div class="pros-card">
+      <div class="pros-card-top" onclick="openProsDetail('${p.ID}')"><div><div class="pros-name">${escHtml(p.Nombre)} ${segTempBadge(p)}</div>
+        <div class="pros-sub">${fmtPhone(String(p.Telefono))}${showRep ? ' · 👤 ' + escHtml(p.Asesora) : ''}</div></div><div>${segEtapaBadge(p)}</div></div>
+      <div class="pros-actions"><button class="btn btn-primary btn-sm" onclick="openSegSchedule('${p.ID}')">📅 Agendar siguiente paso</button>
+        <button class="btn btn-ghost btn-sm" onclick="openSegResult('${p.ID}')">✅ Registrar resultado</button></div></div>`).join('')}</div>` : '';
+  const empty = !d.late.length && !d.today.length && !d.next.length && !d.orphan.length
+    ? `<div class="empty-state" style="padding:24px"><div class="icon">✅</div><p>No tienes seguimientos pendientes.</p></div>` : '';
+  return `<div class="seg-day">${sec('🔴 Vencidos', 'seg-red', d.late)}${sec('📅 Para hoy', '', d.today)}${orphan}${sec('🗓 Próximos 7 días', '', d.next)}${empty}</div>`;
+}
+function segMissingNotice() {
+  return prosAuth.manager
+    ? `<div class="act-hint" style="border-color:rgba(255,209,102,.5);margin-bottom:14px">📈 El seguimiento (etapas, tareas y avisos) todavía no está instalado. Agrega <b>Seguimiento.gs</b> en Apps Script.${segData.error ? '<br>' + escHtml(segData.error) : ''}</div>`
+    : `<div class="act-hint" style="margin-bottom:14px">El seguimiento todavía no está activo. Por ahora registra tus contactos como siempre.${segData.error ? '<br>' + escHtml(segData.error) : ''}</div>`;
+}
+
+// ── Registrar resultado (con siguiente paso obligatorio) ──
+function openSegResult(id, preset) {
+  if (!segOn()) { openProsContact(id); return; }
+  const p = prosData.prospects.find(x => x.ID === id); if (!p) return;
+  const inf = segInfo(id) || {}, sug = segSuggest(p);
+  segForm = { id, paso: preset === 'Perdido' ? 'perdido' : '', motivo: preset === 'Perdido' ? '' : '', sug };
+  const chips = (name, opts, cur) => `<div class="pros-chips" data-q="${name}">${opts.map(o =>
+    `<span class="chip ${cur === o ? 'on' : ''}" data-v="${escHtml(o)}" onclick="segPickQ(this)">${escHtml(o)}</span>`).join('')}</div>`;
+  const sinResp = +inf.SinRespuesta || 0;
+  openModal(`
+    <div class="modal-title">✅ ${escHtml(p.Nombre)} ${segTempBadge(p)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="pros-hint" style="margin:-8px 0 14px">${segEtapaBadge(p)} · ${fmtPhone(String(p.Telefono))}${sinResp ? ` · ${sinResp} intento(s) sin respuesta` : ''}</div>
+    <div class="form-group"><label class="form-label">¿Cómo lo contactaste? *</label>
+      <div class="pros-chips" id="sr-tipo">${PROS_CONTACT_TYPES.map(t => `<span class="chip" data-v="${t}" onclick="this.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c===this))">${t}</span>`).join('')}</div></div>
+    <div class="form-group"><label class="form-label">¿Qué pasó? *</label>
+      <select class="form-input form-select" id="sr-res" onchange="segPickResult(this.value)">
+        <option value="">Elige…</option>${SEG_RESULTADOS.map(r => `<option>${escHtml(r.v)}</option>`).join('')}</select>
+      <div id="sr-res-hint" class="pros-hint"></div></div>
+    <details class="seg-qual" id="sr-qual" ${inf.CuandoCambia ? '' : 'open'}>
+      <summary>📋 Calificación ${inf.Temperatura ? SEG_TEMP_ICON[inf.Temperatura] + ' ' + escHtml(inf.Temperatura) : '(llénala cuando conteste)'}</summary>
+      <div class="form-row" style="margin-top:12px">
+        <div class="form-group"><label class="form-label">Compañía actual</label>
+          <select class="form-input form-select" id="sr-comp"><option value="">—</option>${SEG_COMPANIAS.map(c => `<option ${inf.Compania === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="form-label">Paga al mes ($)</label>
+          <input class="form-input" id="sr-paga" inputmode="decimal" value="${escHtml(inf.PagaMes || '')}" placeholder="Ej. 85"></div>
+      </div>
+      <div class="form-group"><label class="form-label">¿Cuándo se puede cambiar?</label>${chips('CuandoCambia', SEG_CUANDO, inf.CuandoCambia)}</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">¿Él/ella decide?</label>${chips('Decide', SEG_SINO, inf.Decide)}</div>
+        <div class="form-group"><label class="form-label">¿Hay cobertura?</label>${chips('Cobertura', SEG_SINO, inf.Cobertura)}</div>
+      </div>
+    </details>
+    <div class="form-group" style="margin-top:14px"><label class="form-label">Siguiente paso *</label>
+      <div class="pros-chips" id="sr-paso">
+        <span class="chip" data-v="agendar" onclick="segPickPaso('agendar')">📅 Agendar seguimiento</span>
+        <span class="chip" data-v="cita" onclick="segPickPaso('cita')">🏪 Cita en tienda</span>
+        <span class="chip" data-v="futuro" onclick="segPickPaso('futuro')">⏳ Más adelante</span>
+        <span class="chip" data-v="vendido" onclick="segPickPaso('vendido')">✅ Se vendió</span>
+        <span class="chip" data-v="perdido" onclick="segPickPaso('perdido')">✖ Perdido</span>
+      </div></div>
+    <div id="sr-paso-form"></div>
+    <div class="form-group"><label class="form-label">Nota</label>
+      <textarea class="form-input" id="sr-nota" rows="2" placeholder="Qué platicaron, qué le ofreciste, qué te pidió…"></textarea></div>
+    <div id="sr-err" class="pin-error" style="margin:0 0 8px"></div>
+    <button class="btn btn-primary btn-full" id="sr-save" onclick="segSaveResult()">Guardar</button>`);
+  if (preset === 'Perdido') segPickPaso('perdido');
+}
+function segPickQ(chip) {
+  chip.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === chip && !c.classList.contains('on')));
+}
+function segQ(name) { return document.querySelector(`[data-q="${name}"] .chip.on`)?.dataset.v || ''; }
+function segPickResult(v) {
+  const r = SEG_RESULTADOS.find(x => x.v === v) || {};
+  const inf = segInfo(segForm.id) || {}, hint = document.getElementById('sr-res-hint');
+  hint.textContent = '';
+  if (r.paso) { segForm.motivo = r.motivo || ''; segPickPaso(r.paso); }
+  else if (r.contesto === 0 && (+inf.SinRespuesta || 0) + 1 >= SEG_MAX_SIN_RESPUESTA) {
+    hint.textContent = `Van ${(+inf.SinRespuesta || 0) + 1} intentos sin respuesta. Puedes cerrarlo como perdido o dejarlo para más adelante.`;
+    segForm.motivo = 'No contesta'; segPickPaso('perdido');
+  } else if (!segForm.paso) segPickPaso('agendar');
+  if (r.contesto && document.getElementById('sr-qual')) document.getElementById('sr-qual').open = true;
+}
+function segPickPaso(paso) {
+  segForm.paso = paso;
+  document.querySelectorAll('#sr-paso .chip').forEach(c => c.classList.toggle('on', c.dataset.v === paso));
+  const s = segForm.sug, el = document.getElementById('sr-paso-form');
+  const tipoSel = (cur) => `<select class="form-input form-select" id="sr-ntipo">${SEG_TIPOS.filter(t => t !== 'Cita en tienda').map(t =>
+    `<option ${t === cur ? 'selected' : ''}>${SEG_TIPO_ICON[t]} ${t}</option>`).join('')}</select>`;
+  el.innerHTML = {
+    agendar: `<div class="seg-box"><div class="form-row">
+        <div class="form-group"><label class="form-label">Qué</label>${tipoSel(s.tipo)}</div>
+        <div class="form-group"><label class="form-label">Fecha *</label><input class="form-input" type="date" id="sr-nfecha" value="${s.fecha}" min="${prosToday()}"></div></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Hora (opcional)</label><input class="form-input" type="time" id="sr-nhora"></div>
+        <div class="form-group"><label class="form-label">Recordatorio</label><input class="form-input" id="sr-nnota" value="${escHtml(s.nota)}"></div></div>
+      <div class="pros-hint">Sugerido por el plan de seguimiento. Si pones hora, te llega una invitación de calendario y un aviso 15 min antes.</div></div>`,
+    cita: `<div class="seg-box"><div class="form-row">
+        <div class="form-group"><label class="form-label">Fecha *</label><input class="form-input" type="date" id="sr-nfecha" value="${segAddDays(prosToday(), 1)}" min="${prosToday()}"></div>
+        <div class="form-group"><label class="form-label">Hora *</label><input class="form-input" type="time" id="sr-nhora" value="11:00"></div></div>
+      <div class="pros-hint">Se crea la cita en el calendario. Mándale la confirmación por WhatsApp desde la tarjeta.</div></div>`,
+    futuro: `<div class="seg-box"><div class="form-row">
+        <div class="form-group"><label class="form-label">Volver a contactar el *</label><input class="form-input" type="date" id="sr-futuro" value="${segAddDays(prosToday(), 90)}" min="${prosToday()}"></div>
+        <div class="form-group"><label class="form-label">¿Por qué?</label><input class="form-input" id="sr-fmotivo" placeholder="Ej. se le acaba el contrato en enero" value="${escHtml(segForm.motivo === 'Ya tiene contrato' ? 'Se le acaba el contrato' : '')}"></div></div>
+      <div class="pros-hint">El sistema te lo regresa a tu lista ese día.</div></div>`,
+    perdido: `<div class="seg-box"><div class="form-group"><label class="form-label">Motivo *</label>
+        <div class="pros-chips" id="sr-motivo">${SEG_MOTIVOS.map(m => `<span class="chip ${segForm.motivo === m ? 'on' : ''}" data-v="${m}" onclick="this.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c===this))">${m}</span>`).join('')}</div></div>
+      <div class="pros-hint">Al marcarlo perdido, otra asesora lo podrá registrar.</div></div>`,
+    vendido: `<div class="seg-box pros-hint" style="margin:0">Al guardar se abre la pantalla de venta para poner la cuenta de Spectrum.</div>`
+  }[paso] || '';
+}
+async function segSaveResult() {
+  const err = document.getElementById('sr-err'); err.textContent = '';
+  const id = segForm.id, p = prosData.prospects.find(x => x.ID === id);
+  const tipoC = document.querySelector('#sr-tipo .chip.on')?.dataset.v;
+  const resV = document.getElementById('sr-res').value, res = SEG_RESULTADOS.find(x => x.v === resV);
+  if (!tipoC) { err.textContent = 'Elige cómo lo contactaste.'; return; }
+  if (!res) { err.textContent = 'Elige qué pasó.'; return; }
+  if (!segForm.paso) { err.textContent = 'Elige el siguiente paso.'; return; }
+  const v = x => (document.getElementById(x)?.value || '').trim();
+  const nota = v('sr-nota');
+  const q = { Compania: v('sr-comp'), PagaMes: v('sr-paga'), CuandoCambia: segQ('CuandoCambia'), Decide: segQ('Decide'), Cobertura: segQ('Cobertura') };
+  const params = { id, resultado: resV, contesto: res.contesto ? '1' : '0', etapa: res.etapa || '', ...q };
+  let proximo = '';
+  if (segForm.paso === 'agendar' || segForm.paso === 'cita') {
+    proximo = v('sr-nfecha');
+    if (!proximo) { err.textContent = 'Elige la fecha del siguiente paso.'; return; }
+    if (segForm.paso === 'cita' && !v('sr-nhora')) { err.textContent = 'Pon la hora de la cita.'; return; }
+    Object.assign(params, { nextFecha: proximo, nextHora: v('sr-nhora'),
+      nextTipo: segForm.paso === 'cita' ? 'Cita en tienda' : v('sr-ntipo').replace(/^\S+\s/, ''),
+      nextNota: segForm.paso === 'cita' ? 'Cita en tienda' : v('sr-nnota'), nextPaso: segForm.sug.paso,
+      etapa: segForm.paso === 'cita' ? 'Cita' : (res.etapa || '') });
+  } else if (segForm.paso === 'futuro') {
+    proximo = v('sr-futuro');
+    if (!proximo) { err.textContent = 'Elige cuándo volver a contactarlo.'; return; }
+    Object.assign(params, { cerrar: 'Futuro', futuro: proximo, motivo: v('sr-fmotivo') });
+  } else if (segForm.paso === 'perdido') {
+    const m = document.querySelector('#sr-motivo .chip.on')?.dataset.v;
+    if (!m) { err.textContent = 'Elige el motivo.'; return; }
+    Object.assign(params, { cerrar: 'Perdido', motivo: m });
+  } else if (segForm.paso === 'vendido') {
+    Object.assign(params, { nextFecha: segAddDays(prosToday(), 1), nextTipo: 'Llamada', nextNota: 'Confirmar que se activó el servicio' });
+    proximo = params.nextFecha;
+  }
+  const btn = document.getElementById('sr-save'); btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    const r = await prosApi('prosContact', { id, tipo: tipoC, resultado: resV, nota, proximo });
+    prosReplace(r.prospect);
+    prosData.contacts.push({ Fecha: r.prospect.UltimoContacto, Asesora: prosAuth.user, ProspectoID: id, Nombre: r.prospect.Nombre, Tipo: tipoC, Resultado: resV, Nota: nota });
+    const s = await segApi('segDone', params);
+    segApplyInfo(s.info);
+    segData.tasks.forEach(t => { if (t.ProspectoID === id && t.Estado === 'Pendiente') { t.Estado = 'Hecha'; t.Resultado = resV; t.Hecha = prosToday(); } });
+    if (s.next) segData.tasks.push(s.next);
+    if (segForm.paso === 'perdido') { const u = await prosApi('prosUpdate', { id, Estado: 'Perdido' }); prosReplace(u.prospect); }
+    closeModal();
+    if (segForm.paso === 'vendido') { openProsSold(id); return; }
+    renderProspects();
+    toast({ perdido: 'Guardado. Prospecto cerrado como perdido.', futuro: `Guardado. Te lo regreso el ${prosShortDate(proximo)}.` }[segForm.paso]
+      || `Guardado. Siguiente paso: ${prosShortDate(proximo)}.`, 'success');
+  } catch (e) { err.textContent = e.message; btn.disabled = false; btn.textContent = 'Guardar'; }
+}
+function segApplyInfo(info) {
+  if (!info || !segData) return;
+  const i = segData.info.findIndex(r => r.ProspectoID === info.ProspectoID);
+  if (i >= 0) segData.info[i] = info; else segData.info.push(info);
+}
+
+// ── Cambiar fecha / agendar ──
+function openSegMove(taskId) {
+  const t = segData.tasks.find(x => x.ID === taskId); if (!t) return;
+  const p = prosData.prospects.find(x => x.ID === t.ProspectoID);
+  openModal(`
+    <div class="modal-title">🕑 ${escHtml(p ? p.Nombre : '')} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Qué</label><select class="form-input form-select" id="sm-tipo">${SEG_TIPOS.map(x => `<option ${x === t.Tipo ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="sm-fecha" value="${escHtml(t.Fecha)}" min="${prosToday()}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Hora (opcional)</label><input class="form-input" type="time" id="sm-hora" value="${escHtml(t.Hora)}"></div>
+      <div class="form-group"><label class="form-label">Recordatorio</label><input class="form-input" id="sm-nota" value="${escHtml(t.Nota)}"></div>
+    </div>
+    <div id="sm-err" class="pin-error" style="margin:0 0 8px"></div>
+    <button class="btn btn-primary btn-full" onclick="segSaveMove('${t.ID}')">Guardar</button>`);
+}
+async function segSaveMove(taskId) {
+  const v = x => document.getElementById(x).value;
+  if (!v('sm-fecha')) { document.getElementById('sm-err').textContent = 'Elige la fecha.'; return; }
+  if (v('sm-tipo') === 'Cita en tienda' && !v('sm-hora')) { document.getElementById('sm-err').textContent = 'Pon la hora de la cita.'; return; }
+  try {
+    const r = await segApi('segTask', { taskId, fecha: v('sm-fecha'), hora: v('sm-hora'), tipo: v('sm-tipo'), nota: v('sm-nota') });
+    const i = segData.tasks.findIndex(x => x.ID === taskId); if (i >= 0) segData.tasks[i] = r.task;
+    const pid = r.task.ProspectoID;
+    prosApi('prosUpdate', { id: pid, ProximoSeguimiento: r.task.Fecha }).then(u => prosReplace(u.prospect)).catch(() => {});
+    closeModal(); renderProspects(); toast('Fecha actualizada.', 'success');
+  } catch (e) { document.getElementById('sm-err').textContent = e.message; }
+}
+function openSegSchedule(id) {
+  const p = prosData.prospects.find(x => x.ID === id); if (!p) return;
+  const s = segSuggest(p);
+  openModal(`
+    <div class="modal-title">📅 Siguiente paso · ${escHtml(p.Nombre)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Qué</label><select class="form-input form-select" id="sm-tipo">${SEG_TIPOS.map(x => `<option ${x === s.tipo ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="sm-fecha" value="${s.fecha}" min="${prosToday()}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Hora (opcional)</label><input class="form-input" type="time" id="sm-hora"></div>
+      <div class="form-group"><label class="form-label">Recordatorio</label><input class="form-input" id="sm-nota" value="${escHtml(s.nota)}"></div>
+    </div>
+    <div id="sm-err" class="pin-error" style="margin:0 0 8px"></div>
+    <button class="btn btn-primary btn-full" onclick="segSaveSchedule('${id}')">Agendar</button>`);
+}
+async function segSaveSchedule(id) {
+  const v = x => document.getElementById(x).value;
+  if (!v('sm-fecha')) { document.getElementById('sm-err').textContent = 'Elige la fecha.'; return; }
+  try {
+    const r = await segApi('segTask', { id, fecha: v('sm-fecha'), hora: v('sm-hora'), tipo: v('sm-tipo'), nota: v('sm-nota') });
+    segData.tasks.push(r.task);
+    prosApi('prosUpdate', { id, ProximoSeguimiento: r.task.Fecha }).then(u => prosReplace(u.prospect)).catch(() => {});
+    closeModal(); renderProspects(); toast('Siguiente paso agendado.', 'success');
+  } catch (e) { document.getElementById('sm-err').textContent = e.message; }
+}
+
+// ── Ficha: calificación y etapa ──
+function segDetailHtml(p) {
+  if (!segOn()) return '';
+  const inf = segInfo(p.ID) || {}, t = segOpenTask(p.ID), closed = ['Vendido', 'Perdido'].includes(segEtapa(p));
+  const sel = (id, opts, cur) => `<select class="form-input form-select" id="${id}"><option value="">—</option>${opts.map(o => `<option ${cur === o ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+  const done = segTasksOf(p.ID).filter(x => x.Estado !== 'Pendiente').sort((a, b) => String(b.Hecha).localeCompare(String(a.Hecha)));
+  return `
+    <div class="seg-box" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+        <div><div class="form-label" style="margin:0">Siguiente paso</div>
+          <div style="font-weight:600;margin-top:4px;color:${t && segIsLate(t) ? 'var(--red)' : 'var(--text)'}">${t ? segFmtTask(t) + (t.Nota ? ' · ' + escHtml(t.Nota) : '') : closed ? '—' : '⚠️ Sin siguiente paso'}</div></div>
+        ${closed ? '' : `<div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="openSegResult('${p.ID}')">✅ Registrar resultado</button>
+          ${t ? `<button class="btn btn-ghost btn-sm" onclick="openSegMove('${t.ID}')">🕑 Cambiar fecha</button>` : `<button class="btn btn-ghost btn-sm" onclick="openSegSchedule('${p.ID}')">📅 Agendar</button>`}</div>`}
+      </div>
+      ${!closed ? `<div class="pros-actions" style="margin-top:10px">
+        <a class="btn btn-ghost btn-sm" href="${segWaLink(p, segMsgKind(t))}" target="_blank" rel="noopener">🟢 WhatsApp con mensaje listo</a>
+        <a class="btn btn-ghost btn-sm" href="${segSmsLink(p, segMsgKind(t))}">💬 SMS con mensaje listo</a></div>` : ''}
+    </div>
+    <div class="form-label" style="margin-bottom:8px">Calificación ${inf.Temperatura ? SEG_TEMP_ICON[inf.Temperatura] + ' ' + escHtml(inf.Temperatura) : ''}${inf.MotivoPerdida ? ` · <span style="color:var(--red)">Perdido: ${escHtml(inf.MotivoPerdida)}</span>` : ''}${inf.FuturoFecha && segEtapa(p) === 'Futuro' ? ` · ⏳ volver a contactar ${prosShortDate(inf.FuturoFecha)}` : ''}</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Etapa</label>${closed ? `<div style="padding:8px 0">${segEtapaBadge(p)}</div>` : sel('sd-etapa', ['Nuevo', 'Contactado', 'Interesado', 'Cita', 'Futuro'].filter(e => e !== 'Futuro' || segEtapa(p) === 'Futuro'), segEtapa(p))}</div>
+      <div class="form-group"><label class="form-label">Compañía actual</label>${sel('sd-comp', SEG_COMPANIAS, inf.Compania)}</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Paga al mes ($)</label><input class="form-input" id="sd-paga" inputmode="decimal" value="${escHtml(inf.PagaMes || '')}"></div>
+      <div class="form-group"><label class="form-label">¿Cuándo se cambia?</label>${sel('sd-cuando', SEG_CUANDO, inf.CuandoCambia)}</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">¿Decide?</label>${sel('sd-decide', SEG_SINO, inf.Decide)}</div>
+      <div class="form-group"><label class="form-label">¿Cobertura?</label>${sel('sd-cob', SEG_SINO, inf.Cobertura)}</div>
+    </div>
+    ${done.length ? `<div class="form-label" style="margin:4px 0 8px">Seguimientos hechos</div>
+      <div class="table-wrap" style="overflow-x:auto;margin-bottom:16px"><table>
+        <thead><tr><th>Agendado</th><th>Qué</th><th>Resultado</th><th>Hecho</th></tr></thead>
+        <tbody>${done.map(x => `<tr><td style="font-size:12px;white-space:nowrap">${escHtml(x.Fecha)}${x.Hora ? ' ' + escHtml(x.Hora) : ''}</td>
+          <td style="font-size:12px">${SEG_TIPO_ICON[x.Tipo] || ''} ${escHtml(x.Tipo)}${x.Nota ? `<div style="color:var(--muted)">${escHtml(x.Nota)}</div>` : ''}</td>
+          <td style="font-size:12px">${escHtml(x.Estado === 'Cancelada' ? 'Cancelada' + (x.Resultado ? ' · ' + x.Resultado : '') : x.Resultado)}</td>
+          <td style="font-size:12px;white-space:nowrap;color:${String(x.Hecha).slice(0, 10) > x.Fecha ? 'var(--yellow)' : 'var(--muted)'}">${escHtml(String(x.Hecha).slice(0, 16))}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
+}
+async function segSaveDetail(id) {
+  if (!segOn() || !document.getElementById('sd-comp')) return;
+  const v = x => (document.getElementById(x)?.value || '').trim();
+  const r = await segApi('segSave', { id, Etapa: v('sd-etapa'), Compania: v('sd-comp'), PagaMes: v('sd-paga'), CuandoCambia: v('sd-cuando'), Decide: v('sd-decide'), Cobertura: v('sd-cob') });
+  segApplyInfo(r.info);
+}
+
+// ── Manager: métricas de seguimiento ──
+function segManagerHtml() {
+  if (!segData) return '';
+  if (segData.missing) return segMissingNotice();
+  const all = prosData.prospects, today = prosToday();
+  const repsAll = [...new Set(all.map(p => p.Asesora))].filter(r => !prosFilter.rep || r === prosFilter.rep).sort();
+  const created = all.filter(p => prosInMonth(p, 'Creado') && (!prosFilter.rep || p.Asesora === prosFilter.rep));
+  const firstContact = {};
+  prosData.contacts.forEach(c => { if (!firstContact[c.ProspectoID] || String(c.Fecha) < firstContact[c.ProspectoID]) firstContact[c.ProspectoID] = String(c.Fecha); });
+  const hrs = (a, b) => (prosDate(b) - prosDate(a)) / 3600000;
+  const d = segDayLists(all.filter(p => !prosFilter.rep || p.Asesora === prosFilter.rep));
+  const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
+  const color = (a, b, good) => !b ? 'var(--muted)' : a / b >= good ? 'var(--green)' : a / b >= good - .25 ? 'var(--yellow)' : 'var(--red)';
+  const rows = repsAll.map(rep => {
+    const mine = all.filter(p => p.Asesora === rep);
+    const cr = created.filter(p => p.Asesora === rep);
+    const c24 = cr.filter(p => firstContact[p.ID] && hrs(p.Creado, firstContact[p.ID]) <= 24).length;
+    const due = segData.tasks.filter(t => t.Asesora === rep && t.Estado !== 'Cancelada' && t.Fecha <= today && prosInMonth(t, 'Fecha'));
+    const onTime = due.filter(t => t.Estado === 'Hecha' && String(t.Hecha).slice(0, 10) <= t.Fecha).length;
+    const sold = mine.filter(p => p.Estado === 'Vendido' && prosInMonth(p, 'FechaVenta'));
+    const days = sold.map(p => (prosDate(p.FechaVenta) - prosDate(p.Creado)) / 86400000).filter(x => x >= 0);
+    return `<tr><td style="font-weight:600">${escHtml(rep)}</td>
+      <td>${mine.filter(segActive).length}</td>
+      <td style="color:${d.late.filter(t => t.Asesora === rep).length ? 'var(--red)' : 'var(--green)'};font-weight:600">${d.late.filter(t => t.Asesora === rep).length}</td>
+      <td>${d.today.filter(t => t.Asesora === rep).length}</td>
+      <td style="color:${d.orphan.filter(p => p.Asesora === rep).length ? 'var(--yellow)' : 'var(--muted)'}">${d.orphan.filter(p => p.Asesora === rep).length}</td>
+      <td style="color:${color(c24, cr.length, .9)};font-weight:600">${pct(c24, cr.length)}</td>
+      <td style="color:${color(onTime, due.length, .85)};font-weight:600">${pct(onTime, due.length)}</td>
+      <td>${mine.filter(p => segEtapa(p) === 'Cita' && segActive(p)).length}</td>
+      <td style="color:var(--green);font-weight:600">${sold.length}</td>
+      <td>${days.length ? Math.round(days.reduce((a, b) => a + b, 0) / days.length) + ' d' : '—'}</td></tr>`;
+  }).join('');
+  // Embudo de los prospectos registrados en el periodo
+  const funnel = ['Nuevo', 'Contactado', 'Interesado', 'Cita', 'Vendido', 'Futuro', 'Perdido'].map(e => [e, created.filter(p => segEtapa(p) === e).length]);
+  const maxF = Math.max(1, ...funnel.map(f => f[1]));
+  // Eventos
+  const ev = {};
+  created.filter(p => p.Canal === 'Visita o evento').forEach(p => {
+    const k = String(p.Detalle || 'Sin nombre').trim();
+    ev[k] = ev[k] || { n: 0, hot: 0, sold: 0, lost: 0 };
+    ev[k].n++;
+    if ((segInfo(p.ID) || {}).Temperatura === 'Caliente') ev[k].hot++;
+    if (p.Estado === 'Vendido') ev[k].sold++;
+    if (segEtapa(p) === 'Perdido') ev[k].lost++;
+  });
+  const evRows = Object.entries(ev).sort((a, b) => b[1].n - a[1].n).map(([k, x]) =>
+    `<tr><td>📍 ${escHtml(k)}</td><td>${x.n}</td><td>${x.hot}</td><td style="color:var(--green)">${x.sold}</td><td>${x.lost}</td><td style="font-weight:600">${pct(x.sold, x.n)}</td></tr>`).join('');
+  // Motivos de pérdida
+  const mot = {};
+  segData.info.forEach(r => {
+    const p = all.find(x => x.ID === r.ProspectoID);
+    if (r.Etapa === 'Perdido' && r.MotivoPerdida && p && (!prosFilter.rep || p.Asesora === prosFilter.rep) && prosInMonth({ c: r.Cerrado }, 'c'))
+      mot[r.MotivoPerdida] = (mot[r.MotivoPerdida] || 0) + 1;
+  });
+  const motRows = Object.entries(mot).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<tr><td>${escHtml(k)}</td><td>${n}</td></tr>`).join('');
+  return `
+    <div class="pros-section-title">📈 Seguimiento</div>
+    <div class="table-wrap" style="overflow-x:auto;margin-bottom:16px"><table>
+      <thead><tr><th>Asesora</th><th>Activos</th><th>Vencidos</th><th>Hoy</th><th>Sin paso</th><th title="Prospectos del periodo contactados en menos de 24 horas">Contacto &lt;24h</th>
+        <th title="Seguimientos del periodo hechos el día que tocaban">A tiempo</th><th>Citas</th><th>Ventas</th><th title="Días promedio de registro a venta">Días a venta</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="10" style="color:var(--muted)">Sin prospectos todavía</td></tr>`}</tbody></table></div>
+    <div class="pros-two">
+      <div><div class="pros-section-title">Embudo (registrados en el periodo)</div>
+        <div class="seg-funnel">${funnel.map(([e, n]) => `<div class="seg-frow"><span>${e}</span><div><div class="seg-fbar ${SEG_ETAPA_CLS[e]}" style="width:${Math.max(n ? 6 : 0, n / maxF * 100)}%"></div></div><b>${n}</b></div>`).join('')}</div></div>
+      <div><div class="pros-section-title">Eventos</div>
+        <div class="table-wrap" style="overflow-x:auto"><table>
+          <thead><tr><th>Evento</th><th>Prospectos</th><th>🔥</th><th>Vendidos</th><th>Perdidos</th><th>Conversión</th></tr></thead>
+          <tbody>${evRows || `<tr><td colspan="6" style="color:var(--muted)">Sin prospectos de eventos en el periodo</td></tr>`}</tbody></table></div>
+        ${motRows ? `<div class="pros-section-title">Motivos de pérdida</div><div class="table-wrap"><table><thead><tr><th>Motivo</th><th>#</th></tr></thead><tbody>${motRows}</tbody></table></div>` : ''}
+      </div>
+    </div>
+    ${d.late.length ? `<div class="pros-section-title seg-red">🔴 Seguimientos vencidos (${d.late.length})</div>
+      <div class="pros-list" style="margin-bottom:10px">${d.late.slice(0, 30).map(t => segTaskCard(t, d.byId[t.ProspectoID], true)).join('')}</div>` : ''}
+    ${d.orphan.length ? `<div class="pros-section-title seg-warn">⚠️ Prospectos sin siguiente paso (${d.orphan.length})</div>
+      <div class="pros-hint" style="margin:-4px 0 10px">${d.orphan.map(p => `<a href="#" onclick="openProsDetail('${p.ID}');return false" style="color:var(--cyan)">${escHtml(p.Nombre)}</a> (${escHtml(p.Asesora)})`).join(' · ')}</div>` : ''}`;
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────
