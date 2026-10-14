@@ -3053,7 +3053,19 @@ function segManagerHtml() {
 }
 
 // ── 📱 Clientes con internet sin línea ──
-function segSlList() { return (segData && segData.sinLinea) || []; }
+// Plazo del paquete: la línea que ya va en la orden del internet debe activarse dentro de 30 días
+// (nota n del Exhibit C cuenta desde la conexión; usamos la fecha de la orden para ir a la segura).
+function segSlPlazo(c) {
+  if (!c.paquete || !c.fecha) return null;
+  const d = new Date(c.fecha + 'T12:00:00'); d.setDate(d.getDate() + 30);
+  const limite = prosYmd(d), dias = Math.round((d - new Date(prosToday() + 'T12:00:00')) / 86400000);
+  return { limite, dias };
+}
+function segSlList() {
+  const l = ((segData && segData.sinLinea) || []).slice();
+  const k = c => { const p = segSlPlazo(c); return p && p.dias >= 0 ? p.dias : 1e4; };
+  return l.sort((a, b) => k(a) - k(b) || String(b.fecha).localeCompare(String(a.fecha)));
+}
 function segSlMsg(c) {
   return `Hola ${segFirst(c.nombre)}, soy ${prosAuth.user} de MirComm 😊 Gracias por contratar tu internet con nosotros. ¿Ya conoces la línea móvil de Spectrum? Te ayudamos a pasarte con tu mismo número, en la tienda o por teléfono. ¿Te platico las opciones?`;
 }
@@ -3064,12 +3076,15 @@ function segSlHtml(showMgr) {
   return `<details class="seg-qual" style="margin:6px 0 14px" ${showMgr ? '' : 'open'}>
     <summary>📱 Clientes con internet sin línea (${list.length})</summary>
     <div class="pros-hint" style="margin:8px 0 10px">${showMgr
-      ? 'Internet de los últimos 60 días sin línea móvil. <b>Solo para ti:</b> la línea paga $150; el bono de $75 solo aplica si la línea se vende el mismo día que el internet.'
+      ? 'Internet de los últimos 60 días sin línea móvil. <b>Solo para ti:</b> la línea paga $150. El bono de $75 solo se paga si la línea va <b>en la misma orden</b> del internet (📦) y se activa dentro de 30 días; una línea en orden aparte ya no lleva bono.'
       : 'Estos clientes ya tienen internet con nosotros pero no tienen línea. Ofrécesela: cada línea cuenta para la meta del mes.'}</div>
     <div class="pros-list">${list.map(c => `<div class="pros-card">
       <div class="pros-card-top"><div style="min-width:0"><div class="pros-name">${escHtml(cap(c.nombre))}</div>
         <div class="pros-sub">Internet ${escHtml(c.internet)} · ${prosShortDate(c.fecha)}${showMgr && c.vendio ? ' · vendió ' + escHtml(c.vendio) : ''}</div>
-        ${c.paquete ? `<div class="pros-sub" style="color:var(--yellow)">📦 Su paquete incluía una línea que no se activó</div>` : ''}
+        ${c.paquete ? (() => { const p = segSlPlazo(c);
+          return p && p.dias >= 0
+            ? `<div class="pros-sub" style="color:var(--yellow)">📦 Su línea ya está en la orden: actívala antes del ${prosShortDate(p.limite)} (${p.dias === 0 ? 'hoy es el último día' : p.dias === 1 ? 'queda 1 día' : 'quedan ' + p.dias + ' días'})${showMgr ? ' · bono $75' : ''}</div>`
+            : `<div class="pros-sub" style="color:var(--muted)">📦 Su paquete incluía una línea que no se activó (plazo vencido el ${prosShortDate(p.limite)})</div>`; })() : ''}
         ${c.estado ? `<div class="pros-sub" style="color:var(--cyan)">${escHtml(c.estado)} por ${escHtml(c.por)} · ${prosShortDate(c.marcado)}${c.nota ? ' · ' + escHtml(c.nota) : ''}</div>` : ''}</div></div>
       <div class="pros-actions">
         ${c.telefono ? `<a class="btn btn-primary btn-sm" href="tel:+1${c.telefono}">📞 ${fmtPhone(c.telefono)}</a>
