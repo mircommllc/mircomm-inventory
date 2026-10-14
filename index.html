@@ -3804,10 +3804,10 @@ function actReconcile(groups, meta) {
     check(!!sold.internetTier, 'int', 'Internet');
     check(!!sold.videoTier, 'tv', 'TV');
     check(sold.voice, 'voice', 'Voice');
+    // El Core Report de Cellmart solo trae Internet/TV/Voice: las líneas móviles se revisan con el Mobile Report.
     if (sold.mobileLines) {
-      const got = kinds.mob.length;
-      if (got < sold.mobileLines) { issues.push(`Móvil: vendiste ${sold.mobileLines} línea(s), el reporte muestra ${got}.`); st.code = 'partial'; }
-      else check(true, 'mob', 'Móvil');
+      if (kinds.mob.length) check(true, 'mob', 'Móvil');
+      else issues.push(`Móvil (${sold.mobileLines} línea${sold.mobileLines > 1 ? 's' : ''}): el Core Report no trae líneas; se revisa con el Mobile Report.`);
     }
     if (sold.internetTier && kinds.int[0]) {
       const a1 = actTierKey(sold.internetTier), r1 = actTierKey(kinds.int[0].itier);
