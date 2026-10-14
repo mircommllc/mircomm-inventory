@@ -751,13 +751,13 @@ function authExpired(msg) {
 }
 
 // ─── TOAST ───────────────────────────────────────────────────────────
-function toast(msg, type='info') {
+function toast(msg, type='info', ms=3000) {
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   const icons = { success: '✓', error: '✗', info: 'ℹ' };
   el.innerHTML = `<span>${icons[type]}</span>${msg}`;
   document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  setTimeout(() => el.remove(), ms);
 }
 
 // ─── MODAL ───────────────────────────────────────────────────────────
@@ -3412,6 +3412,7 @@ async function renderActivations() {
     <div class="action-row">
       <button class="btn btn-primary" onclick="actImportNow(false)">↻ Importar correos nuevos</button>
       <button class="btn btn-ghost" onclick="openActForm()">📱 Registrar activación móvil</button>
+      <button class="btn btn-ghost" onclick="openCredOffer()">📝 Anotar línea ofrecida</button>
       <label class="btn btn-ghost" style="cursor:pointer">📄 Subir reporte de Cellmart
         <input type="file" accept=".xlsx,.xls,.csv" multiple style="display:none" onchange="actLoadReports(this.files);this.value=''">
       </label>
@@ -3433,6 +3434,7 @@ async function renderActivations() {
     }
     renderActBody();
     actRestoreSaved();
+    credAutoScan();
   } catch (e) {
     const msg = /getActivations|unknown|invalid action/i.test(e.message)
       ? 'El backend todavía no tiene Activaciones.gs. Sigue los pasos de instalación y haz Deploy → New version.'
@@ -3558,6 +3560,7 @@ function renderActBody() {
     </div>
     ${actPosPanel(actPosReconcile())}
     ${actEmailsPanel()}
+    ${credPanel()}
     ${actComReco ? actPeriodPanel() : ''}
     ${actComReco ? actComRecoPanel() : ''}
     ${actMobReco ? actMobRecoPanel() : ''}
@@ -3579,7 +3582,7 @@ function renderActTable() {
     return;
   }
   el.innerHTML = `<div class="table-wrap" style="overflow-x:auto"><table>
-    <thead><tr><th>Fecha</th><th>Cliente</th><th>Cuenta</th><th>Hecha por</th><th>Servicios</th><th style="text-align:right">Comisión est.</th>${actReco?'<th>Core</th>':''}${actMobReco?'<th>Móvil</th>':''}${actComReco?'<th>Pago</th>':''}</tr></thead>
+    <thead><tr><th>Fecha</th><th>Cliente</th><th>Cuenta</th><th>Crédito</th><th>Servicios</th><th style="text-align:right">Comisión est.</th>${actReco?'<th>Core</th>':''}${actMobReco?'<th>Móvil</th>':''}${actComReco?'<th>Pago</th>':''}</tr></thead>
     <tbody>${list.map(a => {
       const s = actSvcOf(a), x = actExpected(s, a.OrderDate), st = actReco && actReco.byId[a.ID], ms = actMobReco && actMobReco.byId[a.ID];
       const owner = actRepOwner(a);
@@ -3587,7 +3590,7 @@ function renderActTable() {
         <td class="mono">${actFmtDate(a.OrderDate)}</td>
         <td><div style="font-weight:600">${escHtml(a.CustomerName||'—')}</div>${socActBadge(a)}${a.Source==='Manual'?'<div style="font-size:11px;color:var(--muted)">registro manual</div>':a.Source==='Asesora'?`<div style="font-size:11px;color:var(--muted)">registrada por ${escHtml(a.EnteredBy||'asesora')}</div>`:''}</td>
         <td class="mono">${escHtml(a.AccountNumber||'')}</td>
-        <td>${escHtml(actRepName(a))}${a.SoldBy && owner && owner !== a.SoldBy ? `<div style="font-size:11px;color:var(--yellow)">con ID de ${escHtml(owner)}</div>` : ''}</td>
+        <td>${escHtml(actRepName(a))}${credSubline(a, owner)}</td>
         <td>${actSvcChips(s)}</td>
         <td class="mono" style="text-align:right;color:${x.total?'var(--green)':'var(--muted)'}" title="${escHtml(x.note||'')}">${fmtMoney(x.total)}${x.note?' *':''}</td>
         ${actReco ? `<td>${st ? actStatusBadge(st) : ''}</td>` : ''}
@@ -3629,7 +3632,8 @@ function openActDetail(id) {
       ${field('Cuenta', a.AccountNumber)}
       ${field('Confirmación', a.Confirmation)}
       ${field('Work order', a.WorkOrder)}
-      ${field('Hecha por', actRepName(a))}
+      ${field('Crédito (comisión)', actRepName(a))}
+      ${field('Activó', credActivator(a))}
       ${field('Rep ID en Spectrum', a.RepID ? `${a.RepID}${actRepOwner(a) ? ' (' + actRepOwner(a) + ')' : ''}` : '')}
       ${field('Tipo de línea', s.mobileLines ? `${(ACT_MOBILE_TYPE_INFO[s.mobileType]||{short:s.mobileType}).short}${s.mobileTypeAuto ? ' (calculado)' : ''}${s.mobileLines > 1 ? ` + ${s.mobileLines - 1} incremental(es)` : ''}` : '')}
       ${field('Orden móvil', a.MobileOrder)}
@@ -3656,6 +3660,7 @@ function openActDetail(id) {
       ${ms.issues.map(i => `<div>• ${escHtml(i)}</div>`).join('')}
       ${ms.disputeLeft !== null && ['missing','partial'].includes(ms.code) ? `<div style="margin-top:6px;color:${ms.disputeLeft<=7?'var(--red)':'var(--yellow)'}">Quedan aprox. ${Math.max(ms.disputeLeft,0)} día(s) para disputar (30 días).</div>` : ''}
     </div>` : ''}
+    ${credDetailBox(a)}
     <div class="act-reco-box">
       <div style="font-weight:600;margin-bottom:6px">Comisión estimada: ${fmtMoney(x.total)}</div>
       ${x.lines.map(l => `<div style="display:flex;justify-content:space-between;font-size:12px"><span>${escHtml(l.label)}</span><span class="mono">${fmtMoney(l.amt)}</span></div>`).join('')}
@@ -3705,7 +3710,7 @@ function openActForm(id, pre) {
       <div class="form-group"><label class="form-label">Fecha de orden *</label><input class="form-input" type="date" id="af-date" value="${escHtml(a.OrderDate || actToday())}"></div>
       <div class="form-group"><label class="form-label">Hecha por *</label>
         <select class="form-input form-select" id="af-soldby">${EMPLOYEES.map(n => `<option ${actRepName(a)===n || (!a.ID && !a.SoldBy && n==='Joel') ? 'selected' : ''}>${n}</option>`).join('')}</select>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Quién atendió al cliente (para su comisión).</div></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Quién trabajó al cliente (para su comisión). Si alguien más lo tenía anotado, se le acredita a esa persona.</div></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Rep ID en Spectrum *</label>
@@ -3715,13 +3720,14 @@ function openActForm(id, pre) {
       <div class="form-group"><label class="form-label">Número de cuenta Spectrum *</label><input class="form-input" id="af-acct" inputmode="numeric" value="${escHtml(a.AccountNumber||'')}" oninput="actFormAcct('${escHtml(a.ID||'')}')"></div>
     </div>
     <div id="af-acct-info"></div>
+    <div id="af-cred-info"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Confirmación (internet/TV)</label><input class="form-input" id="af-conf" value="${escHtml(a.Confirmation||'')}"></div>
       <div class="form-group"><label class="form-label">Orden móvil (14 dígitos)</label><input class="form-input mono" id="af-morder" inputmode="numeric" value="${escHtml(a.MobileOrder||'')}"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Cliente *</label><input class="form-input" id="af-name" value="${escHtml(a.CustomerName||'')}"></div>
-      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="af-phone" type="tel" value="${escHtml(a.Phone||'')}"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="af-phone" type="tel" value="${escHtml(a.Phone||'')}" onblur="credFormCheck('af')"></div>
     </div>
     <div id="af-socio-box"></div>
     <div class="form-row">
@@ -3762,6 +3768,7 @@ function actFormAcct(id, keepType) {
   const sel = document.getElementById('af-mtype'), before = sel ? sel.value : '';
   mlShowAcctInfo(info, box, 'af-name', 'af-mtype');
   if (keepType && sel) sel.value = before;
+  if (!id) credFormCheck('af');
 }
 async function actSaveForm(id) {
   const v = k => document.getElementById(k).value.trim();
@@ -3779,6 +3786,7 @@ async function actSaveForm(id) {
       !confirm('Ya hay líneas móviles registradas en esta cuenta. ¿Registrar de todos modos?')) return;
   try {
     const saved = await apiGet({ action: 'saveActivation', data: JSON.stringify(rec) });
+    if (!id) await credAfterSave({ id: saved.ID }, saved);
     await socAfterActSave(saved);
     const i = actData.findIndex(x => x.ID === saved.ID);
     if (i >= 0) actData[i] = saved; else actData.push(saved);
@@ -4111,7 +4119,7 @@ async function renderMyLines() {
   if (!prosAuth || prosAuth.user !== currentUser) { prosAuth = null; mlData = null; renderProsPin(); return; }
   el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
   try {
-    mlData = await mlApi('actRepList');
+    [mlData] = await Promise.all([mlApi('actRepList'), credLoad()]);
   } catch (e) {
     if (/PIN|intentos|Usuario/i.test(e.message)) { prosAuth = null; renderProsPin(e.message); return; }
     el.innerHTML = errorState(/unknown|invalid action|actRepList/i.test(e.message)
@@ -4133,8 +4141,10 @@ function renderMyLinesBody() {
     <div id="pos-pending">${posPendingPanel()}</div>
     <div class="action-row">
       <button class="btn btn-primary" onclick="openMlForm()">＋ Registrar línea</button>
+      <button class="btn btn-ghost" onclick="openCredOffer()">📝 Anotar línea ofrecida</button>
       <button class="btn btn-ghost" onclick="renderMyLines()">↻ Actualizar</button>
     </div>
+    ${credPanel()}
     ${d.emails.length ? `<div class="act-reco" style="border-color:rgba(255,209,102,.45)">
       <div style="font-weight:700;margin-bottom:4px">📧 Spectrum confirmó estas órdenes y nadie las ha registrado</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Si tú la hiciste, regístrala. Si no fue tuya, déjala: Joel la revisa.</div>
@@ -4196,11 +4206,12 @@ function openMlForm(msgId, pre) {
         <input class="form-input mono" id="ml-acct" inputmode="numeric" placeholder="8260…" value="${escHtml(pre.AccountNumber || '')}" oninput="mlAcctChanged()" onblur="mlCheckAcct()"></div>
     </div>
     <div id="ml-acct-info"></div>
+    <div id="ml-cred-info"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Nombre del cliente *</label>
         <input class="form-input" id="ml-name" value="${escHtml(e ? mlTitle(e.FirstName) : (pre.CustomerName || ''))}" placeholder="Nombre y apellido"></div>
       <div class="form-group"><label class="form-label">Teléfono de contacto</label>
-        <input class="form-input" id="ml-phone" type="tel" placeholder="956…" value="${escHtml(pre.Phone || '')}"></div>
+        <input class="form-input" id="ml-phone" type="tel" placeholder="956…" value="${escHtml(pre.Phone || '')}" onblur="credFormCheck('ml')"></div>
     </div>
     <div class="form-group"><label class="form-label">¿Cuántas líneas activaste en esta orden? *</label>
       <input class="form-input" type="number" min="1" max="10" id="ml-lines" value="${escHtml(pre.MobileLines || '1')}" oninput="mlTypeHint()" style="max-width:120px"></div>
@@ -4249,6 +4260,7 @@ async function mlCheckAcct() {
     mlShowAcctInfo(r, box, 'ml-name', 'ml-type');
   } catch (e) { box.innerHTML = `<div class="act-hint" style="margin-bottom:12px;color:var(--red)">${escHtml(e.message)}</div>`; }
   mlTypeHint();
+  credFormCheck('ml');
 }
 // Shared by the asesora form and Joel's form
 function mlShowAcctInfo(r, box, nameId, radioName) {
@@ -4300,7 +4312,8 @@ async function mlSave(force) {
       return;
     }
     closeModal();
-    toast(r.warning ? escHtml(r.warning) : 'Línea registrada. ¡Gracias!', r.warning ? 'info' : 'success');
+    const cr = await credAfterSave({ cuenta: data.AccountNumber });
+    if (!cr) toast(r.warning ? escHtml(r.warning) : 'Línea registrada. ¡Gracias!', r.warning ? 'info' : 'success');
     mlAcctInfo = null;
     if (mlFormPre.PosSaleID) { mlFormPre = {}; mlData = null; if (!posAfterLineSaved()) { if (currentPage === 'pos') renderPOS(); else renderMyLines(); } }
     else renderMyLines();
@@ -4313,6 +4326,179 @@ async function mlDelete(id) {
   if (!confirm('¿Borrar este registro? Solo hazlo si te equivocaste.')) return;
   try { await mlApi('actRepDelete', { id }); toast('Borrado.', 'success'); renderMyLines(); }
   catch (e) { toast(escHtml(e.message), 'error'); }
+}
+
+// ─── 🔁 CRÉDITO DE LA VENTA (backend: Credito.gs) ───────────────────
+// "La línea es de quien la anotó primero. Si nadie la anotó, es de quien la active."
+// Crédito = SoldBy ("Hecha por"), que es lo que usan Nómina y Mi pago. Quién activó se queda en EnteredBy / Rep ID.
+// Anotaciones que cuentan (60 días): 📝 Línea ofrecida, prospecto en Prospectos y "Contactado" en Internet sin línea.
+// Solo Joel cambia el crédito a mano (con motivo); una venta cambiada a mano ya no se cambia sola.
+let credData = null;   // { ofrecidas, cambios, equipo, today, dias } · { missing: true } si falta Credito.gs
+function credApi(action, params = {}) {
+  return isManager ? apiGet({ action, ...params }) : mlApi(action, params);
+}
+async function credLoad() {
+  try { credData = await credApi('credList'); }
+  catch (e) { credData = { missing: true, error: e.message, ofrecidas: [], cambios: [] }; }
+  return credData;
+}
+function credChangesFor(id) { return ((credData && credData.cambios) || []).filter(c => c.ActID === id); }
+function credActivator(a) {
+  if (a.Source === 'Asesora' && a.EnteredBy) return a.EnteredBy;
+  const h = credChangesFor(a.ID)[0];
+  return h && h.Activo ? h.Activo : '';
+}
+function credSubline(a, owner) {
+  const who = actRepName(a), act = credActivator(a), ch = credChangesFor(a.ID).length ? '🔁 ' : '';
+  if (act && act !== who) return `<div style="font-size:11px;color:var(--yellow)">${ch}activó ${escHtml(act)}</div>`;
+  if (a.SoldBy && owner && owner !== a.SoldBy) return `<div style="font-size:11px;color:var(--yellow)">${ch}con ID de ${escHtml(owner)}</div>`;
+  return ch ? `<div style="font-size:11px;color:var(--muted)">🔁 crédito cambiado</div>` : '';
+}
+// Joel: al abrir Activaciones se acreditan solas las líneas recientes que alguien más tenía anotadas
+async function credAutoScan() {
+  try {
+    const r = await apiGet({ action: 'credScan' });
+    if (r.cambios && r.cambios.length) {
+      actData = await apiGet({ action: 'getActivations' });
+      toast(`🔁 ${r.cambios.length} venta(s) se acreditaron a quien tenía anotado al cliente: ${r.cambios.map(c => `${escHtml(c.cliente || '')} → ${escHtml(c.a)}`).join(', ')}.`, 'success', 8000);
+    }
+  } catch (e) { /* Credito.gs todavía no está instalado */ }
+  await credLoad();
+  if (currentPage === 'activations' && document.getElementById('act-body')) renderActBody();
+}
+// Después de registrar una línea: si otra persona tenía anotado al cliente, se le acredita y se avisa
+async function credAfterSave(params, saved) {
+  try {
+    const r = await credApi('credApply', params);
+    const c = (r.cambios || [])[0];
+    if (!c) return null;
+    if (saved && c.id === saved.ID) saved.SoldBy = c.a;
+    const msg = c.a === currentUser
+      ? `🔁 La venta de ${escHtml(c.cliente || '')} se te acreditó a ti: ${escHtml(c.fuente)}.`
+      : `✅ Línea registrada. La venta de ${escHtml(c.cliente || '')} se acreditó a <b>${escHtml(c.a)}</b> porque lo tenía anotado (${escHtml(c.fuente)}).`;
+    toast(msg, 'info', 9000);
+    credLoad();
+    return c;
+  } catch (e) { return null; }
+}
+// Aviso en el formulario antes de guardar ('ml' asesora, 'af' Joel)
+async function credFormCheck(px) {
+  const box = document.getElementById(px + '-cred-info');
+  if (!box) return;
+  const val = id => (document.getElementById(px + '-' + id)?.value || '').trim();
+  const cuenta = actAcct(val('acct')), telefono = actAcct(val('phone')), nombre = val('name');
+  if (cuenta.length < 9 && telefono.length < 10) { box.innerHTML = ''; return; }
+  if (px === 'af' && (!(+val('lines') > 0) || val('int') || val('tv'))) { box.innerHTML = ''; return; }   // solo órdenes de línea
+  try {
+    const r = await credApi('credCheck', { cuenta, telefono, nombre, fecha: val('date') });
+    if (!r.worker) { box.innerHTML = ''; return; }
+    const who = px === 'af' ? val('soldby') : currentUser;
+    box.innerHTML = r.worker === who
+      ? `<div class="act-hint" style="margin-bottom:12px;border-color:rgba(0,232,135,.5)">✅ ${px === 'ml' ? 'Tú tenías' : escHtml(r.worker) + ' tenía'} anotado a este cliente (${escHtml(r.fuente)}, ${actFmtDate(r.fecha)}).</div>`
+      : `<div class="act-hint" style="margin-bottom:12px;border-color:rgba(255,209,102,.6);color:var(--text)">🔁 Este cliente lo tenía anotado <b>${escHtml(r.worker)}</b> (${escHtml(r.fuente)}, ${actFmtDate(r.fecha)}).
+          Regístrala normal: la venta se le acredita a ${escHtml(r.worker)}.</div>`;
+  } catch (e) { box.innerHTML = ''; }
+}
+// Panel de líneas ofrecidas + ventas con crédito cambiado (Activaciones y Mis líneas)
+function credPanel() {
+  if (!credData) return '';
+  if (credData.missing) return isManager ? `<div class="act-hint">📝 Para anotar líneas ofrecidas y acreditar ventas a quien trabajó al cliente falta instalar <b>Credito.gs</b> en Apps Script.</div>` : '';
+  const today = credData.today || actToday();
+  const open = (credData.ofrecidas || []).filter(o => o.Estado === 'Abierta' && o.Vence >= today).sort((a, b) => a.Vence.localeCompare(b.Vence));
+  const ch = (credData.cambios || []).slice().sort((a, b) => String(b.Fecha).localeCompare(String(a.Fecha)));
+  return `<div class="act-reco">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <div style="font-weight:700">📝 Líneas ofrecidas pendientes (${open.length})</div>
+      <div style="font-size:12px;color:var(--muted)">La línea es de quien la anotó primero. Si nadie la anotó, es de quien la active.</div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="openCredOffer()">＋ Anotar</button>
+    </div>
+    ${open.length ? `<div class="table-wrap" style="overflow-x:auto"><table>
+      <thead><tr><th>Anotada</th>${isManager ? '<th>Por</th>' : ''}<th>Cliente</th><th>Cuenta</th><th>Nota</th><th>Vence</th><th></th></tr></thead>
+      <tbody>${open.map(o => { const left = actDaysBetween(today, o.Vence); return `<tr>
+        <td class="mono">${actFmtDate(String(o.Fecha).slice(0, 10))}</td>
+        ${isManager ? `<td>${escHtml(o.Asesora)}</td>` : ''}
+        <td><div style="font-weight:600">${escHtml(o.Nombre || '—')}</div>${o.Telefono ? `<div style="font-size:11px;color:var(--muted)">${escHtml(fmtPhone(o.Telefono))}</div>` : ''}</td>
+        <td class="mono">${escHtml(o.Cuenta || '—')}</td>
+        <td style="font-size:12px">${escHtml(o.Nota || '')}</td>
+        <td style="font-size:12px;color:${left <= 7 ? 'var(--yellow)' : 'var(--muted)'}">${left} día(s)</td>
+        <td><button class="btn btn-ghost btn-sm" title="Quitar" onclick="credCloseOffer('${escHtml(o.ID)}')">✕</button></td></tr>`; }).join('')}</tbody></table></div>`
+      : `<div style="font-size:12px;color:var(--muted)">No hay líneas ofrecidas pendientes. Cuando un cliente no quiera la línea ahorita, anótala aquí.</div>`}
+    ${ch.length ? `<details style="margin-top:10px" ${isManager ? '' : 'open'}><summary style="cursor:pointer;font-size:12px;color:var(--muted)">🔁 Ventas con crédito cambiado (${ch.length})</summary>
+      <div style="font-size:12px;margin-top:6px">${ch.map(c => `<div style="padding:4px 0;border-bottom:1px solid var(--border)">
+        ${actFmtDate(c.FechaVenta)} · <b>${escHtml(c.Cliente || c.Cuenta)}</b> · activó ${escHtml(c.Activo || '—')} → crédito a <b>${escHtml(c.A)}</b>${c.De && c.De !== c.Activo ? ` (antes ${escHtml(c.De)})` : ''}
+        <span style="color:var(--muted)">· ${c.Tipo === 'Auto' ? 'automático' : 'Joel'} · ${escHtml(c.Motivo)}</span></div>`).join('')}</div></details>` : ''}
+  </div>`;
+}
+function credRefresh() {
+  if (currentPage === 'activations' && document.getElementById('act-body')) renderActBody();
+  else if (currentPage === 'mylines' && mlData) renderMyLinesBody();
+}
+function openCredOffer() {
+  if (credData && credData.missing) { toast('Falta instalar Credito.gs en Apps Script.', 'error'); return; }
+  const team = (credData && credData.equipo) || EMPLOYEES;
+  openModal(`
+    <div class="modal-title">📝 Anotar línea ofrecida <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="act-hint" style="margin-bottom:12px">Para el cliente que vino a pagar (o a preguntar) y no quiso la línea ahorita. Si regresa en los próximos ${(credData && credData.dias) || 60} días, la venta es de quien la anotó, aunque se la active otra persona.</div>
+    ${isManager ? `<div class="form-group"><label class="form-label">¿Quién se la ofreció?</label>
+      <select class="form-input form-select" id="co-who">${team.map(n => `<option ${n === currentUser ? 'selected' : ''}>${escHtml(n)}</option>`).join('')}</select></div>` : ''}
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Número de cuenta Spectrum</label><input class="form-input mono" id="co-acct" inputmode="numeric" placeholder="8260…"></div>
+      <div class="form-group"><label class="form-label">Teléfono del cliente</label><input class="form-input" id="co-phone" type="tel" placeholder="956…"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Nombre del cliente *</label><input class="form-input" id="co-name" placeholder="Nombre y apellido"></div>
+    <div class="form-group"><label class="form-label">Nota</label><input class="form-input" id="co-note" placeholder="Ej. tiene la línea gratis pendiente, regresa el viernes"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Pon la cuenta o el teléfono (mejor los dos): así el app reconoce al cliente cuando se active la línea.</div>
+    <button class="btn btn-primary btn-full" id="co-save" onclick="credSaveOffer()">Guardar</button>`);
+  setTimeout(() => document.getElementById('co-acct')?.focus(), 50);
+}
+async function credSaveOffer() {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const data = { Cuenta: actAcct(v('co-acct')), Telefono: actAcct(v('co-phone')), Nombre: v('co-name'), Nota: v('co-note'), Asesora: isManager ? v('co-who') : '' };
+  if (!data.Nombre) { toast('Escribe el nombre del cliente.', 'error'); return; }
+  if (data.Cuenta.length < 9 && data.Telefono.length < 10) { toast('Pon el número de cuenta o el teléfono.', 'error'); return; }
+  const btn = document.getElementById('co-save'); if (btn) btn.disabled = true;
+  try {
+    const r = await credApi('credOffer', { data: JSON.stringify(data) });
+    closeModal();
+    if (r.antes) toast(`Anotada. Ojo: ${escHtml(r.antes.asesora)} ya la tenía anotada desde el ${actFmtDate(r.antes.fecha)}, así que la venta sería de quien la anotó primero.`, 'info', 9000);
+    else toast(r.updated ? 'Anotación actualizada.' : 'Línea ofrecida anotada.', 'success');
+    await credLoad(); credRefresh();
+  } catch (e) { if (btn) btn.disabled = false; toast(escHtml(e.message), 'error'); }
+}
+async function credCloseOffer(id) {
+  if (!confirm('¿Quitar esta anotación? Si el cliente regresa, ya no contará para quien la anotó.')) return;
+  try { await credApi('credOfferClose', { id }); await credLoad(); credRefresh(); toast('Anotación quitada.', 'success'); }
+  catch (e) { toast(escHtml(e.message), 'error'); }
+}
+// Detalle de la venta (Joel): historial y cambio de crédito con motivo
+function credDetailBox(a) {
+  if (!credData) return '';
+  if (credData.missing) return `<div class="act-reco-box" style="font-size:12px">🔁 Para cambiar el crédito con motivo falta instalar <b>Credito.gs</b>. Mientras, usa ✏️ Editar → "Hecha por".</div>`;
+  const who = actRepName(a), hist = credChangesFor(a.ID), team = credData.equipo || EMPLOYEES;
+  return `<div class="act-reco-box">
+    <div style="font-weight:600;margin-bottom:6px">🔁 Crédito de la venta: ${escHtml(who)}</div>
+    ${hist.map(h => `<div style="font-size:12px">• ${actFmtDate(String(h.Fecha).slice(0, 10))}: ${escHtml(h.De || '—')} → <b>${escHtml(h.A)}</b> (${h.Tipo === 'Auto' ? 'automático' : 'a mano'}) — ${escHtml(h.Motivo)}</div>`).join('')}
+    <div class="form-row" style="margin-top:8px">
+      <div class="form-group" style="margin:0"><label class="form-label">Acreditar a</label>
+        <select class="form-input form-select" id="cred-to">${team.map(n => `<option ${n === who ? 'selected' : ''}>${escHtml(n)}</option>`).join('')}</select></div>
+      <div class="form-group" style="margin:0"><label class="form-label">Motivo</label>
+        <input class="form-input" id="cred-why" placeholder="Ej. se la ofrecí yo el 2 oct"></div>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="credSetFromDetail('${escHtml(a.ID)}')">Cambiar crédito</button>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">La comisión (Nómina y Mi pago) es de quien tenga el crédito. El Rep ID de Spectrum y el cotejo con Cellmart no cambian.</div>
+  </div>`;
+}
+async function credSetFromDetail(id) {
+  const to = document.getElementById('cred-to').value, motivo = document.getElementById('cred-why').value.trim();
+  if (!motivo) { toast('Escribe el motivo.', 'error'); return; }
+  try {
+    const r = await apiGet({ action: 'credSet', id, to, motivo });
+    const i = actData.findIndex(x => x.ID === id);
+    if (i >= 0 && r.record) Object.assign(actData[i], { SoldBy: r.record.SoldBy, Notes: r.record.Notes });
+    await credLoad();
+    closeModal(); toast(`Venta acreditada a ${escHtml(to)}.`, 'success');
+    renderActBody(); openActDetail(id);
+  } catch (e) { toast(escHtml(e.message), 'error'); }
 }
 
 // ─── Correos "Agent Order Confirmation" sin registrar (manager) ───
