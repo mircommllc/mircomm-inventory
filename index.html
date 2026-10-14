@@ -3150,76 +3150,96 @@ const TIER_MAP = [
   [/\b500\b|premier/i, '500'],
   [/\b100\b|\b300\b|advantage/i, '100']
 ];
-// Cellmart 2026 commission payment calendar: sales/connections in [start, end] are paid on `pay` at the latest.
-const PAY_SCHEDULE = [
-  ['2025-12-27','2026-01-02','2026-02-02'],
-  ['2026-01-03','2026-01-09','2026-02-02'],
-  ['2026-01-10','2026-01-16','2026-02-16'],
-  ['2026-01-17','2026-01-23','2026-02-16'],
-  ['2026-01-24','2026-01-28','2026-03-02'],
-  ['2026-01-29','2026-01-30','2026-03-02'],
-  ['2026-01-31','2026-02-06','2026-03-02'],
-  ['2026-02-07','2026-02-13','2026-03-16'],
-  ['2026-02-14','2026-02-20','2026-03-16'],
-  ['2026-02-21','2026-02-27','2026-03-30'],
-  ['2026-02-28','2026-02-28','2026-03-30'],
-  ['2026-03-01','2026-03-06','2026-03-30'],
-  ['2026-03-07','2026-03-13','2026-04-13'],
-  ['2026-03-14','2026-03-20','2026-04-13'],
-  ['2026-03-21','2026-03-27','2026-04-27'],
-  ['2026-03-28','2026-03-28','2026-04-27'],
-  ['2026-03-29','2026-04-03','2026-05-11'],
-  ['2026-04-04','2026-04-10','2026-05-11'],
-  ['2026-04-11','2026-04-17','2026-05-25'],
-  ['2026-04-18','2026-04-24','2026-05-25'],
-  ['2026-04-25','2026-04-28','2026-06-08'],
-  ['2026-04-29','2026-05-01','2026-06-08'],
-  ['2026-05-02','2026-05-08','2026-06-08'],
-  ['2026-05-09','2026-05-15','2026-06-22'],
-  ['2026-05-16','2026-05-22','2026-06-22'],
-  ['2026-05-23','2026-05-28','2026-07-06'],
-  ['2026-05-29','2026-05-29','2026-07-06'],
-  ['2026-05-30','2026-06-05','2026-07-06'],
-  ['2026-06-06','2026-06-12','2026-07-20'],
-  ['2026-06-13','2026-06-19','2026-07-20'],
-  ['2026-06-20','2026-06-26','2026-08-03'],
-  ['2026-06-27','2026-06-28','2026-08-03'],
-  ['2026-06-29','2026-07-03','2026-08-03'],
-  ['2026-07-04','2026-07-10','2026-08-03'],
-  ['2026-07-11','2026-07-17','2026-08-17'],
-  ['2026-07-18','2026-07-24','2026-08-17'],
-  ['2026-07-25','2026-07-28','2026-08-31'],
-  ['2026-07-29','2026-07-31','2026-08-31'],
-  ['2026-08-01','2026-08-07','2026-09-14'],
-  ['2026-08-08','2026-08-14','2026-09-14'],
-  ['2026-08-15','2026-08-21','2026-09-28'],
-  ['2026-08-22','2026-08-28','2026-09-28'],
-  ['2026-08-29','2026-09-04','2026-10-12'],
-  ['2026-09-05','2026-09-11','2026-10-12'],
-  ['2026-09-12','2026-09-18','2026-10-26'],
-  ['2026-09-19','2026-09-25','2026-10-26'],
-  ['2026-09-26','2026-09-28','2026-11-09'],
-  ['2026-09-29','2026-10-02','2026-11-09'],
-  ['2026-10-03','2026-10-09','2026-11-09'],
-  ['2026-10-10','2026-10-16','2026-11-23'],
-  ['2026-10-17','2026-10-23','2026-11-23'],
-  ['2026-10-24','2026-10-28','2026-12-07'],
-  ['2026-10-29','2026-10-30','2026-12-07'],
-  ['2026-10-31','2026-11-06','2026-12-07'],
-  ['2026-11-07','2026-11-13','2026-12-21'],
-  ['2026-11-14','2026-11-20','2026-12-21'],
-  ['2026-11-21','2026-11-27','2027-01-04'],
-  ['2026-11-28','2026-11-28','2027-01-04'],
-  ['2026-11-29','2026-12-04','2027-01-04'],
-  ['2026-12-05','2026-12-11','2027-01-18'],
-  ['2026-12-12','2026-12-18','2027-01-18'],
-  ['2026-12-19','2026-12-25','2027-02-01'],
-  ['2026-12-26','2026-12-28','2027-02-01']
+// Calendario 2026 de Spectrum (2026 Retail Partners Payment Schedule): [inicio, fin, due date] por semana de CONEXIÓN.
+// Cellmart paga cada dos lunes todo lo que tuvo due date desde el pago anterior (verificado con los pagos de jun–oct 2026).
+const SPECTRUM_SCHEDULE = [
+  ["2025-12-29","2026-01-02","2026-01-23"],
+  ["2026-01-03","2026-01-09","2026-01-30"],
+  ["2026-01-10","2026-01-16","2026-02-06"],
+  ["2026-01-17","2026-01-23","2026-02-13"],
+  ["2026-01-24","2026-01-28","2026-02-20"],
+  ["2026-01-29","2026-01-30","2026-02-20"],
+  ["2026-01-31","2026-02-06","2026-02-27"],
+  ["2026-02-07","2026-02-13","2026-03-06"],
+  ["2026-02-14","2026-02-20","2026-03-13"],
+  ["2026-02-21","2026-02-27","2026-03-20"],
+  ["2026-02-28","2026-02-28","2026-03-27"],
+  ["2026-03-01","2026-03-06","2026-03-27"],
+  ["2026-03-07","2026-03-13","2026-04-03"],
+  ["2026-03-14","2026-03-20","2026-04-10"],
+  ["2026-03-21","2026-03-27","2026-04-17"],
+  ["2026-03-28","2026-03-28","2026-04-24"],
+  ["2026-03-29","2026-04-03","2026-04-24"],
+  ["2026-04-04","2026-04-10","2026-05-01"],
+  ["2026-04-11","2026-04-17","2026-05-08"],
+  ["2026-04-18","2026-04-24","2026-05-15"],
+  ["2026-04-25","2026-04-28","2026-05-22"],
+  ["2026-04-29","2026-05-01","2026-05-22"],
+  ["2026-05-02","2026-05-08","2026-05-29"],
+  ["2026-05-09","2026-05-15","2026-06-05"],
+  ["2026-05-16","2026-05-22","2026-06-12"],
+  ["2026-05-23","2026-05-28","2026-06-19"],
+  ["2026-05-29","2026-05-29","2026-06-19"],
+  ["2026-05-30","2026-06-05","2026-06-26"],
+  ["2026-06-06","2026-06-12","2026-07-03"],
+  ["2026-06-13","2026-06-19","2026-07-10"],
+  ["2026-06-20","2026-06-26","2026-07-17"],
+  ["2026-06-27","2026-06-28","2026-07-24"],
+  ["2026-06-29","2026-07-03","2026-07-24"],
+  ["2026-07-04","2026-07-10","2026-07-31"],
+  ["2026-07-11","2026-07-17","2026-08-07"],
+  ["2026-07-18","2026-07-24","2026-08-14"],
+  ["2026-07-25","2026-07-28","2026-08-21"],
+  ["2026-07-29","2026-07-31","2026-08-21"],
+  ["2026-08-01","2026-08-07","2026-08-28"],
+  ["2026-08-08","2026-08-14","2026-09-04"],
+  ["2026-08-15","2026-08-21","2026-09-11"],
+  ["2026-08-22","2026-08-28","2026-09-18"],
+  ["2026-08-29","2026-09-04","2026-09-25"],
+  ["2026-09-05","2026-09-11","2026-10-02"],
+  ["2026-09-12","2026-09-18","2026-10-09"],
+  ["2026-09-19","2026-09-25","2026-10-16"],
+  ["2026-09-26","2026-09-28","2026-10-23"],
+  ["2026-09-29","2026-10-02","2026-10-23"],
+  ["2026-10-03","2026-10-09","2026-10-30"],
+  ["2026-10-10","2026-10-16","2026-11-06"],
+  ["2026-10-17","2026-10-23","2026-11-13"],
+  ["2026-10-24","2026-10-28","2026-11-20"],
+  ["2026-10-29","2026-10-30","2026-11-20"],
+  ["2026-10-31","2026-11-06","2026-11-27"],
+  ["2026-11-07","2026-11-13","2026-12-04"],
+  ["2026-11-14","2026-11-20","2026-12-11"],
+  ["2026-11-21","2026-11-27","2026-12-18"],
+  ["2026-11-28","2026-11-28","2026-12-25"],
+  ["2026-11-29","2026-12-04","2026-12-25"],
+  ["2026-12-05","2026-12-11","2027-01-01"],
+  ["2026-12-12","2026-12-18","2027-01-08"],
+  ["2026-12-19","2026-12-25","2027-01-15"],
+  ["2026-12-26","2026-12-28","2027-01-22"]
 ];
+const PAY_HOLIDAYS = ['2026-07-03', '2026-12-25', '2027-01-01'];   // si el due date cae en feriado, se corre al siguiente día hábil
+const CELLMART_PAY_ANCHOR = '2026-10-12';                           // un lunes de pago de Cellmart (cada 14 días)
+function actCellmartPayFor(due) {
+  let d = due;
+  while (PAY_HOLIDAYS.includes(d) || [0, 6].includes(new Date(d + 'T00:00:00').getDay())) d = actAddDays(d, 1);
+  return actAddDays(CELLMART_PAY_ANCHOR, 14 * Math.ceil(actDaysBetween(CELLMART_PAY_ANCHOR, d) / 14));
+}
+// [inicio, fin, pago de Cellmart, due date de Spectrum]
+const PAY_SCHEDULE = SPECTRUM_SCHEDULE.map(([s, e, due]) => [s, e, actCellmartPayFor(due), due]);
 function actPayDeadline(ymd) {
   const d = String(ymd || '').slice(0, 10);
   const s = PAY_SCHEDULE.find(x => x[0] <= d && d <= x[1]);
-  return s ? { start: s[0], end: s[1], pay: s[2] } : null;
+  return s ? { start: s[0], end: s[1], pay: s[2], due: s[3] } : null;
+}
+// Pagos de Cellmart con el rango de conexiones que cubre cada uno
+function actPayPeriods() {
+  const by = {};
+  PAY_SCHEDULE.forEach(([s, e, pay, due]) => {
+    const p = by[pay] = by[pay] || { pay, start: s, end: e, weeks: [] };
+    if (s < p.start) p.start = s; if (e > p.end) p.end = e;
+    p.weeks.push({ start: s, end: e, due });
+  });
+  return Object.values(by).sort((a, b) => a.pay.localeCompare(b.pay));
 }
 // Connection date from a loaded Core/Mobile report (payment is counted from the later of sale and connection)
 function actConnectDate(a) {
@@ -3393,7 +3413,7 @@ async function renderActivations() {
       <button class="btn btn-primary" onclick="actImportNow(false)">↻ Importar correos nuevos</button>
       <button class="btn btn-ghost" onclick="openActForm()">📱 Registrar activación móvil</button>
       <label class="btn btn-ghost" style="cursor:pointer">📄 Subir reporte de Cellmart
-        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="actLoadReport(this.files[0]);this.value=''">
+        <input type="file" accept=".xlsx,.xls,.csv" multiple style="display:none" onchange="actLoadReports(this.files);this.value=''">
       </label>
       <button class="btn btn-ghost" onclick="actExportCSV()">⬇ Exportar CSV</button>
     </div>
@@ -3412,6 +3432,7 @@ async function renderActivations() {
       actFilter.fm = actData.some(a => a.FiscalMonth === cur) ? cur : '';
     }
     renderActBody();
+    actRestoreSaved();
   } catch (e) {
     const msg = /getActivations|unknown|invalid action/i.test(e.message)
       ? 'El backend todavía no tiene Activaciones.gs. Sigue los pasos de instalación y haz Deploy → New version.'
@@ -3537,11 +3558,13 @@ function renderActBody() {
     </div>
     ${actPosPanel(actPosReconcile())}
     ${actEmailsPanel()}
+    ${actComReco ? actPeriodPanel() : ''}
     ${actComReco ? actComRecoPanel() : ''}
     ${actMobReco ? actMobRecoPanel() : ''}
     ${actReco ? actRecoPanel() : ''}
-    ${!actReco && !actMobReco && !actComReco ? `<div class="act-hint">📄 Sube los reportes de Cellmart (Core, Mobile y Commission, en cualquier orden) para ver qué conectó, qué se pagó, qué falta cobrar y qué líneas nadie registró.</div>`
+    ${!actReco && !actMobReco && !actComReco ? `<div class="act-hint">${actSavedP && !actSaved ? '⏳ Cargando los reportes guardados…' : '📄 Sube los reportes de Cellmart (Core, Mobile y Commission; puedes escoger los tres juntos) para ver qué conectó, qué se pagó, qué falta cobrar y qué líneas nadie registró. Se guardan solos.'}</div>`
       : `<div class="act-hint" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Cargados: ${[actReco && '📄 Core', actMobReco && '📱 Mobile', actComReco && '💵 Commission'].filter(Boolean).join(' · ')}${!actComReco ? ' · falta el Commission Report para ver los pagos' : ''}
+        ${actSaveOff ? '<span style="color:var(--yellow)">· ⚠️ No se guardan: falta instalar Reportes.gs en Apps Script</span>' : actSaved && Object.keys(actSaved).length ? '<span style="color:var(--muted)">· guardados en la hoja, se cargan solos</span>' : ''}
         <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="actExportClaims()">⬇ Lista para reclamar</button></div>`}
     <div id="act-table"></div>`;
   renderActTable();
@@ -3780,6 +3803,90 @@ function actRptDate(v) {
   m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m && +m[1] >= 2000 ? `${m[1]}-${m[2]}-${m[3]}` : '';
 }
+// ── Reportes de Cellmart: leer, aplicar y guardar en la hoja (Reportes.gs) ──
+const ACT_REPORT_HDR = { commission: /^commission paid$/i, mobile: /mobile work order number\s*-\s*parent/i, core: /customer\s*-\s*account number/i };
+function actReportKind(grid) {
+  return ['commission', 'mobile', 'core'].find(k => grid.some(r => r.some(c => ACT_REPORT_HDR[k].test(String(c).trim())))) || '';
+}
+// Deja solo el encabezado y los renglones con datos (quita el título y encabezados repetidos)
+function actTrimGrid(kind, grid) {
+  const hi = grid.findIndex(r => r.some(c => ACT_REPORT_HDR[kind].test(String(c).trim())));
+  const H = grid[hi].map(h => String(h ?? '').trim()), hk = JSON.stringify(H);
+  const rows = grid.slice(hi + 1).filter(r => r.some(c => String(c ?? '').trim() !== '') && JSON.stringify(r.map(c => String(c ?? '').trim())) !== hk)
+    .map(r => H.map((_, i) => r[i] ?? ''));
+  return [H, ...rows];
+}
+// Junta el historial de pagos con un Commission Report nuevo sin duplicar: un pago se identifica por
+// fecha + cuenta + orden + paquete + monto + dirección; si viene otra vez, se queda el renglón más nuevo.
+function actMergeCommission(oldG, newG) {
+  if (!oldG || !oldG.length) return newG;
+  const H = [...oldG[0]]; newG[0].forEach(h => { if (!H.includes(h)) H.push(h); });
+  const remap = g => g.slice(1).map(r => H.map(h => { const i = g[0].indexOf(h); return i < 0 ? '' : r[i]; }));
+  const ix = n => H.findIndex(h => h.toLowerCase() === n);
+  const K = ['payment date', 'account no.', 'wo number', 'bundle name', 'commission paid', 'direction'].map(ix);
+  const key = r => K.map((i, j) => { const v = i < 0 ? '' : String(r[i] ?? '').trim(); return j === 1 || j === 2 ? v.replace(/\D/g, '') : j === 4 ? String(Number(v.replace(/[$,\s]/g, ''))) : v.toLowerCase(); }).join('|');
+  const out = remap(oldG), at = {};
+  out.forEach((r, i) => (at[key(r)] = at[key(r)] || []).push(i));
+  const used = {};
+  remap(newG).forEach(r => {
+    const k = key(r), n = used[k] = (used[k] || 0) + 1, old = (at[k] || [])[n - 1];
+    if (old !== undefined) out[old] = r; else out.push(r);
+  });
+  return [H, ...out];
+}
+function actApplyReport(kind, grid, name) {
+  const f = { name };
+  if (kind === 'commission') actLoadCommissionReport(f, grid);
+  else if (kind === 'mobile') {
+    actLoadMobileReport(f, grid);
+    if (actComReco) { actComReconcile(actComReco.rows, actComReco.adjustments, actComReco.meta); renderActBody(); }
+  } else actLoadCoreReport(f, grid);
+}
+let actSaved = null, actSavedP = null, actSaveOff = false;
+function actEnsureSaved() {
+  if (!actSavedP) actSavedP = apiPost({ action: 'repGet' })
+    .then(r => { actSaved = r.reports || {}; })
+    .catch(e => {
+      actSaved = {};
+      if (/repGet|unknown action|desconocid/i.test(e.message)) actSaveOff = true;
+      else { actSavedP = null; toast('No pude leer los reportes guardados: ' + escHtml(e.message), 'error'); }
+    });
+  return actSavedP;
+}
+// Al abrir Activaciones: carga los reportes guardados que no se hayan subido en esta sesión
+async function actRestoreSaved() {
+  const first = !actSavedP;
+  const wait = actEnsureSaved();
+  if (first) renderActBody();
+  await wait;
+  if (!actSaved || currentPage !== 'activations') return;
+  const cur = { core: actReco, mobile: actMobReco, commission: actComReco }, done = [];
+  const t = toast; toast = () => {};
+  try {
+    ['core', 'mobile', 'commission'].forEach(k => {
+      const r = actSaved[k];
+      if (!r || !r.grid || cur[k]) return;
+      try { actApplyReport(k, r.grid, r.archivo); done.push(k); } catch (e) { console.error(e); }
+    });
+  } finally { toast = t; }
+  if (done.length) actFilter.fm = '';
+  renderActBody();
+}
+async function actSaveReport(kind, grid, name) {
+  if (actSaveOff) return;
+  try {
+    await apiPost({ action: 'repSave', tipo: kind, archivo: name, grid });
+    actSaved = actSaved || {};
+    actSaved[kind] = { archivo: name, guardado: actToday(), grid };
+    renderActBody();
+  } catch (e) {
+    if (/repSave|unknown action|desconocid/i.test(e.message)) { actSaveOff = true; renderActBody(); }
+    else toast('El reporte se ve, pero no se guardó: ' + escHtml(e.message), 'error');
+  }
+}
+async function actLoadReports(files) {
+  for (const f of Array.from(files || [])) await actLoadReport(f);
+}
 async function actLoadReport(file) {
   if (!file) return;
   try {
@@ -3787,46 +3894,44 @@ async function actLoadReport(file) {
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
     const ws = wb.Sheets[wb.SheetNames[0]];
     const grid = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
-    if (grid.some(r => r.some(c => /^commission paid$/i.test(String(c).trim())))) {
-      actLoadCommissionReport(file, XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }));
-      nomSaveSnapshot();
-      return;
-    }
-    if (grid.some(r => r.some(c => /mobile work order number\s*-\s*parent/i.test(String(c))))) {
-      actLoadMobileReport(file, XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }));
-      if (actComReco) { actComReconcile(actComReco.rows, actComReco.adjustments, actComReco.meta); renderActBody(); }
-      nomSaveSnapshot();
-      return;
-    }
-    const hi = grid.findIndex(r => r.some(c => /customer\s*-\s*account number/i.test(String(c))));
-    if (hi < 0) throw new Error('No encontré la columna "Customer - Account Number". ¿Es el Core Report?');
-    const H = grid[hi].map(h => String(h).trim().toLowerCase());
-    const col = name => H.indexOf(name.toLowerCase());
-    const C = { fm: col('Fiscal Month'), acct: col('Customer - Account Number'), sale: col('Date - Sales Enter Date'),
-      conn: col('Date - Connect'), disc: col('PSU - Disconnect Date'), name: col('Customer Full Name'), agent: col('Agent'),
-      conf: col('Confirmation #'), psu: col('PSU'), canceled: col('Sales - Canceled'), connects: col('Sales - Connects'),
-      pending: col('Sales - Pending'), disconnect: col('Disconnect'), reason: col('Cancelation Reason'), upd: col('Updated Through'),
-      surv: col('90 Day Survival'), itier: col('InternetTier - Time of Sale'), vtier: col('VideoTier - Time of Sale'), xumo: col('Xumo - Time of Sale Count') };
-    const groups = {}; let minSale = '', maxUpd = '';
-    grid.slice(hi + 1).forEach(r => {
-      const acct = actAcct(r[C.acct]);
-      if (!acct) return;
-      const g = groups[acct] = groups[acct] || { acct, name: r[C.name], agent: r[C.agent], conf: String(r[C.conf]||''), fm: r[C.fm], sale: actRptDate(r[C.sale]), psus: [] };
-      const p = { type: String(r[C.psu]||'').trim(), connected: +r[C.connects] > 0, canceled: +r[C.canceled] > 0, pending: +r[C.pending] > 0,
-        disconnected: +r[C.disconnect] > 0, conn: actRptDate(r[C.conn]), disc: actRptDate(r[C.disc]), reason: r[C.reason] || '',
-        surv: String(r[C.surv]), itier: r[C.itier], vtier: r[C.vtier], xumo: +r[C.xumo] || 0 };
-      g.psus.push(p);
-      if (g.sale && (!minSale || g.sale < minSale)) minSale = g.sale;
-      const u = actRptDate(r[C.upd]); if (u && u > maxUpd) maxUpd = u;
-    });
-    const meta = { file: file.name, minSale, upd: maxUpd || actToday(), accounts: Object.keys(groups).length };
-    actReconcile(groups, meta);
-    if (actComReco) actComReconcile(actComReco.rows, actComReco.adjustments, actComReco.meta);
-    actFilter.fm = '';  // the report spans several months
-    toast(`Core Report cargado: ${meta.accounts} cuentas.`, 'success');
-    renderActBody();
+    const kind = actReportKind(grid);
+    if (!kind) throw new Error(`"${escHtml(file.name)}" no parece un reporte de Cellmart (Core, Mobile o Commission).`);
+    // El Core se lee con las fechas como texto; Mobile y Commission con los valores crudos
+    let g = actTrimGrid(kind, kind === 'core' ? grid : XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }));
+    if (kind === 'commission') { await actEnsureSaved(); g = actMergeCommission(actSaved && actSaved.commission && actSaved.commission.grid, g); }
+    actApplyReport(kind, g, file.name);
     nomSaveSnapshot();
+    await actSaveReport(kind, g, file.name);
   } catch (e) { toast(e.message, 'error'); }
+}
+function actLoadCoreReport(file, grid) {
+  const hi = grid.findIndex(r => r.some(c => /customer\s*-\s*account number/i.test(String(c))));
+  if (hi < 0) throw new Error('No encontré la columna "Customer - Account Number". ¿Es el Core Report?');
+  const H = grid[hi].map(h => String(h).trim().toLowerCase());
+  const col = name => H.indexOf(name.toLowerCase());
+  const C = { fm: col('Fiscal Month'), acct: col('Customer - Account Number'), sale: col('Date - Sales Enter Date'),
+    conn: col('Date - Connect'), disc: col('PSU - Disconnect Date'), name: col('Customer Full Name'), agent: col('Agent'),
+    conf: col('Confirmation #'), psu: col('PSU'), canceled: col('Sales - Canceled'), connects: col('Sales - Connects'),
+    pending: col('Sales - Pending'), disconnect: col('Disconnect'), reason: col('Cancelation Reason'), upd: col('Updated Through'),
+    surv: col('90 Day Survival'), itier: col('InternetTier - Time of Sale'), vtier: col('VideoTier - Time of Sale'), xumo: col('Xumo - Time of Sale Count') };
+  const groups = {}; let minSale = '', maxUpd = '';
+  grid.slice(hi + 1).forEach(r => {
+    const acct = actAcct(r[C.acct]);
+    if (!acct) return;
+    const g = groups[acct] = groups[acct] || { acct, name: r[C.name], agent: r[C.agent], conf: String(r[C.conf]||''), fm: r[C.fm], sale: actRptDate(r[C.sale]), psus: [] };
+    const p = { type: String(r[C.psu]||'').trim(), connected: +r[C.connects] > 0, canceled: +r[C.canceled] > 0, pending: +r[C.pending] > 0,
+      disconnected: +r[C.disconnect] > 0, conn: actRptDate(r[C.conn]), disc: actRptDate(r[C.disc]), reason: r[C.reason] || '',
+      surv: String(r[C.surv]), itier: r[C.itier], vtier: r[C.vtier], xumo: +r[C.xumo] || 0 };
+    g.psus.push(p);
+    if (g.sale && (!minSale || g.sale < minSale)) minSale = g.sale;
+    const u = actRptDate(r[C.upd]); if (u && u > maxUpd) maxUpd = u;
+  });
+  const meta = { file: file.name, minSale, upd: maxUpd || actToday(), accounts: Object.keys(groups).length };
+  actReconcile(groups, meta);
+  if (actComReco) actComReconcile(actComReco.rows, actComReco.adjustments, actComReco.meta);
+  actFilter.fm = '';  // the report spans several months
+  toast(`Core Report cargado: ${meta.accounts} cuentas.`, 'success');
+  renderActBody();
 }
 
 function actPsuKind(t) {
@@ -4557,6 +4662,135 @@ function actComRecoPanel() {
         <span style="flex:1"><b>${escHtml(mlTitle(actReportName(u.name)))}</b> <span class="mono" style="color:var(--muted)">${escHtml(u.acct)}</span></span>
         <span>${escHtml(u.bundle)}</span><span class="mono" style="color:${u.amt < 0 ? 'var(--red)' : 'var(--green)'}">${fmtMoney(u.amt)}</span>
         <span style="color:var(--muted)">pagado ${actFmtDate(u.pay)}</span></div>`).join('')}</div></details>` : ''}
+  </div>`;
+}
+
+// ─── Cotejo por periodo de pago (calendario de Spectrum + pago de Cellmart) ──────
+let actPeriod = { pay: '', start: '', end: '' };   // pay = fecha de pago de Cellmart; '' = rango a mano
+function actShortDate(ymd) {
+  const m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${+m[3]} ${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][+m[2] - 1]}${m[1] !== actToday().slice(0, 4) ? ' ' + m[1] : ''}` : '';
+}
+// Primera conexión de los servicios de la orden (Core para internet/TV, Mobile para líneas)
+function actFirstConnect(a) {
+  let d = '';
+  const od = a.OrderDate || '';
+  if ((a.InternetTier || a.VideoTier) && actReco) {
+    const g = actReco.groups[actAcct(a.AccountNumber)];
+    if (g) g.psus.forEach(p => { if (p.connected && p.conn && p.conn >= od && actDaysBetween(od, p.conn) <= 60 && (!d || p.conn < d)) d = p.conn; });
+  }
+  const ms = actMobReco && actMobReco.byId[a.ID];
+  if (ms && ms.wos) ms.wos.forEach(w => ((actMobReco.groups[w] || {}).lines || []).forEach(l => { if (l.connected && !l.canceled && l.conn && (!d || l.conn < d)) d = l.conn; }));
+  return d;
+}
+function actPeriodDefault() {
+  const pays = actPayPeriods().map(p => p.pay);
+  const paid = actComReco && actComReco.meta.maxPay;
+  return paid && pays.includes(paid) ? paid : pays.filter(p => p <= actToday()).pop() || '';
+}
+function actPeriodCalc() {
+  const C = actComReco;
+  if (!actPeriod.pay && !(actPeriod.start && actPeriod.end)) actPeriod.pay = actPeriodDefault();
+  const P = actPeriod.pay;
+  const per = P ? actPayPeriods().find(x => x.pay === P) : { start: actPeriod.start, end: actPeriod.end, weeks: [] };
+  if (!per) return null;
+  const inR = d => d && d >= per.start && d <= per.end;
+  const g = { ok: [], under: [], missing: [], elsewhere: [], outside: [], unreg: [], onlyRep: [] };
+  let exp = 0, paidReg = 0, approx = 0;
+  actData.forEach(a => {
+    const cs = C.byId[a.ID]; if (!cs) return;
+    let base = actFirstConnect(a), est = false;
+    if (!base) {
+      const st = actReco && actReco.byId[a.ID], ms = actMobReco && actMobReco.byId[a.ID];
+      if ((st && st.reportAcct) || (ms && ms.wos && ms.wos.length)) base = '';   // está en el reporte pero no ha conectado
+      else { base = a.OrderDate; est = true; }
+    }
+    const here = cs.rows.filter(r => !P || r.pay === P), other = P ? cs.rows.filter(r => r.pay !== P) : [];
+    const paid = here.reduce((n, r) => n + r.amt, 0);
+    const it = { a, base, est, exp: cs.expected, paid, here, other };
+    if (base && inR(base)) {
+      if (cs.code === 'canceled' && !here.length) return;
+      if (!it.exp && !here.length && !other.length) return;
+      exp += it.exp || 0; paidReg += paid; if (est) approx++;
+      if (here.length) (it.exp && paid + 1 < it.exp ? g.under : g.ok).push(it);
+      else if (other.length) g.elsewhere.push(it);
+      else g.missing.push(it);
+    } else if (P && here.length) g.outside.push(it);
+  });
+  const rowIn = r => P ? r.pay === P : inR(r.use || r.sale);
+  g.unreg = C.unmatched.filter(rowIn);
+  // Conexiones que Spectrum reporta en el periodo y que no están en la app ni se han pagado
+  const paidAccts = new Set(C.rows.filter(r => r.amt > 0).map(r => r.acct));
+  const regAccts = new Set(actData.map(a => actAcct(a.AccountNumber)).filter(Boolean));
+  const lineAccts = new Set(actData.filter(a => +a.MobileLines > 0).map(a => actAcct(a.AccountNumber)).filter(Boolean));
+  if (actReco) actReco.onlyReport.forEach(r => {
+    const live = r.psus.filter(p => p.connected), c = live.map(p => p.conn).filter(Boolean).sort()[0];
+    if (c && inR(c) && !paidAccts.has(r.acct) && !regAccts.has(r.acct)) { const x = actExpected(actReportSvc(r), c); g.onlyRep.push({ name: r.name, acct: r.acct, conn: c, what: live.map(p => p.type).join(' + '), exp: x.total }); }
+  });
+  if (actMobReco) actMobReco.unregistered.forEach(r => {
+    const ls = (r.lines || []).filter(l => l.connected && !l.canceled), c = ls.map(l => l.conn).filter(Boolean).sort()[0];
+    if (c && inR(c) && !paidAccts.has(r.acct) && !lineAccts.has(actAcct(r.acct))) g.onlyRep.push({ name: r.name, acct: r.acct, conn: c, what: `${ls.length} línea(s)`, exp: null });
+  });
+  const pay = P ? C.rows.filter(r => r.pay === P) : [];
+  const adj = P ? C.adjustments.filter(r => r.pay === P).reduce((n, r) => n + r.amt, 0) : 0;
+  const unregPaid = g.unreg.reduce((n, r) => n + r.amt, 0), outPaid = g.outside.reduce((n, i) => n + i.paid, 0);
+  return { P, per, g, exp, paidReg, approx, unregPaid, outPaid, adj, gross: pay.reduce((n, r) => n + r.amt, 0),
+    loaded: P ? C.meta.minPay <= P && P <= C.meta.maxPay : true, noConn: !actReco && !actMobReco };
+}
+function actPeriodSet(v) {
+  if (v === 'range') actPeriod = { pay: '', start: actPeriod.start || actAddDays(actToday(), -30), end: actPeriod.end || actToday() };
+  else actPeriod = { pay: v, start: '', end: '' };
+  renderActBody();
+}
+function actPeriodPanel() {
+  const R = actPeriodCalc();
+  if (!R) return '';
+  const { P, per, g } = R;
+  const opts = actPayPeriods().filter(p => p.pay >= '2026-05-25' && p.pay <= actAddDays(actToday(), 45)).reverse();
+  const nm = i => `<a href="#" onclick="openActDetail('${escHtml(i.a.ID)}');return false" style="color:var(--text);font-weight:600">${escHtml(i.a.CustomerName || '—')}</a>`;
+  const conn = i => `${actShortDate(i.base)}${i.est ? ' <span title="Sin fecha de conexión en los reportes: uso la fecha de venta" style="color:var(--yellow)">≈</span>' : ''}`;
+  const money = v => v === null || v === undefined ? '—' : fmtMoney(v);
+  const tbl = (head, rows) => `<div class="table-wrap" style="margin-top:8px;overflow-x:auto"><table><thead><tr>${head.map((h, i) => `<th${i > 1 && i < 4 ? ' style="text-align:right"' : ''}>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+  const regRow = (i, note) => `<tr><td>${nm(i)}</td><td class="mono">${conn(i)}</td><td class="mono" style="text-align:right">${money(i.exp)}</td><td class="mono" style="text-align:right">${i.here.length ? fmtMoney(i.paid) : '—'}</td><td style="font-size:12px;color:var(--muted)">${note}</td></tr>`;
+  const H = ['Cliente', 'Conectó', 'Esperado', 'Pagado', 'Nota'];
+  const sec = (icon, title, n, body, open) => n ? `<details style="margin-top:10px"${open ? ' open' : ''}><summary style="cursor:pointer;font-weight:600">${icon} ${title} (${n})</summary>${body}</details>` : '';
+  const bundles = i => i.here.map(r => `${escHtml(r.bundle)} ${fmtMoney(r.amt)}`).join(' · ');
+  const diff = R.paidReg - R.exp;
+  const future = P && P > (actComReco.meta.maxPay || '');
+  return `<div class="act-reco" id="act-period">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <div style="font-weight:700">🗓 Cotejo por periodo de pago</div>
+      <select class="form-input form-select" style="width:auto" onchange="actPeriodSet(this.value)">
+        ${opts.map(p => `<option value="${p.pay}" ${p.pay === P ? 'selected' : ''}>Pago ${actShortDate(p.pay)} · conexiones ${actShortDate(p.start)} – ${actShortDate(p.end)}</option>`).join('')}
+        <option value="range" ${!P ? 'selected' : ''}>Otro rango de conexiones…</option>
+      </select>
+      ${!P ? `<input type="date" class="form-input" style="width:auto" value="${per.start}" onchange="actPeriod.start=this.value;renderActBody()">
+        <span style="color:var(--muted)">a</span><input type="date" class="form-input" style="width:auto" value="${per.end}" onchange="actPeriod.end=this.value;renderActBody()">` : ''}
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${P
+      ? `Según el calendario de Spectrum, el pago del <b>${actFmtDate(P)}</b> cubre lo que <b>conectó del ${actFmtDate(per.start)} al ${actFmtDate(per.end)}</b> (${per.weeks.map(w => `${actShortDate(w.start)}–${actShortDate(w.end)}, due ${actShortDate(w.due)}`).join(' · ')}).`
+      : `Todo lo que conectó del ${actFmtDate(per.start)} al ${actFmtDate(per.end)}, con lo que se haya pagado en cualquier fecha.`}
+      ${P && !R.loaded ? `<br><span style="color:var(--yellow)">⚠️ El Commission Report cargado no incluye este pago (tiene del ${actFmtDate(actComReco.meta.minPay)} al ${actFmtDate(actComReco.meta.maxPay)}).${P > actComReco.meta.maxPay ? ' Lo de abajo es lo que <b>debe venir</b> en ese pago.' : ''}</span>` : ''}
+      ${R.noConn ? '<br><span style="color:var(--yellow)">⚠️ Sin Core ni Mobile Report no tengo fechas de conexión: uso la fecha de venta (≈).</span>' : R.approx ? `<br>≈ ${R.approx} orden(es) sin fecha de conexión en los reportes: uso la fecha de venta.` : ''}</div>
+    <div class="report-grid" style="margin-bottom:0">
+      <div class="stat-card blue"><div class="stat-label">Esperado (registradas)</div><div class="stat-value">${fmtMoney(R.exp)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${g.ok.length + g.under.length + g.missing.length + g.elsewhere.length} orden(es) conectadas en el periodo</div></div>
+      <div class="stat-card green"><div class="stat-label">Pagado de esas órdenes</div><div class="stat-value">${fmtMoney(R.paidReg)}</div>
+        <div style="font-size:11px;color:${Math.abs(diff) < 1 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--muted)'};margin-top:4px">${Math.abs(diff) < 1 ? '✓ cuadra' : diff < 0 ? `faltan ${fmtMoney(-diff)}` : `${fmtMoney(diff)} de más`}</div></div>
+      ${P ? `<div class="stat-card cyan"><div class="stat-label">Total del pago ${actShortDate(P)}</div><div class="stat-value">${fmtMoney(R.gross + R.adj)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${[R.outPaid && `${fmtMoney(R.outPaid)} de otros periodos`, R.unregPaid && `${fmtMoney(R.unregPaid)} no registradas`, R.adj && `${fmtMoney(R.adj)} facturas`].filter(Boolean).join(' · ') || 'todo es de este periodo'}</div></div>` : ''}
+      <div class="stat-card ${future ? 'yellow' : 'red'}"><div class="stat-label">${future ? '⏳ Deben venir' : '❌ Por reclamar'}</div><div class="stat-value">${future ? g.missing.length : g.missing.length + g.under.length}</div>
+        ${g.onlyRep.length ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">+ ${g.onlyRep.length} conexión(es) sin registrar</div>` : ''}</div>
+    </div>
+    ${sec(future ? '⏳' : '❌', future ? 'Deben venir en este pago' : 'Conectaron en el periodo y no se pagaron', g.missing.length, tbl(H, g.missing.map(i => regRow(i, future ? (P > actToday() ? 'Debe venir en este pago' : 'Este pago no está en el reporte cargado') : 'No aparece en el pago'))), true)}
+    ${sec('⚠️', 'Pagadas de menos', g.under.length, tbl(H, g.under.map(i => regRow(i, `Faltan ${fmtMoney(i.exp - i.paid)} · ${bundles(i)}`))), true)}
+    ${sec('⚠️', 'Pagos de cuentas que no están registradas en la app', g.unreg.length, tbl(['Cliente', 'Venta', 'Paquete', 'Pagado', 'Cuenta'], g.unreg.map(u =>
+      `<tr><td style="font-weight:600">${escHtml(mlTitle(actReportName(u.name)))}</td><td class="mono">${actShortDate(u.sale)}</td><td>${escHtml(u.bundle)}</td><td class="mono" style="text-align:right">${fmtMoney(u.amt)}</td><td class="mono" style="font-size:12px;color:var(--muted)">${escHtml(u.acct)}</td></tr>`)), false)}
+    ${sec('⚠️', 'Spectrum las reporta conectadas, pero no están en la app ni se han pagado', g.onlyRep.length, tbl(['Cliente', 'Conectó', 'Esperado', 'Servicios', 'Cuenta'], g.onlyRep.map(o =>
+      `<tr><td style="font-weight:600">${escHtml(mlTitle(actReportName(o.name)))}</td><td class="mono">${actShortDate(o.conn)}</td><td class="mono" style="text-align:right">${money(o.exp)}</td><td>${escHtml(o.what)}</td><td class="mono" style="font-size:12px;color:var(--muted)">${escHtml(o.acct)}</td></tr>`)), false)}
+    ${sec('ℹ️', 'Conectaron en el periodo pero se pagaron en otra fecha', g.elsewhere.length, tbl(H, g.elsewhere.map(i => regRow(i, i.other.map(r => `${fmtMoney(r.amt)} el ${actShortDate(r.pay)}`).join(' · ')))), false)}
+    ${sec('ℹ️', 'Vinieron en este pago pero conectaron fuera del periodo', g.outside.length, tbl(H, g.outside.map(i => regRow(i, i.base ? `Conectó ${actShortDate(i.base)}${(dl => dl ? ` → le tocaba el pago del ${actShortDate(dl.pay)}` : '')(actPayDeadline(i.base))}` : 'Sin fecha de conexión'))), false)}
+    ${sec('✅', 'Pagadas', g.ok.length, tbl(H, g.ok.map(i => regRow(i, (i.exp && i.paid > i.exp + 1 ? `<span style="color:var(--green)">${fmtMoney(i.paid - i.exp)} más de lo esperado</span> · ` : '') + bundles(i)))), false)}
   </div>`;
 }
 
@@ -6004,7 +6238,7 @@ function socOpenConfig() {
     <div class="form-row">${f('tier2', 'Spectrum escalonado: $ de la N+1 en adelante')}${f('flat', 'Plan fijo: $ para socios nuevos', 'A Imelda se le cambia en su ficha.')}</div>
     <div class="form-row">${f('other', 'AT&T, Viasat y Tracfone: $')}${f('delayDays', 'Días después de que te pagan', 'Para revisar y preparar el pago.')}</div>
     <div class="form-row">${f('deadlineDays', 'Plazo del acuerdo: días después del fin de mes')}${f('cbDays', 'Ventana de chargeback (días después de pagarle)')}</div>
-    ${f('estDays', 'Sin calendario de Cellmart (2027): Cellmart paga ~ días después de la venta', 'Mientras no esté el calendario 2027. Agrégalo al PAY_SCHEDULE cuando lo tengas.')}
+    ${f('estDays', 'Sin calendario de Cellmart (2027): Cellmart paga ~ días después de la venta', 'Mientras no esté el calendario 2027 de Spectrum (pásamelo cuando salga).')}
     <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Al guardar se recalculan solo los referidos sin pagar. Lo ya pagado no cambia.</div>
     <button class="btn btn-primary btn-full" onclick="socSaveConfig()">Guardar reglas</button>`);
 }
