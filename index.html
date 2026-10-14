@@ -3069,6 +3069,7 @@ function segSlHtml(showMgr) {
     <div class="pros-list">${list.map(c => `<div class="pros-card">
       <div class="pros-card-top"><div style="min-width:0"><div class="pros-name">${escHtml(cap(c.nombre))}</div>
         <div class="pros-sub">Internet ${escHtml(c.internet)} · ${prosShortDate(c.fecha)}${showMgr && c.vendio ? ' · vendió ' + escHtml(c.vendio) : ''}</div>
+        ${c.paquete ? `<div class="pros-sub" style="color:var(--yellow)">📦 Su paquete incluía una línea que no se activó</div>` : ''}
         ${c.estado ? `<div class="pros-sub" style="color:var(--cyan)">${escHtml(c.estado)} por ${escHtml(c.por)} · ${prosShortDate(c.marcado)}${c.nota ? ' · ' + escHtml(c.nota) : ''}</div>` : ''}</div></div>
       <div class="pros-actions">
         ${c.telefono ? `<a class="btn btn-primary btn-sm" href="tel:+1${c.telefono}">📞 ${fmtPhone(c.telefono)}</a>
@@ -3326,15 +3327,30 @@ function actExpected(svc, ymd) {
   if (hasInt && bVid && bMob) add('Bono Triple Play' + other, r.bundle.triple);
   else if (hasInt && bMob) add('Bono Internet + Móvil' + other, r.bundle.intMob);
   else if (hasInt && bVid) add('Bono Internet + TV' + other, r.bundle.intVid);
-  return { total: lines.reduce((s,l) => s + l.amt, 0), lines, note: unknown.length ? 'Revisar: ' + unknown.join(', ') : '' };
+  const notes = [];
+  if (unknown.length) notes.push('Revisar: ' + unknown.join(', '));
+  if (svc.pkgLines) notes.push(`📦 El paquete incluía ${svc.pkgLines} línea(s) que no se ha(n) confirmado activada(s): no se cuenta(n) hasta verla(s) en el Mobile Report.`);
+  return { total: lines.reduce((s,l) => s + l.amt, 0), lines, note: notes.join(' ') };
 }
+// Los correos de Spectrum de internet a veces traen "Internet Gig + 1 Mobile Unlimited Line": es el paquete de la
+// promoción, pero la línea solo existe si el cliente la activa. Esa línea no cuenta hasta verla en el Mobile Report.
+function actPkgLine(a) {
+  return a.Source === 'Email' && +a.MobileLines > 0 && !a.MobileOrder && !String(a.IMEIs || '').trim() && !a.LinePhones && !a.MobileType;
+}
+function actPkgConfirmed(a) {
+  const ms = actMobReco && actMobReco.byId[a.ID];
+  return !!ms && ['ok', 'pending'].includes(ms.code);
+}
+function actRealLines(a) { return actPkgLine(a) && !actPkgConfirmed(a) ? 0 : (+a.MobileLines || 0); }
 function actSvcOf(a) {
   const mt = actMobileTypeOf(a);
   // Otras órdenes de la misma cuenta con la misma fecha de orden (cuentan para el bono de bundle)
   const acct = actAcct(a.AccountNumber), day = String(a.OrderDate || '').slice(0, 10);
   const same = acct && a.InternetTier ? actData.filter(x => x.ID !== a.ID && actAcct(x.AccountNumber) === acct && String(x.OrderDate || '').slice(0, 10) === day) : [];
-  return { pairMob: !(+a.MobileLines > 0) && same.some(x => +x.MobileLines > 0), pairVid: !a.VideoTier && same.some(x => x.VideoTier),
-           internetTier: a.InternetTier || '', mobileLines: +a.MobileLines || 0, videoTier: a.VideoTier || '',
+  const lines = actRealLines(a);
+  return { pairMob: !lines && same.some(x => actRealLines(x) > 0), pairVid: !a.VideoTier && same.some(x => x.VideoTier),
+           pkgLines: lines ? 0 : (actPkgLine(a) ? +a.MobileLines : 0),
+           internetTier: a.InternetTier || '', mobileLines: lines, videoTier: a.VideoTier || '',
            voice: /^(yes|y|s[ií]|true|1)$/i.test(String(a.Voice||'')), xumo: +a.XumoDevices || 0,
            mobileType: mt.type, mobileTypeAuto: mt.auto };
 }
@@ -3342,6 +3358,7 @@ function actSvcChips(svc) {
   const c = [];
   if (svc.internetTier) c.push(`<span class="svc svc-int">🌐 ${escHtml(svc.internetTier)}</span>`);
   if (svc.mobileLines) c.push(`<span class="svc svc-mob" title="${svc.mobileTypeAuto ? 'Tipo calculado por la app (no lo capturó nadie)' : ''}">📱 ${svc.mobileLines} línea${svc.mobileLines>1?'s':''}${svc.mobileType ? ' · ' + escHtml((ACT_MOBILE_TYPE_INFO[svc.mobileType]||{short:svc.mobileType}).short) + (svc.mobileTypeAuto ? '?' : '') : ''}</span>`);
+  if (svc.pkgLines) c.push(`<span class="svc" title="El correo traía la línea del paquete, pero no aparece activada">📦 Línea del paquete sin activar</span>`);
   if (svc.videoTier) c.push(`<span class="svc svc-tv">📺 ${escHtml(svc.videoTier)}</span>`);
   if (svc.voice) c.push(`<span class="svc">☎ Voice</span>`);
   if (svc.xumo) c.push(`<span class="svc">Xumo ×${svc.xumo}</span>`);
@@ -4228,6 +4245,7 @@ const ACT_MOB_STATUS = {
   partial:  { label: '⚠️ Faltan líneas', cls: 'badge-out' },
   canceled: { label: 'Cancelada',        cls: 'badge-out' },
   recent:   { label: 'Muy reciente',     cls: 'badge-low' },
+  pkg:      { label: '📦 Paquete sin línea', cls: '' },
   out:      { label: 'Fuera del rango',  cls: '' }
 };
 function actMobBadge(ms) {
@@ -4323,6 +4341,7 @@ function actMobReconcile(groups, meta) {
       if (meta.minSale && a.OrderDate < meta.minSale) { st.code = 'out'; issues.push('La venta es anterior al rango del reporte.'); }
       else if (a.OrderDate > meta.upd) { st.code = 'out'; issues.push(`Venta posterior al reporte (llega al ${actFmtDate(meta.upd)}). Baja un reporte más nuevo.`); }
       else if (a.OrderDate >= recentCut) { st.code = 'recent'; issues.push('Venta muy reciente para este reporte.'); }
+      else if (actPkgLine(a)) { st.code = 'pkg'; issues.push(`El paquete de la orden incluía ${a.MobileLines} línea(s), pero el cliente no la activó: no aparece en el Mobile Report. No es para reclamar.`); }
       else { st.code = 'missing'; st.disputeLeft = disputeLeft; issues.push('La orden no aparece en el Mobile Report.'); }
       byId[a.ID] = st; return;
     }
@@ -4354,6 +4373,9 @@ function actMobReconcile(groups, meta) {
   });
   const unregistered = Object.values(groups).filter(g => !used.has(g.wo)).sort((a, b) => (b.sale || '').localeCompare(a.sale || ''));
   actMobReco = { groups, meta, byId, unregistered };
+  // Cuentas con línea activada → se quitan de "Clientes con internet sin línea" (Seguimiento.gs)
+  const withLine = [...new Set(Object.values(groups).filter(g => g.lines.some(l => l.connected && !l.canceled)).map(g => actAcct(g.acct)).filter(Boolean))];
+  if (withLine.length && isManager) apiGet({ action: 'segSinLineaSync', user: 'Joel', pin: '', cuentas: withLine.join(',') }).catch(() => {});
 }
 function actMobRecoPanel() {
   const r = actMobReco, vals = Object.values(r.byId);
@@ -4450,7 +4472,10 @@ function actComReconcile(rows, adjustments, meta) {
   const byId = {};
   actData.forEach(a => {
     const got = assigned[a.ID] || [], issues = [];
-    const s = actSvcOf(a), x = actExpected(s, a.OrderDate);
+    let s = actSvcOf(a);
+    // Línea del paquete: si Cellmart la pagó ("Internet + Mobile"), estaba activada; si no, se espera solo lo demás.
+    if (s.pkgLines) s = got.some(r => /mobile/i.test(r.bundle || '')) ? { ...s, mobileLines: s.pkgLines, pkgLines: 0 } : { ...s, pkgLines: 0 };
+    const x = actExpected(s, a.OrderDate);
     const paid = got.filter(r => r.amt > 0).reduce((n, r) => n + r.amt, 0);
     const charged = got.filter(r => r.amt < 0).reduce((n, r) => n + r.amt, 0);
     const conn = actConnectDate(a);
