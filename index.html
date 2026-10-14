@@ -2039,6 +2039,7 @@ function renderProsRep() {
     </div>
     <button class="btn btn-primary btn-full pros-new-btn" onclick="openProsNew()">＋ Nuevo prospecto</button>
     ${segData && (segOn() || segData.missing) ? segDayHtml(all, false) : ''}
+    ${segSlHtml(false)}
     ${!segOn() && due.length ? `<div class="pros-section-title">📅 Para hoy</div><div class="pros-list">${due.map(prosCard).join('')}</div>` : ''}
     <div class="pros-section-title">Todos mis prospectos</div>
     <div class="action-row" style="margin-bottom:12px">
@@ -2134,7 +2135,7 @@ function renderProsManager() {
       <button class="btn btn-ghost" onclick="prosExportCSV()">⬇ CSV</button>
     </div>
     <div id="pros-mgr-summary"></div>
-    <div id="seg-mgr">${segManagerHtml()}</div>
+    <div id="seg-mgr">${segManagerHtml()}${segSlHtml(true)}</div>
     <div id="pros-review"></div>
     <div class="pros-section-title">Prospectos</div>
     <div class="action-row" style="margin-bottom:12px">
@@ -3051,6 +3052,44 @@ function segManagerHtml() {
       <div class="pros-hint" style="margin:-4px 0 10px">${d.orphan.map(p => `<a href="#" onclick="openProsDetail('${p.ID}');return false" style="color:var(--cyan)">${escHtml(p.Nombre)}</a> (${escHtml(p.Asesora)})`).join(' · ')}</div>` : ''}`;
 }
 
+// ── 📱 Clientes con internet sin línea ──
+function segSlList() { return (segData && segData.sinLinea) || []; }
+function segSlMsg(c) {
+  return `Hola ${segFirst(c.nombre)}, soy ${prosAuth.user} de MirComm 😊 Gracias por contratar tu internet con nosotros. ¿Ya conoces la línea móvil de Spectrum? Te ayudamos a pasarte con tu mismo número, en la tienda o por teléfono. ¿Te platico las opciones?`;
+}
+function segSlHtml(showMgr) {
+  const list = segSlList();
+  if (!segOn() || !list.length) return '';
+  const cap = s => s ? String(s).toLowerCase().replace(/\b\p{L}/gu, m => m.toUpperCase()) : '';
+  return `<details class="seg-qual" style="margin:6px 0 14px" ${showMgr ? '' : 'open'}>
+    <summary>📱 Clientes con internet sin línea (${list.length})</summary>
+    <div class="pros-hint" style="margin:8px 0 10px">${showMgr
+      ? 'Internet de los últimos 60 días sin línea móvil. <b>Solo para ti:</b> la línea paga $150; el bono de $75 solo aplica si la línea se vende el mismo día que el internet.'
+      : 'Estos clientes ya tienen internet con nosotros pero no tienen línea. Ofrécesela: cada línea cuenta para la meta del mes.'}</div>
+    <div class="pros-list">${list.map(c => `<div class="pros-card">
+      <div class="pros-card-top"><div style="min-width:0"><div class="pros-name">${escHtml(cap(c.nombre))}</div>
+        <div class="pros-sub">Internet ${escHtml(c.internet)} · ${prosShortDate(c.fecha)}${showMgr && c.vendio ? ' · vendió ' + escHtml(c.vendio) : ''}</div>
+        ${c.estado ? `<div class="pros-sub" style="color:var(--cyan)">${escHtml(c.estado)} por ${escHtml(c.por)} · ${prosShortDate(c.marcado)}${c.nota ? ' · ' + escHtml(c.nota) : ''}</div>` : ''}</div></div>
+      <div class="pros-actions">
+        ${c.telefono ? `<a class="btn btn-primary btn-sm" href="tel:+1${c.telefono}">📞 ${fmtPhone(c.telefono)}</a>
+        <a class="btn btn-ghost btn-sm" href="https://wa.me/1${c.telefono}?text=${encodeURIComponent(segSlMsg(c))}" target="_blank" rel="noopener">🟢 WhatsApp</a>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="segSlMark('${escHtml(c.cuenta)}','Contactado')">✔ Lo contacté</button>
+        <button class="btn btn-ghost btn-sm" onclick="segSlMark('${escHtml(c.cuenta)}','Ya tiene línea')">Ya tiene línea</button>
+        <button class="btn btn-ghost btn-sm" onclick="segSlMark('${escHtml(c.cuenta)}','No le interesa')">No le interesa</button>
+      </div></div>`).join('')}</div></details>`;
+}
+async function segSlMark(cuenta, estado) {
+  const nota = estado === 'Contactado' ? (prompt('¿Qué te dijo? (opcional)') ?? null) : '';
+  if (nota === null) return;
+  try {
+    await segApi('segSinLineaMark', { cuenta, estado, nota });
+    const c = segData.sinLinea.find(x => x.cuenta === cuenta);
+    if (estado === 'Contactado' && c) Object.assign(c, { estado, nota, por: prosAuth.user, marcado: prosToday() });
+    else segData.sinLinea = segData.sinLinea.filter(x => x.cuenta !== cuenta);
+    renderProspects(); toast('Guardado.', 'success');
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+
 // ─── HELPERS ──────────────────────────────────────────────────────────
 function noSheetNotice() {
   return `<div style="max-width:480px;margin:60px auto;text-align:center">
@@ -3281,14 +3320,21 @@ function actExpected(svc, ymd) {
     if (hasInt || hasVid || mob) add('Voice', r.voice); else unknown.push('Voice sin bundle no paga');
   }
   if (hasVid && +svc.xumo > 0) add(`Xumo ×${+svc.xumo}`, r.xumo * +svc.xumo);
-  if (hasInt && hasVid && mob) add('Bono Triple Play', r.bundle.triple);
-  else if (hasInt && mob) add('Bono Internet + Móvil', r.bundle.intMob);
-  else if (hasInt && hasVid) add('Bono Internet + TV', r.bundle.intVid);
+  // Bono de bundle (Exhibit C, nota n): mismos servicios vendidos el MISMO día de orden (pueden ser órdenes distintas
+  // de la misma cuenta) y conectados dentro de 30 días de la primera conexión. Se cuenta en el registro del internet.
+  const bMob = mob > 0 || svc.pairMob, bVid = hasVid || svc.pairVid, other = svc.pairMob || svc.pairVid ? ' (otra orden del mismo día)' : '';
+  if (hasInt && bVid && bMob) add('Bono Triple Play' + other, r.bundle.triple);
+  else if (hasInt && bMob) add('Bono Internet + Móvil' + other, r.bundle.intMob);
+  else if (hasInt && bVid) add('Bono Internet + TV' + other, r.bundle.intVid);
   return { total: lines.reduce((s,l) => s + l.amt, 0), lines, note: unknown.length ? 'Revisar: ' + unknown.join(', ') : '' };
 }
 function actSvcOf(a) {
   const mt = actMobileTypeOf(a);
-  return { internetTier: a.InternetTier || '', mobileLines: +a.MobileLines || 0, videoTier: a.VideoTier || '',
+  // Otras órdenes de la misma cuenta con la misma fecha de orden (cuentan para el bono de bundle)
+  const acct = actAcct(a.AccountNumber), day = String(a.OrderDate || '').slice(0, 10);
+  const same = acct && a.InternetTier ? actData.filter(x => x.ID !== a.ID && actAcct(x.AccountNumber) === acct && String(x.OrderDate || '').slice(0, 10) === day) : [];
+  return { pairMob: !(+a.MobileLines > 0) && same.some(x => +x.MobileLines > 0), pairVid: !a.VideoTier && same.some(x => x.VideoTier),
+           internetTier: a.InternetTier || '', mobileLines: +a.MobileLines || 0, videoTier: a.VideoTier || '',
            voice: /^(yes|y|s[ií]|true|1)$/i.test(String(a.Voice||'')), xumo: +a.XumoDevices || 0,
            mobileType: mt.type, mobileTypeAuto: mt.auto };
 }
