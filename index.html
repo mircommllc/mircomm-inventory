@@ -272,6 +272,11 @@
   .pros-card-rev { border-color: rgba(255,209,102,.4); }
   .pros-card-top { display: flex; justify-content: space-between; gap: 10px; cursor: pointer; }
   .pros-name { font-weight: 700; font-size: 15px; }
+  .seg-sl-name { cursor: pointer; }
+  .seg-sl-name:hover { color: var(--blue); text-decoration: underline; }
+  .seg-copy-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .seg-copy-row .lbl { width: 130px; flex: none; font-size: 12px; color: var(--muted); }
+  .seg-copy-row .val { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .pros-sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
   .pros-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); margin-top: 10px; }
   .pros-meta a { color: var(--cyan); text-decoration: none; }
@@ -3079,7 +3084,7 @@ function segSlHtml(showMgr) {
       ? 'Internet de los últimos 60 días sin línea móvil. <b>Solo para ti:</b> la línea paga $150. El bono de $75 solo se paga si la línea va <b>en la misma orden</b> del internet (📦) y se activa dentro de 30 días; una línea en orden aparte ya no lleva bono.'
       : 'Estos clientes ya tienen internet con nosotros pero no tienen línea. Ofrécesela: cada línea cuenta para la meta del mes.'}</div>
     <div class="pros-list">${list.map(c => `<div class="pros-card">
-      <div class="pros-card-top"><div style="min-width:0"><div class="pros-name">${escHtml(cap(c.nombre))}</div>
+      <div class="pros-card-top"><div style="min-width:0"><div class="pros-name seg-sl-name" title="Ver la cuenta" onclick="segSlDetail('${escHtml(c.cuenta)}')">${escHtml(cap(c.nombre))} <span style="font-size:12px;color:var(--muted);font-weight:500">› ver cuenta</span></div>
         <div class="pros-sub">Internet ${escHtml(c.internet)} · ${prosShortDate(c.fecha)}${showMgr && c.vendio ? ' · vendió ' + escHtml(c.vendio) : ''}</div>
         ${c.paquete ? (() => { const p = segSlPlazo(c);
           return p && p.dias >= 0
@@ -3093,6 +3098,40 @@ function segSlHtml(showMgr) {
         <button class="btn btn-ghost btn-sm" onclick="segSlMark('${escHtml(c.cuenta)}','Ya tiene línea')">Ya tiene línea</button>
         <button class="btn btn-ghost btn-sm" onclick="segSlMark('${escHtml(c.cuenta)}','No le interesa')">No le interesa</button>
       </div></div>`).join('')}</div></details>`;
+}
+// Detalle de la cuenta de un cliente de "internet sin línea" (datos del correo de confirmación de Spectrum)
+function segCopy(v) { navigator.clipboard.writeText(String(v)).then(() => toast('Copiado.', 'success')).catch(() => toast('No se pudo copiar.', 'error')); }
+function segSlDetail(cuenta) {
+  const c = ((segData && segData.sinLinea) || []).find(x => x.cuenta === cuenta);
+  if (!c) return;
+  const cap = s => s ? String(s).toLowerCase().replace(/\b\p{L}/gu, m => m.toUpperCase()) : '';
+  const acct = c.cuentaNum !== undefined ? c.cuentaNum : (/^T/.test(c.cuenta) ? '' : c.cuenta);
+  const row = (l, v, copy, mono) => v ? `<div class="seg-copy-row"><span class="lbl">${l}</span><span class="val${mono ? ' mono' : ''}">${escHtml(v)}</span>
+    ${copy ? `<button class="btn btn-ghost btn-sm" onclick="segCopy('${escHtml(String(copy).replace(/'/g, ''))}')">📋</button>` : ''}</div>` : '';
+  const p = segSlPlazo(c);
+  openModal(`
+    <div class="modal-title">👤 ${escHtml(cap(c.nombre))} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="act-hint" style="margin-bottom:12px">Para buscarla en Spectrum usa el <b>número de cuenta</b> (es exacto). El teléfono es el de contacto que se puso en la orden; también sirve para buscar, pero el cliente pudo haberlo cambiado después.</div>
+    ${row('Cuenta Spectrum', acct, acct, true)}
+    ${row('Teléfono', c.telefono ? fmtPhone(c.telefono) : '', c.telefono, true)}
+    ${row('Correo', c.email, c.email)}
+    ${row('Dirección', c.direccion, c.direccion)}
+    ${row('Internet', `${c.internet || '—'} · orden del ${actFmtDate(c.fecha)}`)}
+    ${row('Paquete', c.paqueteNombre)}
+    ${c.paquete && p ? row('Línea del paquete', p.dias >= 0 ? `Ya va en la orden: activarla antes del ${actFmtDate(p.limite)} (${p.dias} día(s))` : `No se activó (plazo vencido el ${actFmtDate(p.limite)})`) : ''}
+    ${c.productos && c.productos.length ? row('Productos', c.productos.join(' · ')) : ''}
+    ${row('Instalación', c.instalacion)}
+    ${row('Confirmación', c.confirmacion, c.confirmacion, true)}
+    ${row('Work order', c.workOrder, c.workOrder, true)}
+    ${row('Vendió', c.vendio ? `${c.vendio}${c.repId ? ' (' + c.repId + ')' : ''}` : '')}
+    ${row('Total de la orden', c.total ? '$' + c.total : '')}
+    ${c.estado ? row('Seguimiento', `${c.estado} por ${c.por} · ${prosShortDate(c.marcado)}${c.nota ? ' · ' + c.nota : ''}`) : ''}
+    ${c.cuentaNum === undefined ? `<div style="font-size:11px;color:var(--muted);margin-top:8px">Para ver dirección, correo y paquete falta actualizar Seguimiento.gs en Apps Script.</div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+      ${c.telefono ? `<a class="btn btn-primary" href="tel:+1${c.telefono}">📞 Llamar</a>
+      <a class="btn btn-ghost" href="https://wa.me/1${c.telefono}?text=${encodeURIComponent(segSlMsg(c))}" target="_blank" rel="noopener">🟢 WhatsApp</a>` : ''}
+      <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+    </div>`);
 }
 async function segSlMark(cuenta, estado) {
   const nota = estado === 'Contactado' ? (prompt('¿Qué te dijo? (opcional)') ?? null) : '';
