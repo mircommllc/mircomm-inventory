@@ -1307,7 +1307,7 @@ function openCustomerModal() {
     </div>
     <div class="form-group">
       <label class="form-label">Nombre *</label>
-      <input class="form-input" id="cu-name" placeholder="Nombre completo">
+      <input class="form-input" id="cu-name" placeholder="Nombre completo" oninput="const s=document.getElementById('cu-spectrum-name');if(s&&!s.dataset.edited)s.value=this.value">
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="cu-email" type="email" placeholder="correo@ejemplo.com"></div>
@@ -1345,7 +1345,7 @@ function openCustomerModal() {
     <div style="border-top:1px dashed var(--border);margin:16px 0;padding-top:14px">
       <div class="form-label" style="color:var(--yellow)">🎁 Teléfono regalado — requiere línea de Spectrum</div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Nombre en la cuenta *</label><input class="form-input" id="cu-spectrum-name" placeholder="Nombre del titular"></div>
+        <div class="form-group"><label class="form-label">Nombre en la cuenta *</label><input class="form-input" id="cu-spectrum-name" placeholder="Nombre del titular" oninput="this.dataset.edited='1'"></div>
         <div class="form-group"><label class="form-label">Número de cuenta *</label><input class="form-input" id="cu-spectrum-account" placeholder="Número de cuenta Spectrum"></div>
       </div>
     </div>` : ''}
@@ -3801,7 +3801,8 @@ function openActForm(id, pre) {
     </div>
     <div class="form-group"><label class="form-label">IMEI(s)</label><input class="form-input" id="af-imei" placeholder="Separados por coma" value="${escHtml(a.IMEIs||'')}"></div>
     <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" id="af-notes" rows="2" placeholder="Ej. port-in de AT&T, teléfono regalado">${escHtml(a.Notes||'')}</textarea></div>
-    <button class="btn btn-primary btn-full" onclick="actSaveForm('${escHtml(id||'')}')">Guardar</button>`);
+    <button class="btn btn-primary btn-full" id="af-save" onclick="actSaveForm('${escHtml(id||'')}')">Guardar</button>`);
+  if (!id && pre && pre.PosSaleID) actFormFromSale();
   if (a.AccountNumber) actFormAcct(a.ID || '', !!id || !!(pre && pre.MobileType));
   socFillActSelect(id || '');
 }
@@ -3868,8 +3869,13 @@ async function actSaveForm(id) {
   if (!id && !(+rec.MobileLines) && !rec.InternetTier && !rec.VideoTier) { toast('Indica al menos un servicio.', 'error'); return; }
   if (!id && (rec.InternetTier || rec.VideoTier) && !rec.Confirmation &&
       !confirm('Pusiste internet/TV sin número de confirmación. Cuando llegue el correo de Spectrum, el internet quedaría registrado dos veces.\n\nLo mejor: deja Internet en "—" y registra solo la línea (el correo trae el internet), o escribe la confirmación.\n\n¿Guardar así de todos modos?')) return;
-  if (!id && actData.some(a => actAcct(a.AccountNumber) === rec.AccountNumber && +a.MobileLines && +rec.MobileLines) &&
+  // La línea de esta venta de caja ya se guardó (doble clic, o se abrió el formulario dos veces)
+  const yaVenta = !id && rec.PosSaleID && actData.find(a => String(a.PosSaleID) === String(rec.PosSaleID));
+  if (yaVenta) { toast(`La línea de la venta ${escHtml(rec.PosSaleID)} ya está registrada.`, 'info'); closeModal(); if (!posAfterLineSaved()) renderActBody(); return; }
+  if (!id && !rec.PosSaleID && actData.some(a => actAcct(a.AccountNumber) === rec.AccountNumber && +a.MobileLines && +rec.MobileLines) &&
       !confirm('Ya hay líneas móviles registradas en esta cuenta. ¿Registrar de todos modos?')) return;
+  const btn = document.getElementById('af-save');
+  if (btn) { if (btn.disabled) return; btn.disabled = true; btn.textContent = 'Guardando…'; }
   try {
     const saved = await apiGet({ action: 'saveActivation', data: JSON.stringify(rec) });
     if (!id) await credAfterSave({ id: saved.ID }, saved);
@@ -3883,7 +3889,28 @@ async function actSaveForm(id) {
     closeModal(); toast('Activación guardada.', 'success');
     if (actFormPre.PosSaleID) { actFormPre = {}; if (!posAfterLineSaved()) { if (currentPage === 'pos') renderPOS(); else renderActBody(); } }
     else { actFormPre = {}; renderActBody(); }
-  } catch (e) { toast(e.message, 'error'); }
+  } catch (e) { toast(e.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; } }
+}
+// Línea que viene de una venta de caja: lo que ya se capturó en el cobro (cliente, cuenta, teléfono, IMEI, fecha)
+// se muestra como resumen y solo se piden los datos de la línea (orden móvil, número nuevo, tipo y plan).
+function actFormFromSale() {
+  const known = ['af-date', 'af-soldby', 'af-rep', 'af-acct', 'af-name', 'af-phone', 'af-imei', 'af-conf', 'af-int', 'af-tv', 'af-notes'];
+  const v = k => (document.getElementById(k)?.value || '').trim();
+  if (!v('af-acct') || !v('af-name')) return;            // falta algo: se deja el formulario completo
+  const groups = known.map(k => document.getElementById(k)?.closest('.form-group')).filter(Boolean);
+  groups.forEach(g => { g.style.display = 'none'; g.dataset.fromSale = '1'; });
+  document.querySelectorAll('#modal-content .form-row').forEach(r => { if ([...r.children].every(c => c.style.display === 'none')) { r.style.display = 'none'; r.dataset.fromSale = '1'; } });
+  const box = document.createElement('div');
+  box.className = 'act-hint'; box.id = 'af-sale-summary'; box.style.marginBottom = '12px';
+  box.innerHTML = `✅ Ya viene de la caja: <b>${escHtml(v('af-name'))}</b> · cuenta <span class="mono">${escHtml(v('af-acct'))}</span>${v('af-phone') ? ' · ' + escHtml(fmtPhone(actAcct(v('af-phone')).slice(-10))) : ''}${v('af-imei') ? ' · IMEI <span class="mono">' + escHtml(v('af-imei')) + '</span>' : ''} · hecha por ${escHtml(v('af-soldby'))}
+    <div style="margin-top:4px">Solo falta: <b>orden móvil</b>, <b>número nuevo</b>, <b>tipo</b> y <b>plan</b>. <a href="#" style="color:var(--cyan)" onclick="actFormShowAll();return false">✏️ Ver/editar todo</a></div>`;
+  const anchor = document.getElementById('af-acct-info');
+  anchor.parentNode.insertBefore(box, anchor);
+  setTimeout(() => document.getElementById('af-morder')?.focus(), 60);
+}
+function actFormShowAll() {
+  document.querySelectorAll('#modal-content [data-from-sale]').forEach(el => { el.style.display = ''; delete el.dataset.fromSale; });
+  document.getElementById('af-sale-summary')?.remove();
 }
 
 // ─── Core report reconciliation ───
@@ -4426,9 +4453,27 @@ function actDupPairs() {
   });
   return out;
 }
+function actSameSalePairs() {
+  const out = [], seen = new Set();
+  const key = a => a.PosSaleID ? 'P:' + a.PosSaleID : (a.Source !== 'Email' && a.MobileOrder ? 'O:' + String(a.MobileOrder).replace(/\D/g, '') : '');
+  const by = {};
+  actData.forEach(a => { const k = key(a); if (k && k.length > 2) (by[k] = by[k] || []).push(a); });
+  Object.values(by).forEach(l => {
+    if (l.length < 2) return;
+    l.sort((x, y) => String(x.CreatedAt || '').localeCompare(String(y.CreatedAt || '')));
+    l.slice(1).forEach(d => { if (!seen.has(d.ID)) { seen.add(d.ID); out.push({ keep: l[0], dup: d }); } });
+  });
+  return out;
+}
+async function actDupDelete(id) {
+  if (!confirm('¿Borrar este registro duplicado? Se queda el primero que se guardó.')) return;
+  try { await apiGet({ action: 'deleteActivation', id }); actData = actData.filter(x => x.ID !== id); toast('Duplicado borrado.', 'success'); renderActBody(); }
+  catch (e) { toast(escHtml(e.message), 'error'); }
+}
 function actDupPanel() {
-  const pairs = actDupPairs();
-  if (!pairs.length) return '';
+  const pairs = actDupPairs(), same = actSameSalePairs();
+  if (!pairs.length && !same.length) return '';
+  if (!pairs.length) return actSameSaleHtml(same);
   return `<div class="act-reco" style="border-color:rgba(255,92,92,.5)">
     <div style="font-weight:700;margin-bottom:4px">⚠️ Internet registrado dos veces (${pairs.length})</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:8px">El registro manual trae internet sin número de confirmación y después llegó el correo de Spectrum con la misma orden. El internet se queda en el registro del correo; el manual se queda solo con la línea.</div>
@@ -4438,7 +4483,18 @@ function actDupPanel() {
         <span style="font-size:12px">Correo: 🌐 ${escHtml(e.InternetTier)} · conf. ${escHtml(e.Confirmation || '—')} · crédito ${escHtml(actRepName(e))} (Rep ID ${escHtml(e.RepID || '—')})<br>
         Manual: 🌐 ${escHtml(m.InternetTier)}${+m.MobileLines ? ` + 📱 ${escHtml(m.MobileLines)} línea(s)` : ''} · crédito ${escHtml(actRepName(m))}</span></span>
       <button class="btn btn-primary btn-sm" onclick="actDupFix('${escHtml(m.ID)}')">${+m.MobileLines ? 'Quitar el internet del registro manual' : 'Borrar el registro manual'}</button>
-    </div>`).join('')}</div>`;
+    </div>`).join('')}</div>${actSameSaleHtml(same)}`;
+}
+function actSameSaleHtml(same) {
+  if (!same.length) return '';
+  return `<div class="act-reco" style="border-color:rgba(255,92,92,.5)">
+    <div style="font-weight:700;margin-bottom:4px">⚠️ Línea registrada dos veces (${same.length})</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Dos registros con la misma venta de caja o la misma orden móvil. Se queda el primero; borra el repetido.</div>
+    ${same.map(({ keep, dup }) => `<div class="ml-mail" style="flex-wrap:wrap">
+      <span class="mono" style="color:var(--muted)">${actFmtDate(dup.OrderDate)}</span>
+      <span style="flex:1;min-width:220px"><b>${escHtml(dup.CustomerName || '')}</b> · <span class="mono">${escHtml(dup.MobileOrder || dup.PosSaleID || '')}</span>
+        <span style="font-size:12px;color:var(--muted)"> · guardado ${escHtml(String(keep.CreatedAt || '').slice(11, 19))} y ${escHtml(String(dup.CreatedAt || '').slice(11, 19))}</span></span>
+      <button class="btn btn-primary btn-sm" onclick="actDupDelete('${escHtml(dup.ID)}')">Borrar el repetido</button></div>`).join('')}</div>`;
 }
 async function actDupFix(id) {
   const m = actData.find(x => x.ID === id);
