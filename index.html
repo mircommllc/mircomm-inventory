@@ -3376,15 +3376,24 @@ function actPkgConfirmed(a) {
   const ms = actMobReco && actMobReco.byId[a.ID];
   return !!ms && ['ok', 'pending'].includes(ms.code);
 }
-function actRealLines(a) { return actPkgLine(a) && !actPkgConfirmed(a) ? 0 : (+a.MobileLines || 0); }
+// La línea del paquete ya está registrada en otro registro de la misma cuenta (con orden móvil o IMEI), dentro de 30 días:
+// esa es la línea que cuenta; el registro del correo se queda solo con el internet (y el bono de bundle).
+function actPkgCover(a) {
+  if (!actPkgLine(a)) return null;
+  const acct = actAcct(a.AccountNumber), d = String(a.OrderDate || '').slice(0, 10);
+  if (!acct || !d) return null;
+  return actData.find(x => x.ID !== a.ID && actAcct(x.AccountNumber) === acct && +x.MobileLines > 0 && !actPkgLine(x) &&
+    x.OrderDate && actDaysBetween(d, String(x.OrderDate).slice(0, 10)) >= -3 && actDaysBetween(d, String(x.OrderDate).slice(0, 10)) <= 30) || null;
+}
+function actRealLines(a) { return actPkgCover(a) ? 0 : actPkgLine(a) && !actPkgConfirmed(a) ? 0 : (+a.MobileLines || 0); }
 function actSvcOf(a) {
   const mt = actMobileTypeOf(a);
   // Otras órdenes de la misma cuenta con la misma fecha de orden (cuentan para el bono de bundle)
   const acct = actAcct(a.AccountNumber), day = String(a.OrderDate || '').slice(0, 10);
   const same = acct && a.InternetTier ? actData.filter(x => x.ID !== a.ID && actAcct(x.AccountNumber) === acct && String(x.OrderDate || '').slice(0, 10) === day) : [];
-  const lines = actRealLines(a);
-  return { pairMob: !lines && same.some(x => actRealLines(x) > 0), pairVid: !a.VideoTier && same.some(x => x.VideoTier),
-           pkgLines: lines ? 0 : (actPkgLine(a) ? +a.MobileLines : 0),
+  const lines = actRealLines(a), cover = a.InternetTier ? actPkgCover(a) : null;
+  return { pairMob: !lines && (!!cover || same.some(x => actRealLines(x) > 0)), pairVid: !a.VideoTier && same.some(x => x.VideoTier),
+           pkgLines: lines || cover ? 0 : (actPkgLine(a) ? +a.MobileLines : 0), pkgCover: cover ? cover.OrderDate : '',
            internetTier: a.InternetTier || '', mobileLines: lines, videoTier: a.VideoTier || '',
            voice: /^(yes|y|s[ií]|true|1)$/i.test(String(a.Voice||'')), xumo: +a.XumoDevices || 0,
            mobileType: mt.type, mobileTypeAuto: mt.auto };
@@ -3394,6 +3403,7 @@ function actSvcChips(svc) {
   if (svc.internetTier) c.push(`<span class="svc svc-int">🌐 ${escHtml(svc.internetTier)}</span>`);
   if (svc.mobileLines) c.push(`<span class="svc svc-mob" title="${svc.mobileTypeAuto ? 'Tipo calculado por la app (no lo capturó nadie)' : ''}">📱 ${svc.mobileLines} línea${svc.mobileLines>1?'s':''}${svc.mobileType ? ' · ' + escHtml((ACT_MOBILE_TYPE_INFO[svc.mobileType]||{short:svc.mobileType}).short) + (svc.mobileTypeAuto ? '?' : '') : ''}</span>`);
   if (svc.pkgLines) c.push(`<span class="svc" title="El correo traía la línea del paquete, pero no aparece activada">📦 Línea del paquete sin activar</span>`);
+  if (svc.pkgCover) c.push(`<span class="svc" title="La línea del paquete se registró aparte (${escHtml(actFmtDate(svc.pkgCover))}); se cuenta en ese registro">📦 Línea registrada aparte</span>`);
   if (svc.videoTier) c.push(`<span class="svc svc-tv">📺 ${escHtml(svc.videoTier)}</span>`);
   if (svc.voice) c.push(`<span class="svc">☎ Voice</span>`);
   if (svc.xumo) c.push(`<span class="svc">Xumo ×${svc.xumo}</span>`);
@@ -3720,6 +3730,7 @@ function openActForm(id, pre) {
       <div class="form-group"><label class="form-label">Número de cuenta Spectrum *</label><input class="form-input" id="af-acct" inputmode="numeric" value="${escHtml(a.AccountNumber||'')}" oninput="actFormAcct('${escHtml(a.ID||'')}')"></div>
     </div>
     <div id="af-acct-info"></div>
+    <div id="af-dup-info"></div>
     <div id="af-cred-info"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Confirmación (internet/TV)</label><input class="form-input" id="af-conf" value="${escHtml(a.Confirmation||'')}"></div>
@@ -3768,7 +3779,40 @@ function actFormAcct(id, keepType) {
   const sel = document.getElementById('af-mtype'), before = sel ? sel.value : '';
   mlShowAcctInfo(info, box, 'af-name', 'af-mtype');
   if (keepType && sel) sel.value = before;
-  if (!id) credFormCheck('af');
+  if (!id) { credFormCheck('af'); actDupCheck(acct); }
+}
+// ¿Ya existe el registro de esta orden (normalmente el del correo de Spectrum, con internet y la línea del paquete)?
+// Entonces la línea se agrega a ESE registro en vez de crear otro.
+function actDupTargets(acct, ymd) {
+  return actData.filter(x => actAcct(x.AccountNumber) === acct && x.OrderDate && Math.abs(actDaysBetween(String(x.OrderDate).slice(0, 10), ymd)) <= 3 &&
+    (x.InternetTier || x.VideoTier) && (!(+x.MobileLines > 0) || actPkgLine(x)));
+}
+function actDupCheck(acct) {
+  const box = document.getElementById('af-dup-info');
+  if (!box) return;
+  const t = acct.length >= 9 ? actDupTargets(acct, document.getElementById('af-date')?.value || actToday()) : [];
+  if (!t.length) { box.innerHTML = ''; return; }
+  const x = t[0];
+  box.innerHTML = `<div class="act-hint" style="margin-bottom:12px;border-color:rgba(255,209,102,.6);color:var(--text)">
+    📄 Esta orden ya está registrada${x.Source === 'Email' ? ' desde el correo de Spectrum' : ''}: <b>${escHtml(x.CustomerName || '')}</b> · ${actFmtDate(x.OrderDate)} · ${actSvcChips(actSvcOf(x))}
+    <div style="margin:6px 0">Para que no se duplique, agrega la línea a ese registro (se le suman el IMEI, la orden móvil y la venta de caja).</div>
+    <button class="btn btn-primary btn-sm" onclick="actMergeInto('${escHtml(x.ID)}')">➕ Agregar la línea a ese registro</button></div>`;
+}
+function actMergeInto(targetId) {
+  const v = k => (document.getElementById(k)?.value || '').trim();
+  const t = actData.find(x => x.ID === targetId);
+  if (!t) return;
+  const take = { lines: v('af-lines') || '1', mtype: v('af-mtype'), plan: v('af-plan'), imei: v('af-imei'), morder: v('af-morder'),
+    linephones: v('af-linephones'), notes: v('af-notes'), soldby: v('af-soldby'), phone: v('af-phone') };
+  const pre = Object.assign({}, actFormPre, { _from: `Agregando la línea al registro de ${t.CustomerName || 'la orden'} del ${actFmtDate(t.OrderDate)}${actFormPre.PosSaleID ? ` · venta ${actFormPre.PosSaleID} en caja` : ''}.` });
+  closeModal();
+  openActForm(targetId, pre);
+  const set = (k, val) => { const el = document.getElementById(k); if (el && val) el.value = val; };
+  set('af-lines', take.lines); set('af-mtype', take.mtype); set('af-plan', take.plan); set('af-morder', take.morder);
+  set('af-linephones', take.linephones); set('af-soldby', take.soldby);
+  if (!t.Phone) set('af-phone', take.phone);
+  set('af-imei', [t.IMEIs, take.imei].filter(Boolean).join(', '));
+  set('af-notes', [t.Notes, take.notes].filter(Boolean).join(' · '));
 }
 async function actSaveForm(id) {
   const v = k => document.getElementById(k).value.trim();
@@ -3777,7 +3821,7 @@ async function actSaveForm(id) {
     InternetTier: v('af-int'), VideoTier: v('af-tv'), IMEIs: v('af-imei'), Notes: v('af-notes'),
     SoldBy: v('af-soldby'), MobileType: +v('af-lines') > 0 ? v('af-mtype') : '', MobileOrder: v('af-morder').replace(/[^\d,]+/g, ','),
     LinePhones: v('af-linephones') };
-  if (!id && actFormPre.PosSaleID) rec.PosSaleID = actFormPre.PosSaleID;
+  if (actFormPre.PosSaleID && (!id || !(actData.find(x => x.ID === id) || {}).PosSaleID)) rec.PosSaleID = actFormPre.PosSaleID;
   rec.Employee = ACT_REPS[rec.RepID.toUpperCase()] || '';
   if (id) rec.ID = id;
   if (!rec.AccountNumber || !rec.CustomerName || !rec.OrderDate) { toast('Fecha, cuenta y cliente son obligatorios.', 'error'); return; }
@@ -4613,7 +4657,7 @@ function actPrefillFromGroup(g) {
 function actMobReconcile(groups, meta) {
   const byId = {}, used = new Set(), today = actToday();
   const recentCut = actAddDays(meta.upd, -3);
-  const mobRows = actData.filter(a => +a.MobileLines > 0).sort((a, b) => (a.OrderDate || '').localeCompare(b.OrderDate || ''));
+  const mobRows = actData.filter(a => +a.MobileLines > 0 && !actPkgCover(a)).sort((a, b) => (a.OrderDate || '').localeCompare(b.OrderDate || ''));
   const byAcct = {};
   Object.values(groups).forEach(g => { (byAcct[g.acct] = byAcct[g.acct] || []).push(g); });
   // 1) by order number, 2) by account + date (±3 days), 3) by IMEI
@@ -5461,7 +5505,9 @@ function nomOwn(D, rep, acct) {
 function nomParts(D, a, rep) {
   const R = D.config.rates, parts = [], own = nomOwn(D, rep, a.AccountNumber);
   if (nomHas(a.InternetTier)) parts.push({ label: own === 'own' ? 'Internet · cliente tuyo' : 'Internet · cliente de tienda', amt: own === 'own' ? +R.intOwn : +R.intStore });
-  const lines = Math.max(0, Math.min(+a.MobileLines || 0, 10));
+  const covered = actPkgLine(a) && (D.acts || []).some(x => x.ID !== a.ID && actAcct(x.AccountNumber) === actAcct(a.AccountNumber) && +x.MobileLines > 0 && !actPkgLine(x) &&
+    actDaysBetween(String(a.OrderDate).slice(0, 10), String(x.OrderDate).slice(0, 10)) >= -3 && actDaysBetween(String(a.OrderDate).slice(0, 10), String(x.OrderDate).slice(0, 10)) <= 30);
+  const lines = covered ? 0 : Math.max(0, Math.min(+a.MobileLines || 0, 10));
   if (lines) parts.push({ label: `${lines} línea${lines > 1 ? 's' : ''}`, amt: lines * R.line });
   if (nomHas(a.VideoTier)) parts.push({ label: 'TV', amt: +R.tv });
   return { parts, own, total: parts.reduce((s, p) => s + p.amt, 0) };
