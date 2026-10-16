@@ -3863,6 +3863,7 @@ async function actSaveForm(id) {
     SoldBy: v('af-soldby'), MobileType: +v('af-lines') > 0 ? v('af-mtype') : '', MobileOrder: v('af-morder').replace(/[^\d,]+/g, ','),
     LinePhones: v('af-linephones') };
   if (actFormPre.PosSaleID && (!id || !(actData.find(x => x.ID === id) || {}).PosSaleID)) rec.PosSaleID = actFormPre.PosSaleID;
+  if (!id && actFormPre._extra) Object.entries(actFormPre._extra).forEach(([k, v]) => { if (v && !rec[k]) rec[k] = v; });
   rec.Employee = ACT_REPS[rec.RepID.toUpperCase()] || '';
   if (id) rec.ID = id;
   if (!rec.AccountNumber || !rec.CustomerName || !rec.OrderDate) { toast('Fecha, cuenta y cliente son obligatorios.', 'error'); return; }
@@ -4453,22 +4454,44 @@ function actDupPairs() {
   });
   return out;
 }
+// La misma línea registrada dos veces: misma venta de caja, misma orden móvil o mismo IMEI (registros que no vienen del correo)
 function actSameSalePairs() {
-  const out = [], seen = new Set();
-  const key = a => a.PosSaleID ? 'P:' + a.PosSaleID : (a.Source !== 'Email' && a.MobileOrder ? 'O:' + String(a.MobileOrder).replace(/\D/g, '') : '');
+  const keys = a => {
+    if (a.Source === 'Email' && !a.PosSaleID) return [];
+    const k = [];
+    if (a.PosSaleID) k.push('P:' + a.PosSaleID);
+    const o = String(a.MobileOrder || '').replace(/\D/g, ''); if (o.length >= 12) k.push('O:' + o);
+    String(a.IMEIs || '').split(/[^\d]+/).filter(x => x.length >= 14).forEach(x => k.push('I:' + x));
+    return k;
+  };
   const by = {};
-  actData.forEach(a => { const k = key(a); if (k && k.length > 2) (by[k] = by[k] || []).push(a); });
-  Object.values(by).forEach(l => {
+  actData.forEach(a => keys(a).forEach(k => (by[k] = by[k] || new Set()).add(a)));
+  const out = [], seen = new Set();
+  Object.values(by).forEach(set => {
+    const l = [...set];
     if (l.length < 2) return;
-    l.sort((x, y) => String(x.CreatedAt || '').localeCompare(String(y.CreatedAt || '')));
-    l.slice(1).forEach(d => { if (!seen.has(d.ID)) { seen.add(d.ID); out.push({ keep: l[0], dup: d }); } });
+    // Se queda el más completo (orden móvil de 14 dígitos, venta de caja), y entre iguales el primero que se guardó
+    const score = a => (String(a.MobileOrder || '').replace(/\D/g, '').length === 14 ? 2 : 0) + (a.PosSaleID ? 1 : 0);
+    l.sort((x, y) => score(y) - score(x) || String(x.CreatedAt || '').localeCompare(String(y.CreatedAt || '')));
+    l.slice(1).forEach(d => { if (!seen.has(d.ID) && !seen.has(l[0].ID)) { seen.add(d.ID); out.push({ keep: l[0], dup: d }); } });
   });
   return out;
 }
 async function actDupDelete(id) {
-  if (!confirm('¿Borrar este registro duplicado? Se queda el primero que se guardó.')) return;
-  try { await apiGet({ action: 'deleteActivation', id }); actData = actData.filter(x => x.ID !== id); toast('Duplicado borrado.', 'success'); renderActBody(); }
-  catch (e) { toast(escHtml(e.message), 'error'); }
+  const pair = actSameSalePairs().find(x => x.dup.ID === id);
+  if (!confirm('¿Borrar este registro duplicado? Se queda el otro, con los datos que le falten de este.')) return;
+  try {
+    if (pair) {   // pasar al que se queda lo que solo tiene el duplicado
+      const k = pair.keep, d = pair.dup, upd = { ID: k.ID };
+      ['PosSaleID', 'LinePhones', 'IMEIs', 'MobilePlan', 'MobileType', 'Notes', 'Phone'].forEach(f => { if (!k[f] && d[f]) upd[f] = d[f]; });
+      if (String(k.MobileOrder || '').replace(/\D/g, '').length !== 14 && String(d.MobileOrder || '').replace(/\D/g, '').length === 14) upd.MobileOrder = d.MobileOrder;
+      if (Object.keys(upd).length > 1) {
+        const rec = await apiGet({ action: 'saveActivation', data: JSON.stringify(upd) });
+        const i = actData.findIndex(x => x.ID === k.ID); if (i >= 0) actData[i] = rec;
+      }
+    }
+    await apiGet({ action: 'deleteActivation', id }); actData = actData.filter(x => x.ID !== id); toast('Duplicado borrado.', 'success'); renderActBody();
+  } catch (e) { toast(escHtml(e.message), 'error'); }
 }
 function actDupPanel() {
   const pairs = actDupPairs(), same = actSameSalePairs();
@@ -4489,7 +4512,7 @@ function actSameSaleHtml(same) {
   if (!same.length) return '';
   return `<div class="act-reco" style="border-color:rgba(255,92,92,.5)">
     <div style="font-weight:700;margin-bottom:4px">⚠️ Línea registrada dos veces (${same.length})</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Dos registros con la misma venta de caja o la misma orden móvil. Se queda el primero; borra el repetido.</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Dos registros con la misma venta de caja, orden móvil o IMEI. Se queda el más completo (al borrar, se le pasa lo que le falte).</div>
     ${same.map(({ keep, dup }) => `<div class="ml-mail" style="flex-wrap:wrap">
       <span class="mono" style="color:var(--muted)">${actFmtDate(dup.OrderDate)}</span>
       <span style="flex:1;min-width:220px"><b>${escHtml(dup.CustomerName || '')}</b> · <span class="mono">${escHtml(dup.MobileOrder || dup.PosSaleID || '')}</span>
@@ -5159,14 +5182,42 @@ function actPeriodPanel() {
     </div>
     ${sec(future ? '⏳' : '❌', future ? 'Deben venir en este pago' : 'Conectaron en el periodo y no se pagaron', g.missing.length, tbl(H, g.missing.map(i => regRow(i, future ? (P > actToday() ? 'Debe venir en este pago' : 'Este pago no está en el reporte cargado') : 'No aparece en el pago'))), true)}
     ${sec('⚠️', 'Pagadas de menos', g.under.length, tbl(H, g.under.map(i => regRow(i, `Faltan ${fmtMoney(i.exp - i.paid)} · ${bundles(i)}`))), true)}
-    ${sec('⚠️', 'Pagos de cuentas que no están registradas en la app', g.unreg.length, tbl(['Cliente', 'Venta', 'Paquete', 'Pagado', 'Cuenta'], g.unreg.map(u =>
-      `<tr><td style="font-weight:600">${escHtml(mlTitle(actReportName(u.name)))}</td><td class="mono">${actShortDate(u.sale)}</td><td>${escHtml(u.bundle)}</td><td class="mono" style="text-align:right">${fmtMoney(u.amt)}</td><td class="mono" style="font-size:12px;color:var(--muted)">${escHtml(u.acct)}</td></tr>`)), false)}
+    ${sec('⚠️', 'Pagos de cuentas que no están registradas en la app', g.unreg.length, `<div style="font-size:12px;color:var(--muted);margin-top:6px">Cellmart las pagó, pero no hay registro en la app con esa cuenta y esa fecha de venta (±10 días). Pasa con órdenes que se terminaron por teléfono ("Please Complete The Order": no llega el correo de confirmación) y con líneas que nadie registró. Dale <b>Registrar</b>: se llena con los datos de los reportes.</div>` +
+      tbl(['Cliente', 'Venta', 'Paquete', 'Pagado', 'Cuenta', ''], g.unreg.map(u =>
+      `<tr><td style="font-weight:600">${escHtml(mlTitle(actReportName(u.name)))}</td><td class="mono">${actShortDate(u.sale)}</td><td>${escHtml(u.bundle)}</td><td class="mono" style="text-align:right">${fmtMoney(u.amt)}</td><td class="mono" style="font-size:12px;color:var(--muted)">${escHtml(u.acct)}</td>
+        <td><button class="btn btn-primary btn-sm" onclick="actRegisterFromPay('${escHtml(u.acct)}','${escHtml(u.sale)}','${escHtml(u.wo)}')">Registrar</button></td></tr>`)), true)}
     ${sec('⚠️', 'Spectrum las reporta conectadas, pero no están en la app ni se han pagado', g.onlyRep.length, tbl(['Cliente', 'Conectó', 'Esperado', 'Servicios', 'Cuenta'], g.onlyRep.map(o =>
       `<tr><td style="font-weight:600">${escHtml(mlTitle(actReportName(o.name)))}</td><td class="mono">${actShortDate(o.conn)}</td><td class="mono" style="text-align:right">${money(o.exp)}</td><td>${escHtml(o.what)}</td><td class="mono" style="font-size:12px;color:var(--muted)">${escHtml(o.acct)}</td></tr>`)), false)}
     ${sec('ℹ️', 'Conectaron en el periodo pero se pagaron en otra fecha', g.elsewhere.length, tbl(H, g.elsewhere.map(i => regRow(i, i.other.map(r => `${fmtMoney(r.amt)} el ${actShortDate(r.pay)}`).join(' · ')))), false)}
     ${sec('ℹ️', 'Vinieron en este pago pero conectaron fuera del periodo', g.outside.length, tbl(H, g.outside.map(i => regRow(i, i.base ? `Conectó ${actShortDate(i.base)}${(dl => dl ? ` → le tocaba el pago del ${actShortDate(dl.pay)}` : '')(actPayDeadline(i.base))}` : 'Sin fecha de conexión'))), false)}
     ${sec('✅', 'Pagadas', g.ok.length, tbl(H, g.ok.map(i => regRow(i, (i.exp && i.paid > i.exp + 1 ? `<span style="color:var(--green)">${fmtMoney(i.paid - i.exp)} más de lo esperado</span> · ` : '') + bundles(i)))), false)}
   </div>`;
+}
+
+// Registrar una venta que Cellmart pagó y no está en la app, con los datos del Commission, Core y Mobile Report
+function actRegisterFromPay(acct, sale, wo) {
+  const u = ((actComReco && actComReco.unmatched) || []).find(x => x.acct === acct && x.sale === sale && String(x.wo) === String(wo));
+  if (!u) return;
+  const isMob = u.mob > 0 || /mobile/i.test(u.bundle), isInt = !!u.itier || /internet/i.test(u.bundle), isTv = !!u.vtier || /video|tv/i.test(u.bundle);
+  let pre = { AccountNumber: acct, CustomerName: mlTitle(actReportName(u.name)), OrderDate: u.sale || u.use || u.pay, MobileLines: isMob ? '1' : '0' };
+  const src = ['Commission Report'];
+  if (isMob && actMobReco) {
+    const g = Object.values(actMobReco.groups).filter(x => x.acct === acct && x.sale && Math.abs(actDaysBetween(x.sale, pre.OrderDate)) <= 3)
+      .sort((a, b) => Math.abs(actDaysBetween(a.sale, pre.OrderDate)) - Math.abs(actDaysBetween(b.sale, pre.OrderDate)))[0];
+    if (g) { pre = Object.assign(pre, actPrefillFromGroup(g)); src.push('Mobile Report'); }
+  }
+  if ((isInt || isTv) && actReco && actReco.groups[acct]) {
+    const cg = actReco.groups[acct], sv = actReportSvc(cg);
+    Object.assign(pre, { InternetTier: isInt ? sv.internetTier || '' : '', VideoTier: isTv ? sv.videoTier || '' : '', Confirmation: cg.conf || '' });
+    const rid = String(cg.agent || '').toUpperCase();
+    if (ACT_REPS[rid]) pre.RepID = rid;
+    src.push('Core Report');
+  } else if (isInt) pre.InternetTier = /2\s*gig/i.test(u.itier) ? '2 Gig' : /gig/i.test(u.itier) ? '1 Gig' : (u.itier.match(/\d{3}/) || [''])[0];
+  if (ACT_REPS[u.person] && !pre.RepID) pre.RepID = u.person;
+  if (pre.RepID) pre.SoldBy = ACT_REPS[pre.RepID];
+  pre._extra = isInt || isTv ? { WorkOrder: String(u.wo || '') } : {};
+  pre._from = `Pagada por Cellmart el ${actFmtDate(u.pay)}: ${u.bundle} ${fmtMoney(u.amt)} · datos de ${src.join(', ')}. Revisa y guarda.`;
+  openActForm(null, pre);
 }
 
 // ─── Caja ↔ líneas: teléfonos vendidos o regalados en el POS ──────
