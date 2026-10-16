@@ -2044,6 +2044,7 @@ function renderProsRep() {
     </div>
     <button class="btn btn-primary btn-full pros-new-btn" onclick="openProsNew()">＋ Nuevo prospecto</button>
     ${segData && (segOn() || segData.missing) ? segDayHtml(all, false) : ''}
+    ${segIncHtml()}
     ${segSlHtml(false)}
     ${!segOn() && due.length ? `<div class="pros-section-title">📅 Para hoy</div><div class="pros-list">${due.map(prosCard).join('')}</div>` : ''}
     <div class="pros-section-title">Todos mis prospectos</div>
@@ -2140,7 +2141,7 @@ function renderProsManager() {
       <button class="btn btn-ghost" onclick="prosExportCSV()">⬇ CSV</button>
     </div>
     <div id="pros-mgr-summary"></div>
-    <div id="seg-mgr">${segManagerHtml()}${segSlHtml(true)}</div>
+    <div id="seg-mgr">${segIncHtml()}${segManagerHtml()}${segSlHtml(true)}</div>
     <div id="pros-review"></div>
     <div class="pros-section-title">Prospectos</div>
     <div class="action-row" style="margin-bottom:12px">
@@ -3055,6 +3056,71 @@ function segManagerHtml() {
       <div class="pros-list" style="margin-bottom:10px">${d.late.slice(0, 30).map(t => segTaskCard(t, d.byId[t.ProspectoID], true)).join('')}</div>` : ''}
     ${d.orphan.length ? `<div class="pros-section-title seg-warn">⚠️ Prospectos sin siguiente paso (${d.orphan.length})</div>
       <div class="pros-hint" style="margin:-4px 0 10px">${d.orphan.map(p => `<a href="#" onclick="openProsDetail('${p.ID}');return false" style="color:var(--cyan)">${escHtml(p.Nombre)}</a> (${escHtml(p.Asesora)})`).join(' · ')}</div>` : ''}`;
+}
+
+// ── ⚠️ Órdenes que Spectrum no terminó ("Please Complete The Order") ──
+// No mandan correo de confirmación, así que no entran solas a Activaciones. Hay que llamar al 1-855-392-9910.
+const SEG_INC_MOTIVOS = ['Pago rechazado o tarjeta mal escrita', 'Spectrum pidió verificar al cliente', 'Ya hay una cuenta activa en la dirección', 'Adeudo anterior del cliente', 'Otro'];
+const SEG_INC_GUIA = `
+  <div style="font-weight:700;margin-bottom:4px">Qué hacer</div>
+  <ol style="margin:0 0 0 18px;padding:0;line-height:1.5">
+    <li>Llama al <b><a href="tel:+18553929910" style="color:var(--cyan)">1-855-392-9910</a></b> con el número de orden, <b>de preferencia con el cliente todavía en la tienda</b> (Spectrum a veces necesita hablar con él).</li>
+    <li><b>Pago rechazado o tarjeta mal escrita:</b> revisa con el cliente el número, la fecha de vencimiento, el código y el código postal de la tarjeta. Que la vuelva a dar él o que use otra tarjeta. No anotes la tarjeta en ningún lado.</li>
+    <li><b>Spectrum pidió verificar al cliente:</b> se resuelve en esa llamada con el cliente y su identificación. Si tiene un adeudo anterior, primero lo tiene que pagar.</li>
+    <li><b>Ya hay una cuenta activa en la dirección:</b> Spectrum te dice las opciones (que el titular agregue el servicio, transferirlo, o comprobar que el cliente se acaba de mudar). Una cuenta nueva solo si es <b>otra persona que de verdad vive ahí</b>, con <b>sus propios datos e identificación</b>.</li>
+    <li>⛔ <b>No se vuelve a meter la orden con datos de otra persona o inventados.</b> Spectrum la puede cancelar o cobrar de regreso la comisión (chargeback), y pone en riesgo el código de la tienda.</li>
+    <li>Cuando quede, márcala aquí. Si se completó, aparece sola en Activaciones con el Core Report (o regístrala desde el cotejo de pagos).</li>
+  </ol>`;
+function segIncList() { return ((segData && segData.incompletas) || []); }
+function segIncHtml() {
+  const open = segIncList().filter(o => !o.estado);
+  if (!segOn() || !open.length) return '';
+  return `<div class="act-reco" style="border-color:rgba(255,92,92,.55);margin-bottom:14px">
+    <div style="font-weight:700;margin-bottom:4px">⚠️ Órdenes que Spectrum no terminó (${open.length})</div>
+    <div class="pros-hint" style="margin-bottom:10px">Llegó el correo "Please Complete The Order": la orden <b>no quedó</b> hasta que se llame al 1-855-392-9910.</div>
+    <div class="pros-list">${open.map(o => `<div class="pros-card">
+      <div class="pros-card-top"><div style="min-width:0"><div class="pros-name">${escHtml(o.nombre || '—')}</div>
+        <div class="pros-sub">Orden #<span class="mono">${escHtml(o.orden)}</span> · ${escHtml(prosShortDate(o.fecha))} ${escHtml(String(o.fecha).slice(11, 16))}</div>
+        <div class="pros-sub">${escHtml(o.direccion || '')}</div>
+        <div class="pros-sub">${escHtml(o.paquete || '')}${o.total ? ' · $' + escHtml(o.total) : ''}</div></div></div>
+      <div class="pros-actions">
+        <a class="btn btn-primary btn-sm" href="tel:+18553929910">📞 Spectrum 1-855-392-9910</a>
+        ${o.telefono ? `<a class="btn btn-ghost btn-sm" href="tel:+1${o.telefono}">📞 Cliente ${fmtPhone(o.telefono)}</a>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="segIncOpen('${escHtml(o.orden)}')">✔ Marcar cómo quedó</button>
+      </div></div>`).join('')}</div>
+    <details style="margin-top:10px"><summary style="cursor:pointer;font-size:13px">📋 Qué hacer cuando pasa esto</summary><div style="font-size:13px;margin-top:8px">${SEG_INC_GUIA}</div></details>
+  </div>`;
+}
+function segIncOpen(orden) {
+  const o = segIncList().find(x => x.orden === orden);
+  if (!o) return;
+  openModal(`
+    <div class="modal-title">⚠️ ${escHtml(o.nombre || 'Orden')} · #${escHtml(o.orden)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="act-hint" style="margin-bottom:12px;font-size:13px">${SEG_INC_GUIA}</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">¿Cómo quedó? *</label>
+        <select class="form-input form-select" id="si-estado">
+          <option value="Completada por teléfono">✅ Se completó por teléfono</option>
+          <option value="Se hizo una orden nueva">🔁 Se hizo una orden nueva (mismo cliente)</option>
+          <option value="Cancelada">❌ No se pudo / se canceló</option></select></div>
+      <div class="form-group"><label class="form-label">¿Qué pasó?</label>
+        <select class="form-input form-select" id="si-motivo"><option value="">—</option>${SEG_INC_MOTIVOS.map(m => `<option>${m}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Orden nueva / confirmación</label><input class="form-input mono" id="si-nueva" inputmode="numeric" placeholder="Si Spectrum dio otro número"></div>
+      <div class="form-group"><label class="form-label">Nota</label><input class="form-input" id="si-nota" placeholder="Ej. la tarjeta tenía un dígito mal"></div>
+    </div>
+    <button class="btn btn-primary btn-full" id="si-save" onclick="segIncSave('${escHtml(o.orden)}')">Guardar</button>`);
+}
+async function segIncSave(orden) {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const btn = document.getElementById('si-save'); if (btn) btn.disabled = true;
+  try {
+    await segApi('segIncMark', { orden, estado: v('si-estado'), motivo: v('si-motivo'), nueva: v('si-nueva'), nota: v('si-nota') });
+    const o = segIncList().find(x => x.orden === orden);
+    if (o) Object.assign(o, { estado: v('si-estado'), motivo: v('si-motivo'), nota: v('si-nota'), por: prosAuth.user });
+    closeModal(); toast('Guardado.', 'success'); renderProspects();
+  } catch (e) { if (btn) btn.disabled = false; toast(escHtml(e.message), 'error'); }
 }
 
 // ── 📱 Clientes con internet sin línea ──
