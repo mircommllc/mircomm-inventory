@@ -272,6 +272,8 @@
   .pros-card-rev { border-color: rgba(255,209,102,.4); }
   .pros-card-top { display: flex; justify-content: space-between; gap: 10px; cursor: pointer; }
   .pros-name { font-weight: 700; font-size: 15px; }
+  @keyframes modalNudge { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .modal-nudge { animation: modalNudge .25s ease; }
   .seg-sl-name { cursor: pointer; }
   .seg-sl-name:hover { color: var(--blue); text-decoration: underline; }
   .seg-copy-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
@@ -689,8 +691,9 @@ function openConfig() {
   document.getElementById('config-overlay').classList.add('open');
 }
 function closeConfig(e) {
-  if (e.target === document.getElementById('config-overlay'))
-    document.getElementById('config-overlay').classList.remove('open');
+  // Tocar fuera ya no la cierra (se perdía lo que se estaba escribiendo); se cierra con ✕ o al guardar
+  if (e) return;
+  document.getElementById('config-overlay').classList.remove('open');
 }
 function saveConfig() {
   const url = document.getElementById('config-url-input').value.trim();
@@ -769,11 +772,32 @@ function toast(msg, type='info', ms=3000) {
 function openModal(html, wide) {
   document.querySelector('#modal-overlay .modal').classList.toggle('wide', !!wide);
   document.getElementById('modal-content').innerHTML = html;
+  phoneFormatAll(document.getElementById('modal-content'));
   document.getElementById('modal-overlay').classList.add('open');
 }
+// Todos los campos de teléfono (type="tel") se escriben como (956) 123-4567; los de varias líneas (.tel-list) se acomodan al salir
+function formatPhoneList(el) {
+  el.value = el.value.split(/[,;\/]+/).map(x => x.trim()).filter(Boolean).map(x => {
+    let d = x.replace(/\D/g, ''); if (d.length === 11 && d[0] === '1') d = d.slice(1);
+    return d.length === 10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : x;
+  }).join(', ');
+}
+function phoneFormatAll(root) {
+  (root || document).querySelectorAll('input[type="tel"]').forEach(el => { el.setAttribute('inputmode', 'tel'); el.setAttribute('maxlength', '16'); if (el.value) formatPhoneInput(el); });
+  (root || document).querySelectorAll('input.tel-list').forEach(el => { if (el.value) formatPhoneList(el); });
+}
+document.addEventListener('input', e => { if (e.target.matches && e.target.matches('input[type="tel"]')) formatPhoneInput(e.target); });
+document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('input.tel-list')) formatPhoneList(e.target); });
 function closeModal(e) {
-  if (!e || e.target === document.getElementById('modal-overlay'))
-    document.getElementById('modal-overlay').classList.remove('open');
+  const ov = document.getElementById('modal-overlay');
+  if (e && e.target !== ov) return;
+  // Tocar fuera de una ventana que tiene campos para llenar NO la cierra (se perdía lo capturado). Se cierra con ✕ o sus botones.
+  if (e && document.querySelector('#modal-content input:not([type=hidden]), #modal-content textarea, #modal-content select')) {
+    const m = document.querySelector('#modal-overlay .modal');
+    m.classList.remove('modal-nudge'); void m.offsetWidth; m.classList.add('modal-nudge');
+    return;
+  }
+  ov.classList.remove('open');
 }
 
 // ─── INVENTORY (MANAGER ONLY) ─────────────────────────────────────────
@@ -1355,7 +1379,9 @@ function openCustomerModal() {
 }
 
 function formatPhoneInput(el) {
-  let v = el.value.replace(/\D/g,'').slice(0,10);
+  let v = el.value.replace(/\D/g,'');
+  if (v.length === 11 && v[0] === '1') v = v.slice(1);   // +1 al inicio
+  v = v.slice(0,10);
   if (v.length >= 7) v = `(${v.slice(0,3)}) ${v.slice(3,6)}-${v.slice(6)}`;
   else if (v.length >= 4) v = `(${v.slice(0,3)}) ${v.slice(3)}`;
   else if (v.length > 0) v = `(${v}`;
@@ -2287,7 +2313,7 @@ function openProsNew() {
     <div class="form-group"><label class="form-label">Nombre *</label>
       <input class="form-input" id="pn-nombre" autocomplete="off" placeholder="Nombre y apellido"></div>
     <div class="form-group"><label class="form-label">Teléfono *</label>
-      <input class="form-input" id="pn-tel" type="tel" inputmode="tel" autocomplete="off" placeholder="956 555 1234" onblur="prosCheckPhone()">
+      <input class="form-input" id="pn-tel" type="tel" inputmode="tel" autocomplete="off" placeholder="(956) 555-1234" onblur="prosCheckPhone()">
       <div id="pn-tel-msg" class="pros-hint"></div></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="pn-dir" placeholder="Para revisar cobertura"></div>
@@ -2367,7 +2393,7 @@ async function prosCheckPhone() {
   if (!msg || phoneDigits(tel).length < 10) { if (msg) msg.textContent = ''; return; }
   msg.style.color = 'var(--muted)'; msg.textContent = 'Revisando teléfono…';
   try {
-    const r = await prosApi('prosCheck', { telefono: tel });
+    const r = await prosApi('prosCheck', { telefono: phoneDigits(tel) });
     msg.style.color = r.ok ? (r.eraCliente ? 'var(--yellow)' : 'var(--green)') : 'var(--red)';
     msg.textContent = r.ok ? (r.message || '✓ Disponible') : r.message;
   } catch (e) { msg.textContent = ''; }
@@ -2391,7 +2417,7 @@ async function prosSaveNew() {
   const btn = document.getElementById('pn-save'); btn.disabled = true; btn.textContent = 'Guardando…';
   try {
     const r = await prosApi('prosAdd', {
-      nombre, telefono: tel, direccion: v('pn-dir'), zip: v('pn-zip'), canal: prosForm.canal,
+      nombre, telefono: phoneDigits(tel), direccion: v('pn-dir'), zip: v('pn-zip'), canal: prosForm.canal,
       detalle: detalle === 'ok' ? '' : detalle, codigo: v('pn-codigo').toUpperCase(),
       interes: prosForm.interes.join(', '), proximo: v('pn-prox'), notas: v('pn-notas'),
       ...(prosAuth.manager ? { asesora: v('pn-asesora') } : {})
@@ -3844,7 +3870,7 @@ function openActForm(id, pre) {
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Cliente *</label><input class="form-input" id="af-name" value="${escHtml(a.CustomerName||'')}"></div>
-      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="af-phone" type="tel" value="${escHtml(a.Phone||'')}" onblur="credFormCheck('af')"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="af-phone" type="tel" placeholder="(956) 000-0000" value="${escHtml(a.Phone||'')}" onblur="credFormCheck('af')"></div>
     </div>
     <div id="af-socio-box"></div>
     <div class="form-row">
@@ -3857,7 +3883,7 @@ function openActForm(id, pre) {
     <div class="form-row">
       <div class="form-group"><label class="form-label">Plan móvil</label>
         <select class="form-input form-select" id="af-plan">${['', 'Unlimited', 'Unlimited Plus', 'By the Gig'].map(p => `<option ${a.MobilePlan===p?'selected':''}>${p}</option>`).join('')}</select></div>
-      <div class="form-group"><label class="form-label">Número(s) de línea</label><input class="form-input" id="af-linephones" value="${escHtml(a.LinePhones||'')}"></div>
+      <div class="form-group"><label class="form-label">Número(s) de línea</label><input class="form-input tel-list" id="af-linephones" inputmode="tel" placeholder="(956) 000-0000" value="${escHtml(a.LinePhones||'')}"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Internet (si aplica)</label>
@@ -4391,7 +4417,7 @@ function openMlForm(msgId, pre) {
       <div class="form-group"><label class="form-label">Nombre del cliente *</label>
         <input class="form-input" id="ml-name" value="${escHtml(e ? mlTitle(e.FirstName) : (pre.CustomerName || ''))}" placeholder="Nombre y apellido"></div>
       <div class="form-group"><label class="form-label">Teléfono de contacto</label>
-        <input class="form-input" id="ml-phone" type="tel" placeholder="956…" value="${escHtml(pre.Phone || '')}" onblur="credFormCheck('ml')"></div>
+        <input class="form-input" id="ml-phone" type="tel" placeholder="(956) 000-0000" value="${escHtml(pre.Phone || '')}" onblur="credFormCheck('ml')"></div>
     </div>
     <div class="form-group"><label class="form-label">¿Cuántas líneas activaste en esta orden? *</label>
       <input class="form-input" type="number" min="1" max="10" id="ml-lines" value="${escHtml(pre.MobileLines || '1')}" oninput="mlTypeHint()" style="max-width:120px"></div>
@@ -4406,7 +4432,7 @@ function openMlForm(msgId, pre) {
         <input class="form-input mono" id="ml-order" inputmode="numeric" placeholder="1238…" value="${escHtml(e ? e.OrderNumber : '')}">
         <div style="font-size:11px;color:var(--muted);margin-top:4px">El de la confirmación de la orden (14 dígitos).</div></div>
       <div class="form-group"><label class="form-label">Número(s) de la(s) línea(s) nueva(s)</label>
-        <input class="form-input" id="ml-linephones" placeholder="956…, 956…"></div>
+        <input class="form-input tel-list" id="ml-linephones" inputmode="tel" placeholder="(956) 000-0000, (956) 000-0000"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Plan</label>
@@ -4717,7 +4743,7 @@ function openCredOffer() {
       <select class="form-input form-select" id="co-who">${team.map(n => `<option ${n === currentUser ? 'selected' : ''}>${escHtml(n)}</option>`).join('')}</select></div>` : ''}
     <div class="form-row">
       <div class="form-group"><label class="form-label">Número de cuenta Spectrum</label><input class="form-input mono" id="co-acct" inputmode="numeric" placeholder="8260…"></div>
-      <div class="form-group"><label class="form-label">Teléfono del cliente</label><input class="form-input" id="co-phone" type="tel" placeholder="956…"></div>
+      <div class="form-group"><label class="form-label">Teléfono del cliente</label><input class="form-input" id="co-phone" type="tel" placeholder="(956) 000-0000"></div>
     </div>
     <div class="form-group"><label class="form-label">Nombre del cliente *</label><input class="form-input" id="co-name" placeholder="Nombre y apellido"></div>
     <div class="form-group"><label class="form-label">Nota</label><input class="form-input" id="co-note" placeholder="Ej. tiene la línea gratis pendiente, regresa el viernes"></div>
@@ -6624,7 +6650,7 @@ function socOpenRef(id, pre) {
       <select class="form-input form-select" id="sr-partner" ${locked ? 'disabled' : ''}><option value="">Escoge…</option>${partners.map(p => `<option value="${p.id}" ${p.id === r.partnerId ? 'selected' : ''}>${escHtml(p.name)}${p.rateType === 'flat' ? ' · $' + (+p.flatRate || D.config.flat) + ' fijo' : ''}</option>`).join('')}</select></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Cliente *</label><input class="form-input" id="sr-name" value="${escHtml(r.name || '')}"></div>
-      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="sr-phone" type="tel" value="${escHtml(r.phone || '')}"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="sr-phone" type="tel" placeholder="(956) 000-0000" value="${escHtml(r.phone || '')}"></div>
     </div>
     <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="sr-address" value="${escHtml(r.address || '')}"></div>
     <div class="form-row">
@@ -6748,7 +6774,7 @@ function socOpenPartner(id) {
     <div class="modal-title">${id ? '✏️ ' + escHtml(p.name) : '＋ Nuevo socio'} <button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Nombre *</label><input class="form-input" id="spn-name" value="${escHtml(p.name || '')}"></div>
-      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="spn-phone" type="tel" value="${escHtml(p.phone || '')}"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="spn-phone" type="tel" placeholder="(956) 000-0000" value="${escHtml(p.phone || '')}"></div>
     </div>
     <div class="form-group"><label class="form-label">Negocio / propiedades</label><input class="form-input" id="spn-property" value="${escHtml(p.property || '')}" placeholder="Ej. Mission Property Management"></div>
     <div class="form-group"><label class="form-label">Plan para Spectrum</label>
