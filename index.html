@@ -120,6 +120,10 @@
   .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
   .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
   .table-title { font-family: var(--font-display); font-size: 16px; font-weight: 800; }
+  .act-search-bar { position: sticky; top: -24px; z-index: 6; display: flex; align-items: center; gap: 12px;
+    background: var(--bg); padding: 12px 0; margin: 4px 0 2px; }
+  .act-search-bar .search-input { flex: 1; min-width: 0; }
+  .act-search-n { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .search-input {
     padding: 7px 12px; border-radius: 8px; background: var(--surface2);
     border: 1px solid var(--border); color: var(--text); font-family: var(--font-body);
@@ -2357,7 +2361,7 @@ function openProsNew() {
     <div class="form-group"><label class="form-label">Notas</label>
       <textarea class="form-input" id="pn-notas" rows="2" placeholder="Qué busca, cuánto paga hoy, cuándo se muda…"></textarea></div>
     <button class="btn btn-primary btn-full" id="pn-save" onclick="prosSaveNew()">Registrar prospecto</button>
-    <p class="pros-hint" style="margin-top:10px">La fecha y hora del registro las pone el sistema. Si el teléfono ya está registrado o ya tiene servicio con MirComm, no se puede registrar.</p>`);
+    <p class="pros-hint" style="margin-top:10px">La fecha y hora del registro las pone el sistema. Si el teléfono ya está registrado por otra persona, no se puede registrar. Si ya es cliente MirComm, sí se registra: es oportunidad de línea o de traer sus otras líneas.</p>`);
   setTimeout(() => document.getElementById('pn-nombre')?.focus(), 80);
 }
 function prosPickChannel(c) {
@@ -3598,10 +3602,21 @@ async function actImportNow(all) {
   } catch (e) { toast(e.message, 'error'); }
 }
 
+// Búsqueda: nombre, cuenta, teléfono, confirmación… El teléfono se compara solo por dígitos,
+// así que "(956) 905-0579", "956-905-0579" o "9050579" encuentran lo mismo.
+function actMatchesQ(a, q) {
+  if (!q) return true;
+  const fields = [a.CustomerName, a.AccountNumber, a.Phone, a.Confirmation, a.WorkOrder, a.Email, a.MobileOrder, a.LinePhones, a.IMEIs, a.EnteredBy];
+  const qd = q.replace(/\D/g, '');
+  if (qd.length >= 4 && qd.length >= q.replace(/[\s()+\-.]/g, '').length) return fields.some(v => String(v||'').replace(/\D/g, '').includes(qd));
+  const words = q.split(/\s+/).filter(Boolean);   // "orlando barrientos" o "barrientos orlando"
+  const hay = fields.map(v => String(v||'').toLowerCase()).join(' ');
+  return words.every(w => hay.includes(w));
+}
 function actFiltered() {
   const q = actFilter.q.trim().toLowerCase();
   return actData.filter(a => {
-    if (actFilter.fm && a.FiscalMonth !== actFilter.fm) return false;
+    if (actFilter.fm && !q && a.FiscalMonth !== actFilter.fm) return false;   // al buscar, busca en todos los meses
     if (actFilter.rep && actRepName(a) !== actFilter.rep) return false;
     const s = actSvcOf(a);
     if (actFilter.svc === 'int' && !s.internetTier) return false;
@@ -3625,7 +3640,7 @@ function actFiltered() {
       if (actFilter.status === 'claim' && !['missing','partial'].includes(st.code)) return false;
       if (actFilter.status !== 'claim' && st.code !== actFilter.status) return false;
     }
-    if (q && ![a.CustomerName, a.AccountNumber, a.Phone, a.Confirmation, a.WorkOrder, a.Email, a.MobileOrder, a.LinePhones, a.IMEIs].some(v => String(v||'').toLowerCase().includes(q))) return false;
+    if (q && !actMatchesQ(a, q)) return false;
     return true;
   }).sort((a,b) => (b.OrderDate||'').localeCompare(a.OrderDate||''));
 }
@@ -3687,8 +3702,6 @@ function renderActBody() {
         <option value="m:canceled" ${actFilter.status==='m:canceled'?'selected':''}>📱 Canceladas</option>
         <option value="m:ok" ${actFilter.status==='m:ok'?'selected':''}>📱 ✅ Activadas</option>
       </select>` : ''}
-      <input class="search-input" style="flex:1;min-width:200px" placeholder="Buscar cliente, cuenta, teléfono, confirmación…"
-        value="${escHtml(actFilter.q)}" oninput="actFilter.q=this.value;renderActTable()">
     </div>
     <div class="report-grid">
       <div class="stat-card blue"><div class="stat-label">Órdenes</div><div class="stat-value">${list.length}</div></div>
@@ -3711,6 +3724,11 @@ function renderActBody() {
       : `<div class="act-hint" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Cargados: ${[actReco && '📄 Core', actMobReco && '📱 Mobile', actComReco && '💵 Commission'].filter(Boolean).join(' · ')}${!actComReco ? ' · falta el Commission Report para ver los pagos' : ''}
         ${actSaveOff ? '<span style="color:var(--yellow)">· ⚠️ No se guardan: falta instalar Reportes.gs en Apps Script</span>' : actSaved && Object.keys(actSaved).length ? '<span style="color:var(--muted)">· guardados en la hoja, se cargan solos</span>' : ''}
         <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="actExportClaims()">⬇ Lista para reclamar</button></div>`}
+    <div class="act-search-bar">
+      <input id="act-q" class="search-input" type="search" autocomplete="off" placeholder="🔍 Buscar por nombre, teléfono, cuenta, confirmación…"
+        value="${escHtml(actFilter.q)}" oninput="actFilter.q=this.value;renderActTable()" onkeydown="if(event.key==='Escape'){this.value='';actFilter.q='';renderActTable()}">
+      <span id="act-q-n" class="act-search-n"></span>
+    </div>
     <div id="act-table"></div>`;
   renderActTable();
 }
@@ -3719,6 +3737,9 @@ function renderActTable() {
   const el = document.getElementById('act-table');
   if (!el) return;
   const list = actFiltered();
+  const qn = document.getElementById('act-q-n');
+  if (qn) qn.textContent = actFilter.q.trim()
+    ? `${list.length} resultado${list.length === 1 ? '' : 's'}${actFilter.fm ? ' · en todos los meses' : ''}` : '';
   if (!list.length) {
     el.innerHTML = `<div class="table-wrap"><div class="empty-state"><div class="icon">📡</div><p>${actData.length ? 'No hay activaciones con estos filtros.' : 'Todavía no hay activaciones. Corre importAllSpectrumOrders en Apps Script o usa “Importar correos nuevos”.'}</p></div></div>`;
     return;
