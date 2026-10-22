@@ -7441,6 +7441,7 @@ function deskWaitHtml1(w) {
     <div class="d" style="font-size:11px">${late ? '⏰ Ya toca recordarle' : w.Fecha ? 'Te aviso el ' + escHtml(deskDueLabel(w.Fecha).toLowerCase()) : ''}</div>
     <div class="a">
       <button class="btn btn-sm ${late ? '' : 'btn-ghost'}" ${late ? 'style="background:var(--yellow);color:#1A1404"' : ''} onclick="deskMailItems(['${w.ID}'],'recordatorio')">✉ ${late ? 'Mandar recordatorio' : 'Recordatorio'}</button>
+      ${w.GmailThread && /disput|reclam|comisi|commission/i.test(w.Titulo + ' ' + w.Categoria) ? `<button class="btn btn-ghost btn-sm" onclick="deskMailItems(['${w.ID}'],'formato')">📎 Mandar formato</button>` : ''}
       <button class="btn btn-ghost btn-sm" onclick="deskToggle('${w.ID}')">✓ Ya contestó</button>
       <button class="btn btn-ghost btn-sm" onclick="deskSnooze('${w.ID}',3)">+3 días</button>
       ${w.GmailThread ? `<a class="btn btn-ghost btn-sm" href="https://mail.google.com/mail/u/0/#all/${escHtml(w.GmailThread)}" target="_blank" rel="noopener">↗ Gmail</a>` : ''}
@@ -8106,8 +8107,8 @@ document.addEventListener('keydown', e => {
 
 // ═══ ✉ BOTONES DE ACCIÓN + CORREOS (Escritorio.gs → escSend_, Asistente.gs → aiDraft_) ═══
 const DESK_COMMISSIONS = 'commissions@cellmart.us';
-const DESK_DISP_KINDS = ['disputa', 'diferencia', 'cargo'];
-const DESK_KIND_LABEL = { disputa: 'Disputa de comisión', diferencia: 'Reclamo de diferencia', cargo: 'Disputa de cargo', recordatorio: 'Recordatorio', responder: 'Respuesta', general: 'Correo' };
+const DESK_DISP_KINDS = ['disputa', 'diferencia', 'cargo', 'formato'];
+const DESK_KIND_LABEL = { disputa: 'Disputa de comisión', diferencia: 'Reclamo de diferencia', cargo: 'Disputa de cargo', recordatorio: 'Recordatorio', responder: 'Respuesta', formato: 'Formato de disputa', general: 'Correo' };
 function deskPhone(i) { const d = String(i.LigaValor || '').replace(/\D/g, '').slice(-10); return ['cliente', 'prospecto', 'empleada', 'proveedor'].includes(i.LigaTipo) && d.length === 10 ? d : ''; }
 function deskClaimKind(i) {
   if (i.Tipo === 'Espera' || i.Estado !== 'Abierto') return '';
@@ -8128,6 +8129,7 @@ function deskActs(i) {
     if (kind === 'disputa' && n > 1) a.push([`✉ Reclamar todas (${n}) en un correo`, `deskMailItems(deskClaims().map(x=>x.ID),'disputa')`]);
   }
   if (i.Tipo === 'Espera') a.push(['✉ Mandar recordatorio', `deskMailItems([${q(i.ID)}],'recordatorio')`, deskWaitLate(i) ? 'y' : '']);
+  if (i.Tipo === 'Espera' && i.GmailThread && /disput|reclam|comisi|commission/i.test(i.Titulo + ' ' + i.Categoria)) a.push(['📎 Mandar formato de disputa', `deskMailItems([${q(i.ID)}],'formato')`]);
   if (ak.startsWith('alloc:') || (i.GmailThread && i.Tipo !== 'Espera' && !kind)) a.push(['✉ Contestar', `deskMailItems([${q(i.ID)}],'responder')`, 'p']);
   if (ak.startsWith('pay:') || /commission report/i.test(i.Titulo)) a.push(['📄 Subir Commission Report', `deskGoUpload()`, 'p']);
   if (ak.startsWith('seg:')) {
@@ -8169,7 +8171,7 @@ async function deskMailItems(ids, kind) {
   if (!items.length) return;
   const first = items[0];
   let to = '', thread = '';
-  if (kind === 'recordatorio' || kind === 'responder') {
+  if (kind === 'recordatorio' || kind === 'responder' || kind === 'formato') {
     thread = first.GmailThread || '';
     const c = deskContactFor(first.EsperaDe || first.Titulo);
     to = c ? c.Correo : /cellmart/i.test(first.EsperaDe + first.Categoria) ? DESK_COMMISSIONS : '';
@@ -8178,7 +8180,8 @@ async function deskMailItems(ids, kind) {
   const monto = items.reduce((s, i) => s + (Number(i.Monto) || 0), 0);
   const names = items.map(i => (i.Titulo || '').replace(/^.*?:\s*/, '')).join(', ');
   deskCompose({ kind, itemIds: items.map(i => i.ID), to, threadId: thread,
-    espera: kind === 'recordatorio' ? null : { titulo: (kind === 'responder' ? 'Respuesta: ' : DESK_KIND_LABEL[kind] + ': ') + names.slice(0, 150), monto,
+    replyAll: kind === 'formato',
+    espera: kind === 'recordatorio' || kind === 'formato' ? null : { titulo: (kind === 'responder' ? 'Respuesta: ' : DESK_KIND_LABEL[kind] + ': ') + names.slice(0, 150), monto,
       ligaTipo: items.length === 1 ? first.LigaTipo : '', ligaValor: items.length === 1 ? first.LigaValor : '', categoria: first.Categoria } });
 }
 
@@ -8212,7 +8215,7 @@ async function deskCompose(o) {
       <button class="btn btn-ghost" id="dm-draft" onclick="deskMailSend(true)">Guardar borrador en Gmail</button>
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
     </div>
-    <div class="desk-hint">Sale desde <b>mircommllc@gmail.com</b>. ${!deskMail.espera && deskMail.kind !== 'recordatorio' ? 'Queda guardado en tus Enviados de Gmail.' : deskMail.kind === 'recordatorio' ? 'Al enviar, el "esperando respuesta" sigue abierto y te aviso otra vez en 3 días hábiles.'
+    <div class="desk-hint">Sale desde <b>mircommllc@gmail.com</b>.${deskMail.replyAll ? ' Responde <b>a todos</b> en el hilo (los mismos de Cellmart que venían en el último correo).' : ''} ${!deskMail.espera && deskMail.kind !== 'recordatorio' ? 'Queda guardado en tus Enviados de Gmail.' : deskMail.kind === 'recordatorio' ? 'Al enviar, el "esperando respuesta" sigue abierto y te aviso otra vez en 3 días hábiles.'
       : `Al enviar: ${deskMail.itemIds.length ? 'el pendiente queda <b>hecho</b> y ' : ''}se crea <b>⏳ Esperando respuesta</b> con aviso en 3 días hábiles. Todo queda en la bitácora.`}</div>`, true);
   deskMailLang();
   if (DESK_DISP_KINDS.includes(deskMail.kind)) dispLoad();
@@ -8284,7 +8287,7 @@ async function deskMailSend(draftOnly) {
     const d = deskMail.disp;
     if (d && d.on && d.loading) { st.textContent = 'Espera: el formato de disputa todavía se está llenando…'; bs.forEach(b => b && (b.disabled = false)); return; }
     if (d && d.on && d.rows && d.rows.length) dispReadInputs();
-    const r = await apiPost({ action: 'escSend', to, cc, subject, text, threadId: deskMail.threadId, draftOnly, kind: deskMail.kind,
+    const r = await apiPost({ action: 'escSend', to, cc, subject, text, threadId: deskMail.threadId, draftOnly, kind: deskMail.kind, replyAll: !!deskMail.replyAll,
       itemIds: draftOnly ? [] : deskMail.itemIds, espera: draftOnly ? null : espera,
       disputa: d && d.on && d.rows && d.rows.length ? { rows: d.rows, fecha: d.fecha } : null });
     closeModal();
