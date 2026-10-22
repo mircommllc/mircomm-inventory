@@ -563,6 +563,24 @@
     .ai-fab { right: 14px; bottom: 14px; }
     .desk-hello { font-size: 24px; }
   }
+  .au-list { border: 1px solid var(--border, #1B2A47); border-radius: 14px; overflow: hidden; background: var(--surface, #0C1628); }
+  .au-row { display: grid; grid-template-columns: 150px 1fr auto; gap: 14px; padding: 12px 16px; border-top: 1px solid var(--border, #1B2A47); align-items: start; }
+  .au-row:first-child { border-top: 0; }
+  .au-row.bad { background: rgba(255,68,85,0.05); }
+  .au-who { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; }
+  .au-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .au-rol { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .au-what { min-width: 0; }
+  .au-act { font-weight: 600; margin-right: 8px; }
+  .au-mod { white-space: nowrap; margin-right: 8px; vertical-align: 1px; }
+  .au-reg { font-size: 12px; color: var(--cyan, #00C4E8); word-break: break-word; }
+  .au-det { font-size: 12px; color: var(--muted); margin-top: 4px; word-break: break-word; }
+  .au-err { font-size: 12px; color: #FF6B78; margin-top: 4px; }
+  .au-when { font-size: 12px; color: var(--muted); white-space: nowrap; font-family: var(--font-mono, monospace); }
+  @media (max-width: 700px) {
+    .au-row { grid-template-columns: 1fr auto; gap: 6px 10px; }
+    .au-what { grid-column: 1 / -1; grid-row: 2; }
+  }
 </style>
 </head>
 <body>
@@ -584,7 +602,7 @@
       <div class="pin-error" id="rep-pin-error"></div>
     </div>
     <div class="manager-section">
-      <div class="manager-hint">👔 Manager? Enter your PIN</div>
+      <div class="manager-hint">🔒 Administración · escribe tu PIN</div>
       <input class="pin-input" type="password" inputmode="numeric" maxlength="4" id="pin-input"
         placeholder="••••" oninput="checkPin(this.value)">
       <div class="pin-error" id="pin-error"></div>
@@ -601,7 +619,7 @@
     <span class="t">Escribe o dicta un pendiente…</span><span class="kbd">Ctrl K</span></button>
   <div class="topbar-right">
     <span class="user-badge" id="user-badge"></span>
-    <span class="manager-badge" id="manager-badge" style="display:none">⚡ Manager</span>
+    <span class="manager-badge" id="manager-badge" style="display:none">⚡ Admin</span>
     <button class="topbar-btn" id="config-btn" style="display:none" onclick="openConfig()">⚙ Configure</button>
     <button class="topbar-btn" onclick="logout()">↩ Switch User</button>
   </div>
@@ -667,6 +685,9 @@
     <div class="nav-item manager-only" data-page="socios" onclick="showPage('socios')">
       <span class="icon">🤝</span> Socios
     </div>
+    <div class="nav-item manager-only" data-page="audit" onclick="showPage('audit')">
+      <span class="icon">🧾</span> Historial de cambios
+    </div>
     <div class="nav-section manager-only">Stock</div>
     <div class="nav-item manager-only" data-page="receive" onclick="showPage('receive')">
       <span class="icon">📥</span> Receive Stock
@@ -730,7 +751,17 @@
 // The manager PIN is checked by Apps Script (Activaciones.gs); it is not stored in this file.
 let mgrToken = '';
 let pinBusy = false;
-const EMPLOYEES = ['Joel', 'Alondra', 'Lizbeth'];
+let EMPLOYEES = ['Joel', 'Alondra', 'Lizbeth'];
+// Administradores (Joel, Maricela…): entran con su propio PIN; el backend (Admins.gs) dice quién es.
+let adminNames = ['Joel'];
+let adminOwner = false;
+let adminFirma = '';
+const ADMIN_FIRMA_JOEL = 'Joel Chavez\nOwner / General Manager\nMirComm LLC · Spectrum Rep ID CMMCL4423\n956-603-6505';
+function isAdminName(n) { return adminNames.includes(n); }
+function adminSetTeam() {
+  EMPLOYEES = [...new Set(adminNames.concat(['Alondra', 'Lizbeth']))];
+  DESK_STAFF = [...new Set(adminNames.concat(['Lizbeth', 'Alondra']))];
+}
 let SHEETS_URL = localStorage.getItem('mircomm_url') || '';
 let currentStore = 'palmhurst';
 let currentPage = 'pos';
@@ -813,14 +844,19 @@ async function checkPin(val) {
     errEl.style.color = '';
     if (r && r.ok && r.token) {
       mgrToken = r.token;
-      currentUser = 'Joel';
+      currentUser = (r.user && r.user.name) || 'Joel';
       isManager = true;
+      adminNames = Array.isArray(r.admins) && r.admins.length ? r.admins : [currentUser];
+      adminOwner = r.user ? !!r.user.owner : true;
+      adminFirma = (r.user && r.user.firma) || (currentUser === 'Joel' ? ADMIN_FIRMA_JOEL : `${currentUser}\nMirComm LLC\n956-603-6505`);
+      adminSetTeam();
+      try { deskFilter.mine = localStorage.getItem('mircomm_mine_' + currentUser) === '1'; } catch (e) {}
       prosAuth = null; prosData = null; segData = null; prosMgrTried = false;
       nomData = null; nomPeriod = null; nomEdits = {};
       errEl.textContent = '';
       completeLogin();
     } else {
-      errEl.textContent = 'Incorrect PIN';
+      errEl.textContent = 'PIN incorrecto';
     }
   } catch (e) {
     errEl.style.color = '';
@@ -860,7 +896,8 @@ function completeLogin() {
 }
 
 function logout(msg) {
-  currentUser = ''; isManager = false; mgrToken = ''; repLoginName = ''; cart = []; stockData = [];
+  if (isManager && mgrToken && typeof msg !== 'string') apiPost({ action: 'adminLogout' }).catch(() => {});
+  currentUser = ''; isManager = false; adminOwner = false; adminFirma = ''; auditData = null; mgrToken = ''; repLoginName = ''; cart = []; stockData = [];
   closeModal();
   document.getElementById('rep-pin-box').style.display = 'none';
   document.getElementById('rep-pin-error').textContent = '';
@@ -921,8 +958,86 @@ function loadCurrentPage() {
     case 'mipago':       renderMyPay(); break;
     case 'nomina':       renderNomina(); break;
     case 'socios':       renderSocios(); break;
+    case 'audit':        renderAudit(); break;
     case 'desk': case 'deskInbox': case 'deskTasks': case 'deskWait': case 'deskNotes': case 'deskLog': case 'deskContacts': renderDesk(); break;
   }
+}
+
+// ─── 🧾 HISTORIAL DE CAMBIOS (Admins.gs → hoja Auditoria) ─────────────
+// Cada cambio hecho desde el Hub queda con fecha, quién, módulo, acción, registro y detalle.
+let auditData = null, auditF = { days: 7, quien: '', modulo: '', q: '' };
+async function renderAudit() {
+  if (!isManager) { showPage('pos'); return; }
+  const el = document.getElementById('content');
+  if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
+  el.innerHTML = `
+    <div class="page-title">🧾 Historial de cambios</div>
+    <div class="page-subtitle">Quién hizo qué en el Hub · las consultas no se guardan, solo los cambios</div>
+    <div class="action-row" style="flex-wrap:wrap;gap:8px">
+      <select class="form-input form-select" style="width:auto" id="au-days" onchange="auditF.days=+this.value;auditLoad()">
+        ${[[1, 'Hoy y ayer'], [7, 'Últimos 7 días'], [30, 'Últimos 30 días'], [90, 'Últimos 90 días']].map(([v, l]) => `<option value="${v}" ${auditF.days === v ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>
+      <select class="form-input form-select" style="width:auto" id="au-who" onchange="auditF.quien=this.value;auditPaint()"><option value="">Todas las personas</option></select>
+      <select class="form-input form-select" style="width:auto" id="au-mod" onchange="auditF.modulo=this.value;auditPaint()"><option value="">Todos los módulos</option></select>
+      <input class="search-input" style="flex:1;min-width:200px" placeholder="🔍 Buscar cuenta, cliente, pendiente…" value="${escHtml(auditF.q)}"
+        oninput="auditF.q=this.value;clearTimeout(window._aq);window._aq=setTimeout(auditPaint,200)">
+      <button class="btn btn-ghost" onclick="auditLoad()">↻</button>
+      ${adminOwner && adminNames.length > 1 ? `<button class="btn btn-ghost" onclick="auditLogoutOthers()" title="Por si alguien dejó el Hub abierto en otro teléfono o computadora">🔒 Cerrar las demás sesiones</button>` : ''}
+    </div>
+    <div id="au-body"><div class="loading"><div class="spinner"></div></div></div>`;
+  auditLoad();
+}
+async function auditLoad() {
+  const box = document.getElementById('au-body'); if (!box) return;
+  box.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  try { auditData = await apiPost({ action: 'adminAudit', days: auditF.days }); }
+  catch (e) {
+    box.innerHTML = `<div class="act-hint" style="border-color:rgba(255,209,102,.5)">${/desconocida|unknown|adminAudit/i.test(e.message)
+      ? 'Falta instalar <b>Admins.gs</b> y el <b>Code.gs</b> nuevo en Apps Script, luego Deploy → New version.' : escHtml(e.message)}</div>`;
+    return;
+  }
+  const fill = (id, list, cur, all) => { const s = document.getElementById(id); if (s) s.innerHTML = `<option value="">${all}</option>` + list.map(v => `<option ${v === cur ? 'selected' : ''}>${escHtml(v)}</option>`).join(''); };
+  fill('au-who', auditData.users || [], auditF.quien, 'Todas las personas');
+  fill('au-mod', auditData.modules || [], auditF.modulo, 'Todos los módulos');
+  auditPaint();
+}
+function auditPaint() {
+  const box = document.getElementById('au-body'); if (!box || !auditData) return;
+  const q = auditF.q.trim().toLowerCase();
+  const rows = (auditData.rows || []).filter(r => (!auditF.quien || r.Usuario === auditF.quien) && (!auditF.modulo || r.Modulo === auditF.modulo)
+    && (!q || Object.values(r).join(' ').toLowerCase().includes(q)));
+  const colors = ['#4D8DFF', '#C7A6FF', '#00C4E8', '#FFD166', '#00E887', '#FF9DBB'];
+  const people = [...new Set((auditData.users || []).concat(adminNames))];
+  const dot = n => colors[Math.max(0, people.indexOf(n)) % colors.length];
+  const byWho = {}; rows.forEach(r => { byWho[r.Usuario] = (byWho[r.Usuario] || 0) + 1; });
+  const fmt = f => { const [d, h] = String(f).split(' '); return `${deskDueLabel(d)} · ${deskHour12((h || '').slice(0, 5))}`; };
+  box.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px">${Object.keys(byWho).sort((a, b) => byWho[b] - byWho[a]).map(n =>
+      `<span class="desk-chip ${auditF.quien === n ? 'on' : ''}" style="cursor:pointer" onclick="auditPick(${people.indexOf(n)})"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dot(n)};margin-right:6px"></span>${escHtml(n)} · ${byWho[n]}</span>`).join('')}
+      <span style="margin-left:auto;font-size:12px;color:var(--muted);align-self:center">${rows.length} de ${auditData.total || 0} cambio(s)${(auditData.total || 0) > (auditData.rows || []).length ? ' · se muestran los 500 más nuevos' : ''}</span></div>
+    <div class="au-list">${rows.length ? rows.map(r => {
+        const bad = r.Resultado && r.Resultado !== 'OK';
+        return `<div class="au-row ${bad ? 'bad' : ''}">
+          <div class="au-who"><span class="au-dot" style="background:${dot(r.Usuario)}"></span><b>${escHtml(r.Usuario)}</b>${r.Rol === 'Asesora' ? '<span class="au-rol">asesora</span>' : ''}</div>
+          <div class="au-what">
+            <div><span class="au-act">${escHtml(r.Accion)}</span><span class="tag au-mod">${escHtml(r.Modulo)}</span>${r.Registro ? `<span class="au-reg">${escHtml(r.Registro)}</span>` : ''}</div>
+            ${r.Detalle ? `<div class="au-det">${escHtml(r.Detalle)}</div>` : ''}
+            ${bad ? `<div class="au-err">${escHtml(r.Resultado)}</div>` : ''}
+          </div>
+          <div class="au-when" title="${escHtml(r.Fecha)}">${escHtml(fmt(r.Fecha))}</div>
+        </div>`; }).join('')
+        : `<div class="empty-state"><div class="icon">🧾</div><p>No hay cambios con esos filtros.</p></div>`}</div>`;
+}
+function auditPick(i) {
+  const people = [...new Set(((auditData && auditData.users) || []).concat(adminNames))], n = people[i] || '';
+  auditF.quien = auditF.quien === n ? '' : n;
+  const sel = document.getElementById('au-who'); if (sel) sel.value = auditF.quien;
+  auditPaint();
+}
+async function auditLogoutOthers() {
+  if (!confirm('¿Cerrar todas las demás sesiones de administrador? Tendrán que volver a escribir su PIN. La tuya sigue abierta.')) return;
+  try { const r = await apiPost({ action: 'adminLogoutOthers' }); toast(`Listo: se cerraron ${r.closed} sesión(es).`, 'success'); auditLoad(); }
+  catch (e) { toast(escHtml(e.message), 'error'); }
 }
 
 // ─── API ─────────────────────────────────────────────────────────────
@@ -4061,7 +4176,7 @@ function openActForm(id, pre) {
     <div class="form-row">
       <div class="form-group"><label class="form-label">Fecha de orden *</label><input class="form-input" type="date" id="af-date" value="${escHtml(a.OrderDate || actToday())}"></div>
       <div class="form-group"><label class="form-label">Hecha por *</label>
-        <select class="form-input form-select" id="af-soldby">${EMPLOYEES.map(n => `<option ${actRepName(a)===n || (!a.ID && !a.SoldBy && n==='Joel') ? 'selected' : ''}>${n}</option>`).join('')}</select>
+        <select class="form-input form-select" id="af-soldby">${EMPLOYEES.map(n => `<option ${actRepName(a)===n || (!a.ID && !a.SoldBy && n===currentUser) ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <div style="font-size:11px;color:var(--muted);margin-top:4px">Quién trabajó al cliente (para su comisión). Si alguien más lo tenía anotado, se le acredita a esa persona.</div></div>
     </div>
     <div class="form-row">
@@ -4581,7 +4696,7 @@ function renderMyLinesBody() {
       <thead><tr><th>Fecha</th><th>Cliente</th><th>Cuenta</th><th>Líneas</th><th>Tipo</th><th>Orden</th><th></th></tr></thead>
       <tbody>${d.lines.map(l => `<tr>
         <td class="mono">${actFmtDate(l.OrderDate)}</td>
-        <td><div style="font-weight:600">${escHtml(l.CustomerName || '—')}</div>${l.Source !== 'Asesora' ? `<div style="font-size:11px;color:var(--muted)">${l.Source === 'Email' ? 'del correo de Spectrum' : 'registrada por Joel'}</div>` : ''}</td>
+        <td><div style="font-weight:600">${escHtml(l.CustomerName || '—')}</div>${l.Source !== 'Asesora' ? `<div style="font-size:11px;color:var(--muted)">${l.Source === 'Email' ? 'del correo de Spectrum' : 'registrada por ' + escHtml(l.EnteredBy || 'Joel')}</div>` : ''}</td>
         <td class="mono">${escHtml(l.AccountNumber || '')}</td>
         <td>${escHtml(l.MobileLines)}</td>
         <td>${mlTypeBadge(l.MobileType, +l.MobileLines)}</td>
@@ -5191,7 +5306,7 @@ function actMobReconcile(groups, meta) {
   actMobReco = { groups, meta, byId, unregistered };
   // Cuentas con línea activada → se quitan de "Clientes con internet sin línea" (Seguimiento.gs)
   const withLine = [...new Set(Object.values(groups).filter(g => g.lines.some(l => l.connected && !l.canceled)).map(g => actAcct(g.acct)).filter(Boolean))];
-  if (withLine.length && isManager) apiGet({ action: 'segSinLineaSync', user: 'Joel', pin: '', cuentas: withLine.join(',') }).catch(() => {});
+  if (withLine.length && isManager) apiGet({ action: 'segSinLineaSync', user: currentUser, pin: '', cuentas: withLine.join(',') }).catch(() => {});
 }
 function actMobRecoPanel() {
   const r = actMobReco, vals = Object.values(r.byId);
@@ -5681,7 +5796,7 @@ async function posRegisterPending(saleId) {
       if (!actData.length) actData = await apiGet({ action: 'getActivations' });
       if (!actEmails) actEmails = await apiGet({ action: 'getMobileEmails' }).catch(() => null);
       const e = posEmailMatch(actEmails, pre.CustomerName, pre.OrderDate);
-      openActForm(null, Object.assign(pre, { SoldBy: p.Employee || 'Joel', MobileOrder: e ? e.OrderNumber : '',
+      openActForm(null, Object.assign(pre, { SoldBy: p.Employee || currentUser, MobileOrder: e ? e.OrderNumber : '',
         _from: `De la venta ${p.SaleID} en caja (${posFmtTime(p.Date)}, cobró ${p.Employee})${e ? ` · orden #${e.OrderNumber} del correo de Spectrum` : ''}.` }));
     } else {
       if (!prosAuth) { toast('Vuelve a entrar con tu PIN.', 'error'); return; }
@@ -6395,7 +6510,7 @@ function nomExportCSV() {
 }
 function openNomConfig() {
   const c = nomData.config, R = c.rates;
-  const names = [...new Set(EMPLOYEES.filter(n => n !== 'Joel').concat(Object.keys(c.reps)))];
+  const names = [...new Set(EMPLOYEES.filter(n => !isAdminName(n)).concat(Object.keys(c.reps)))];
   const num = (id, v, label) => `<div class="form-group"><label class="form-label">${label}</label><input class="form-input" type="number" step="0.01" id="nc-${id}" value="${v}"></div>`;
   openModal(`
     <div class="modal-title">⚙ Plan de comisiones <button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -6438,7 +6553,7 @@ async function nomSaveConfig() {
   const rates = Object.assign({}, c.rates);
   ['intOwn', 'intStore', 'line', 'tv', 'tier1', 'bonus8', 'tier2', 'bonus12', 'teamGoal', 'bonusTeam'].forEach(k => { rates[k] = +g(k).value || 0; });
   const reps = {};
-  [...new Set(EMPLOYEES.filter(n => n !== 'Joel').concat(Object.keys(c.reps)))].forEach(n => {
+  [...new Set(EMPLOYEES.filter(n => !isAdminName(n)).concat(Object.keys(c.reps)))].forEach(n => {
     reps[n] = { mode: g(n + '-mode').value, canView: g(n + '-canView').checked, hourly: +g(n + '-hourly').value || 0,
       start: g(n + '-start').value, bonusFrom: g(n + '-bonusFrom').value,
       guarantee: g(n + '-guarantee').checked, guaranteeRate: +g(n + '-grate').value || 0, guaranteeDays: +g(n + '-gdays').value || 0 };
@@ -7090,7 +7205,7 @@ async function socAfterActSave(saved) {
 // ═══════════════════════════════════════════════════════════════════════
 // 🗂 MI ESCRITORIO (Escritorio.gs) + ✨ CLAUDE (Asistente.gs) — solo manager
 // ═══════════════════════════════════════════════════════════════════════
-let deskData = null, deskLoadP = null, deskFilter = { cat: '', q: '', who: '' };
+let deskData = null, deskLoadP = null, deskFilter = { cat: '', q: '', who: '', mine: false };
 const DESK_PAGES = { desk: 'hoy', deskInbox: 'bandeja', deskTasks: 'pendientes', deskWait: 'espera', deskNotes: 'notas', deskLog: 'bitacora', deskContacts: 'contactos' };
 const DESK_CATS = {
   Cellmart: ['rgba(255,209,102,0.13)', '#FFD166'], Tienda: ['rgba(26,110,255,0.15)', '#4D8DFF'],
@@ -7098,7 +7213,7 @@ const DESK_CATS = {
   Proveedores: ['rgba(0,232,135,0.12)', '#00E887'], Personal: ['rgba(255,140,170,0.13)', '#FF9DBB'],
   Hub: ['rgba(138,154,184,0.16)', '#C9D4E6']
 };
-const DESK_STAFF = ['Joel', 'Lizbeth', 'Alondra'];
+let DESK_STAFF = ['Joel', 'Lizbeth', 'Alondra'];
 const DESK_PAY_ANCHOR = '2026-10-12';
 const DESK_DOW = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const DESK_DOW3 = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -7177,17 +7292,17 @@ function deskHoyHtml() {
   const hello = hr < 12 ? 'Buenos días' : hr < 19 ? 'Buenas tardes' : 'Buenas noches';
   const tasks = deskTasks(), waits = deskWaits();
   const over = tasks.filter(i => i.Fecha && i.Fecha < t);
-  const todayOpen = tasks.filter(i => i.Fecha === t || i.Top3 === t);
+  const todayOpen = tasks.filter(i => i.Fecha === t || deskMyTop(i, t));
   const doneToday = (deskData.items || []).filter(i => i.Estado === 'Hecho' && String(i.HechoEl).slice(0, 10) === t && i.Tipo !== 'Espera');
   const money = deskMoneyOpen(), moneyN = deskOpen().filter(i => Number(i.Monto) > 0).length;
   const lateW = waits.filter(deskWaitLate).length;
-  const top = (deskData.items || []).filter(i => i.Top3 === t && i.Estado !== 'Descartado');
+  const top = (deskData.items || []).filter(i => deskMyTop(i, t) && i.Estado !== 'Descartado');
   const timeStr = new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' }).format(now);
   return `
     <div class="desk-head">
       <div style="flex:1 1 280px">
         <div class="desk-date">${DESK_DOW[deskDow(t)]} ${deskNice(t)} · ${escHtml(timeStr)}</div>
-        <div class="desk-hello">${hello}, Joel</div>
+        <div class="desk-hello">${hello}, ${escHtml(currentUser)}</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-ghost" onclick="deskOpenCapture()">＋ Pendiente</button>
@@ -7227,9 +7342,18 @@ function deskHoyHtml() {
     </div>`;
 }
 
+// Cada administrador tiene sus 3 prioridades (Top3Por); las de antes, sin nombre, son de Joel.
+function deskMyTop(i, t) { return i.Top3 === t && (i.Top3Por || 'Joel') === currentUser; }
+function deskMine(i) { return (i.Asignado || 'Joel') === currentUser; }
+function deskToggleMine() {
+  deskFilter.mine = !deskFilter.mine;
+  try { localStorage.setItem('mircomm_mine_' + currentUser, deskFilter.mine ? '1' : '0'); } catch (e) {}
+  deskRerender();
+}
 function deskCatChips() {
   const cats = Object.keys(DESK_CATS);
   return `<div class="desk-chips">
+    ${adminNames.length > 1 ? `<button class="desk-chip ${deskFilter.mine ? 'on' : ''}" onclick="deskToggleMine()" title="Solo lo que tú haces">👤 Solo míos</button><span style="width:1px;background:#24365A;margin:0 4px"></span>` : ''}
     <button class="desk-chip ${!deskFilter.cat ? 'on' : ''}" onclick="deskFilter.cat='';deskRerender()">Todos</button>
     ${cats.map(c => `<button class="desk-chip ${deskFilter.cat === c ? 'on' : ''}" onclick="deskFilter.cat='${c}';deskRerender()">${c}</button>`).join('')}
   </div>`;
@@ -7238,6 +7362,7 @@ function deskGroupsHtml(list, opt = {}) {
   const t = deskToday();
   if (deskFilter.cat) list = list.filter(i => i.Categoria === deskFilter.cat);
   if (deskFilter.who) list = list.filter(i => (i.Asignado || 'Joel') === deskFilter.who);
+  if (deskFilter.mine) list = list.filter(deskMine);
   const prio = { Alta: 0, Normal: 1, Baja: 2 };
   const sort = a => a.sort((x, y) => (x.Fecha || '9999').localeCompare(y.Fecha || '9999') || (prio[x.Prioridad] ?? 1) - (prio[y.Prioridad] ?? 1) || (x.Hora || '99').localeCompare(y.Hora || '99'));
   const groups = [
@@ -7267,9 +7392,11 @@ function deskRowHtml(i) {
   return `<div class="desk-row ${done ? 'done' : ''}" onclick="deskEdit('${i.ID}')">
     <button class="desk-chk ${done ? 'on' : over ? 'over' : ''}" aria-label="Marcar como hecho" onclick="event.stopPropagation();deskToggle('${i.ID}')">${done ? '✓' : ''}</button>
     <div style="flex:1;min-width:0">
-      <div class="ti">${i.Top3 === t ? '<span style="color:var(--yellow)">★</span> ' : ''}${escHtml(i.Titulo)}</div>
+      <div class="ti">${deskMyTop(i, t) ? '<span style="color:var(--yellow)">★</span> ' : ''}${escHtml(i.Titulo)}</div>
       <div class="desk-meta">${deskTag(i.Categoria)}${Number(i.Monto) ? `<span class="desk-money">${fmtMoney(i.Monto)}</span>` : ''}${deskLinkHtml(i)}
-        ${i.Asignado && i.Asignado !== 'Joel' ? `<span style="color:#C7A6FF">→ ${escHtml(i.Asignado)}</span>` : ''}
+        ${i.Asignado && i.Asignado !== currentUser ? `<span style="color:#C7A6FF">→ ${escHtml(i.Asignado)}</span>` : ''}
+        ${i.CreadoPor && i.CreadoPor !== currentUser ? `<span style="color:#8A9AB8" title="Lo anotó ${escHtml(i.CreadoPor)}">✍ ${escHtml(i.CreadoPor)}</span>` : ''}
+        ${done && i.HechoPor && i.HechoPor !== currentUser ? `<span style="color:#8A9AB8">✓ lo terminó ${escHtml(i.HechoPor)}</span>` : ''}
         ${i.Repetir ? `<span style="color:#8A9AB8">↻ ${escHtml(i.Repetir)}</span>` : ''}${origin}</div>
       ${!done ? deskActsHtml(i) : ''}
     </div>
@@ -7450,7 +7577,7 @@ function deskGoLink(tipo, valor) {
 // ── crear / editar pendiente ──
 function deskEdit(id, preset, opt = {}) {
   const it = id ? deskData.items.find(x => x.ID === id) : null;
-  const v = { Tipo: 'Tarea', Prioridad: 'Normal', Asignado: 'Joel', ...(it || {}), ...(preset || {}) };
+  const v = { Tipo: 'Tarea', Prioridad: 'Normal', Asignado: currentUser, ...(it || {}), ...(preset || {}) };
   const isW = v.Tipo === 'Espera';
   window._deskEdit = { id: it ? it.ID : '', opt, tipo: v.Tipo };
   const opts = (arr, cur) => arr.map(o => `<option ${o === cur ? 'selected' : ''}>${o}</option>`).join('');
@@ -7469,7 +7596,7 @@ function deskEdit(id, preset, opt = {}) {
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Dinero en juego ($)</label><input class="form-input" id="de-mon" inputmode="decimal" value="${escHtml(v.Monto || '')}" placeholder="500"></div>
-      <div class="form-group"><label class="form-label">Quién lo hace</label><select class="form-input form-select" id="de-asi">${opts(DESK_STAFF, v.Asignado || 'Joel')}</select></div>
+      <div class="form-group"><label class="form-label">Quién lo hace</label><select class="form-input form-select" id="de-asi">${opts(DESK_STAFF.includes(v.Asignado) || !v.Asignado ? DESK_STAFF : DESK_STAFF.concat([v.Asignado]), v.Asignado || currentUser)}</select></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Ligado a</label><select class="form-input form-select" id="de-lt"><option value="">—</option>${['cuenta', 'cliente', 'prospecto', 'empleada', 'proveedor'].map(o => `<option value="${o}" ${o === v.LigaTipo ? 'selected' : ''}>${o}</option>`).join('')}</select></div>
@@ -7523,7 +7650,7 @@ function deskPlanDay() {
   const t = deskToday();
   const cand = deskTasks().filter(i => !i.Fecha || i.Fecha <= deskAdd(t, 7))
     .sort((a, b) => (a.Fecha || '9999').localeCompare(b.Fecha || '9999') || (Number(b.Monto) || 0) - (Number(a.Monto) || 0));
-  const cur = new Set(deskData.items.filter(i => i.Top3 === t).map(i => i.ID));
+  const cur = new Set(deskData.items.filter(i => deskMyTop(i, t)).map(i => i.ID));
   const inb = (deskData.inbox || []).length, lateW = deskWaits().filter(deskWaitLate).length;
   openModal(`
     <div class="modal-title">☀ Planear mi día<button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -7546,7 +7673,7 @@ async function deskPlanSave() {
   const ids = [...document.querySelectorAll('.dp-chk:checked')].map(x => x.value), t = deskToday();
   try {
     await apiPost({ action: 'escTop3', ids, fecha: t });
-    deskData.items.forEach(i => { if (ids.includes(i.ID)) { i.Top3 = t; if (!i.Fecha || i.Fecha > t) i.Fecha = t; } else if (i.Top3 === t) i.Top3 = ''; });
+    deskData.items.forEach(i => { if (ids.includes(i.ID)) { i.Top3 = t; i.Top3Por = currentUser; if (!i.Fecha || i.Fecha > t) i.Fecha = t; } else if (deskMyTop(i, t)) { i.Top3 = ''; i.Top3Por = ''; } });
     closeModal(); deskRerender(); toast('¡Día planeado! 💪', 'success');
   } catch (e) { toast(escHtml(e.message), 'error'); }
 }
@@ -7667,7 +7794,7 @@ function deskCapPreview() {
     p.Categoria ? `<span style="background:${c ? c[0] : ''};color:${c ? c[1] : ''}">${escHtml(p.Categoria)}</span>` : '',
     p.Prioridad && p.Prioridad !== 'Normal' ? `<span style="background:rgba(255,68,85,0.12);color:#FF6B78">${escHtml(p.Prioridad)}</span>` : '',
     Number(p.Monto) ? `<span style="background:rgba(0,232,135,0.12);color:var(--green)">${fmtMoney(p.Monto)}</span>` : '',
-    p.Asignado && p.Asignado !== 'Joel' ? `<span style="background:rgba(199,166,255,0.14);color:#C7A6FF">→ ${escHtml(p.Asignado)}</span>` : '',
+    p.Asignado && p.Asignado !== currentUser ? `<span style="background:rgba(199,166,255,0.14);color:#C7A6FF">→ ${escHtml(p.Asignado)}</span>` : '',
     p.LigaValor ? `<span style="background:rgba(0,196,232,0.12);color:var(--cyan)">🔗 ${escHtml(p.LigaValor)}</span>` : ''
   ].join('');
 }
@@ -7682,7 +7809,7 @@ async function deskCapAI(txt) {
     const r = await apiPost({ action: 'aiParse', texto: txt });
     const x = r.parsed || {};
     deskCap.parsed = { Tipo: x.tipo || 'Tarea', Titulo: x.titulo || txt, Fecha: x.fecha || '', Hora: x.hora || '', Categoria: x.categoria || '', Prioridad: x.prioridad || 'Normal',
-      Monto: x.monto || '', EsperaDe: x.espera_de || '', Asignado: x.asignado || 'Joel', LigaTipo: x.liga_tipo || '', LigaValor: x.liga_valor || '', Notas: x.notas || '' };
+      Monto: x.monto || '', EsperaDe: x.espera_de || '', Asignado: x.asignado || currentUser, LigaTipo: x.liga_tipo || '', LigaValor: x.liga_valor || '', Notas: x.notas || '' };
     if (deskCap.parsed.Tipo === 'Espera' && !deskCap.parsed.Fecha) deskCap.parsed.Fecha = deskAdd(deskToday(), 3);
     deskCap.aiParsed = true;
     if (deskData && deskData.ai) deskData.ai.spent = r.spent;
@@ -7748,7 +7875,7 @@ function deskCapStop() { if (deskCap.rec) { try { deskCap.rec.abort(); } catch (
 function deskParseLocal(txt) {
   const t = deskToday();
   let s = ' ' + txt.trim() + ' ';
-  const p = { Tipo: 'Tarea', Titulo: '', Fecha: '', Hora: '', Categoria: '', Prioridad: 'Normal', Monto: '', EsperaDe: '', Asignado: 'Joel', LigaTipo: '', LigaValor: '', Notas: '' };
+  const p = { Tipo: 'Tarea', Titulo: '', Fecha: '', Hora: '', Categoria: '', Prioridad: 'Normal', Monto: '', EsperaDe: '', Asignado: currentUser, LigaTipo: '', LigaValor: '', Notas: '' };
   const cut = re => { s = s.replace(re, ' '); };
   const norm = w => w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   // #categoría
@@ -7839,7 +7966,7 @@ const AI_PROP_LABEL = { crear_pendiente: 'NUEVO PENDIENTE', crear_espera: 'ESPER
 function aiPropHtml(p, mi, pi) {
   const x = p.input || {};
   const det = [x.fecha ? '📅 ' + deskDueLabel(x.fecha) + (x.hora ? ' ' + deskHour12(x.hora) : '') : '', x.categoria || '', x.prioridad && x.prioridad !== 'Normal' ? x.prioridad : '',
-    x.monto ? fmtMoney(x.monto) : '', x.espera_de ? 'de ' + x.espera_de : '', x.asignado && x.asignado !== 'Joel' ? '→ ' + x.asignado : '', x.liga_valor ? '🔗 ' + x.liga_valor : ''].filter(Boolean).join(' · ');
+    x.monto ? fmtMoney(x.monto) : '', x.espera_de ? 'de ' + x.espera_de : '', x.asignado && x.asignado !== currentUser ? '→ ' + x.asignado : '', x.liga_valor ? '🔗 ' + x.liga_valor : ''].filter(Boolean).join(' · ');
   const body = p.tool === 'crear_nota' ? (x.titulo || 'Nota') : x.titulo || x.id;
   return `<div class="ai-prop ${p.state === 'ok' ? 'ok' : ''}">
     <div class="k">${AI_PROP_LABEL[p.tool] || p.tool}</div>
@@ -7865,7 +7992,7 @@ function aiRender() {
   if (!aiMsgs.length) {
     const sugs = ['¿Qué comisiones me faltan por cobrar?', '¿Cuántas líneas e internet llevamos este mes por persona?', 'Resume mis pendientes y qué debería hacer primero hoy',
       '¿Qué accesorios tengo que pedir?', '¿Qué prospectos de Lizbeth no han tenido seguimiento?'];
-    body.innerHTML = `<div class="ai-msg a"><p>Hola Joel 👋 Pregúntame lo que quieras del negocio: busco en Activaciones, los reportes de Cellmart, Prospectos, Clientes, Ventas, Inventario y tus pendientes.</p><p>También puedo crear pendientes o notas: te los propongo y tú confirmas.</p></div>
+    body.innerHTML = `<div class="ai-msg a"><p>Hola ${escHtml(currentUser)} 👋 Pregúntame lo que quieras del negocio: busco en Activaciones, los reportes de Cellmart, Prospectos, Clientes, Ventas, Inventario y tus pendientes.</p><p>También puedo crear pendientes o notas: te los propongo y tú confirmas.</p></div>
       <div class="ai-sugs">${sugs.map(s => `<button onclick="aiSend(this.textContent)">${escHtml(s)}</button>`).join('')}</div>`;
     return;
   }
@@ -7878,7 +8005,7 @@ function aiRender() {
 function aiContext() {
   const names = { desk: 'Mi Escritorio · Hoy', deskInbox: 'Bandeja', deskTasks: 'Pendientes', deskWait: 'Esperando respuesta', deskNotes: 'Notas', deskLog: 'Bitácora',
     deskContacts: 'Contactos', activations: 'Activaciones', prospects: 'Prospectos', customers: 'Clientes', nomina: 'Nómina', inventory: 'Inventario', pos: 'Point of Sale', report: 'Sales Report', transactions: 'Transactions', socios: 'Socios' };
-  let c = 'Joel está en la página ' + (names[currentPage] || currentPage) + '.';
+  let c = currentUser + ' está en la página ' + (names[currentPage] || currentPage) + '.';
   if (currentPage === 'activations' && actFilter && actFilter.q) c += ' Está buscando "' + actFilter.q + '".';
   return c;
 }
@@ -7903,7 +8030,7 @@ async function aiSend(text) {
 async function aiApply(mi, pi, edit) {
   const p = aiMsgs[mi].proposals[pi], x = p.input || {};
   const item = { Tipo: p.tool === 'crear_espera' ? 'Espera' : 'Tarea', Titulo: x.titulo, Fecha: x.fecha || (p.tool === 'crear_espera' ? deskAdd(deskToday(), 3) : ''), Hora: x.hora || '',
-    Categoria: x.categoria || '', Prioridad: x.prioridad || 'Normal', Monto: x.monto || '', EsperaDe: x.espera_de || '', Asignado: x.asignado || 'Joel',
+    Categoria: x.categoria || '', Prioridad: x.prioridad || 'Normal', Monto: x.monto || '', EsperaDe: x.espera_de || '', Asignado: x.asignado || currentUser,
     LigaTipo: x.liga_tipo || '', LigaValor: x.liga_valor || '', Notas: x.notas || '' };
   if (edit) { deskEdit(null, item, { origen: 'claude', after: () => { p.state = 'ok'; aiRender(); } }); return; }
   try {
@@ -7917,6 +8044,7 @@ async function aiApply(mi, pi, edit) {
 }
 function aiNew() { aiMsgs = []; aiRender(); }
 async function aiSetLimitAsk() {
+  if (!adminOwner) { toast('Solo Joel puede cambiar el límite de gasto de Claude.', 'info'); return; }
   const v = prompt('Límite de gasto de Claude al mes (USD):', deskData && deskData.ai ? deskData.ai.limit : 10);
   if (v === null) return;
   try { const r = await apiPost({ action: 'aiLimit', limite: Number(v) }); if (deskData) deskData.ai = r; aiRender(); toast('Límite: $' + r.limit + ' al mes.', 'success'); }
@@ -8064,7 +8192,7 @@ async function deskCompose(o) {
       : `Al enviar: ${deskMail.itemIds.length ? 'el pendiente queda <b>hecho</b> y ' : ''}se crea <b>⏳ Esperando respuesta</b> con aviso en 3 días hábiles. Todo queda en la bitácora.`}</div>`, true);
   deskMailLang();
   if (deskMail.noAutoDraft) {
-    document.getElementById('dm-body').value = '\n\nJoel Chavez\nOwner / General Manager\nMirComm LLC\n956-603-6505';
+    document.getElementById('dm-body').value = '\n\n' + (adminFirma || ADMIN_FIRMA_JOEL);
     const st = document.getElementById('dm-status'); st.style.color = 'var(--cyan)';
     st.textContent = '✍ Escribe tú, o dile a Claude qué quieres decir abajo y dale ✨ Redactar.';
     const b = document.querySelector('#modal-content button[onclick="deskMailDraft()"]'); if (b) b.textContent = '✨ Redactar';
@@ -8093,7 +8221,7 @@ async function deskMailDraft() {
   if (!deskData.ai || !deskData.ai.configured) {
     const it = deskData.items.find(x => x.ID === deskMail.itemIds[0]);
     if (!document.getElementById('dm-sub').value) document.getElementById('dm-sub').value = it ? it.Titulo : '';
-    if (!document.getElementById('dm-body').value) document.getElementById('dm-body').value = `${it && it.Notas ? it.Notas + '\n\n' : ''}Joel Chavez\nOwner / General Manager\nMirComm LLC · Spectrum Rep ID CMMCL4423\n956-603-6505`;
+    if (!document.getElementById('dm-body').value) document.getElementById('dm-body').value = `${it && it.Notas ? it.Notas + '\n\n' : ''}${adminFirma || ADMIN_FIRMA_JOEL}`;
     st.style.color = 'var(--yellow)'; st.textContent = 'Claude no está conectado: escribe el correo tú.';
     return;
   }
