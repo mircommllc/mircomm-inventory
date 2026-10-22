@@ -581,6 +581,27 @@
     .au-row { grid-template-columns: 1fr auto; gap: 6px 10px; }
     .au-what { grid-column: 1 / -1; grid-row: 2; }
   }
+  .dm-disp { border: 1px solid rgba(77,141,255,.35); background: rgba(26,110,255,.06); border-radius: 12px; padding: 10px 12px; margin: 0 0 14px; }
+  .dm-disp-h { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+  .dm-disp-h .ic { font-size: 18px; line-height: 1.2; }
+  .dm-disp-h .s { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+  .dm-disp-rows { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+  .dm-disp-row { border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: var(--surface); }
+  .dm-disp-rt { font-weight: 600; font-size: 13px; margin-bottom: 8px; } .dm-disp-rt span { color: var(--muted); font-weight: 400; }
+  .dm-disp-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .dm-disp-fields label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .dm-disp-fields label.wide { grid-column: 1 / -1; }
+  .dm-disp-fields label.w2 { grid-column: span 2; }
+  @media (max-width: 520px) { .dm-disp-fields label.w2 { grid-column: 1 / -1; } }
+  .dm-disp-fields label > span { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .dm-disp-fields .form-input { padding: 6px 8px; font-size: 12.5px; width: 100%; min-height: 0; }
+  .dm-disp-fields .form-input.miss { border-color: rgba(255,209,102,.7); background: rgba(255,209,102,.08); }
+  .dm-disp-grid { overflow-x: auto; margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; }
+  .dm-disp-grid table { border-collapse: collapse; width: max-content; }
+  .dm-disp-grid th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); text-align: left; padding: 6px; background: var(--surface2); white-space: nowrap; }
+  .dm-disp-grid td { padding: 4px; border-top: 1px solid var(--border); vertical-align: top; }
+  .dm-disp-grid .form-input { padding: 6px 8px; font-size: 12.5px; width: 100%; min-height: 0; }
+  .dm-disp-grid .form-input.miss { border-color: rgba(255,209,102,.7); background: rgba(255,209,102,.08); }
 </style>
 </head>
 <body>
@@ -7426,7 +7447,7 @@ function deskWaitHtml1(w) {
     </div>
   </div>`;
 }
-const DESK_INB_ICON = { alloc: ['📱', 'rgba(0,196,232,0.14)'], comision: ['💵', 'rgba(0,232,135,0.14)'], pago: ['📄', 'rgba(255,209,102,0.14)'], stock: ['📦', 'rgba(26,110,255,0.15)'], seguimiento: ['🎯', 'rgba(199,166,255,0.14)'] };
+const DESK_INB_ICON = { correo: ['✉', 'rgba(77,141,255,0.15)'], alloc: ['📱', 'rgba(0,196,232,0.14)'], comision: ['💵', 'rgba(0,232,135,0.14)'], pago: ['📄', 'rgba(255,209,102,0.14)'], stock: ['📦', 'rgba(26,110,255,0.15)'], seguimiento: ['🎯', 'rgba(199,166,255,0.14)'] };
 function deskInboxItemHtml(x, i) {
   const ic = DESK_INB_ICON[x.tipo] || ['•', 'var(--surface)'];
   return `<div class="desk-inb"><div class="i" style="background:${ic[1]}">${ic[0]}</div>
@@ -7434,9 +7455,10 @@ function deskInboxItemHtml(x, i) {
       <div style="font-size:12px;color:#A9B7CF;margin-top:3px;line-height:1.5">${escHtml(x.detalle || '')}</div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
         ${x.tipo === 'comision' ? `<button class="btn btn-primary btn-sm" onclick="deskInboxAct(${i},'reclamar')">✉ Reclamar ya</button>` : ''}
-        ${x.tipo === 'alloc' ? `<button class="btn btn-primary btn-sm" onclick="deskInboxAct(${i},'contestar')">✉ Contestar</button>` : ''}
+        ${x.tipo === 'alloc' || x.tipo === 'correo' ? `<button class="btn btn-primary btn-sm" onclick="deskInboxAct(${i},'contestar')">✉ Contestar</button>` : ''}
+        ${x.thread ? `<a class="btn btn-ghost btn-sm" href="https://mail.google.com/mail/u/0/#all/${escHtml(x.thread)}" target="_blank" rel="noopener">↗ Gmail</a>` : ''}
         ${x.tipo === 'pago' ? `<button class="btn btn-primary btn-sm" onclick="deskGoUpload()">📄 Subir Commission Report</button>` : ''}
-        <button class="btn ${['comision', 'alloc', 'pago'].includes(x.tipo) ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="deskInboxAct(${i},'aceptar')">＋ A mis pendientes</button>
+        <button class="btn ${['comision', 'alloc', 'pago', 'correo'].includes(x.tipo) ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="deskInboxAct(${i},'aceptar')">＋ A mis pendientes</button>
         <button class="btn btn-ghost btn-sm" onclick="deskInboxAct(${i},'editar')">Editar</button>
         <button class="btn btn-ghost btn-sm" onclick="deskInboxAct(${i},'descartar')">Descartar</button>
       </div></div></div>`;
@@ -7474,7 +7496,7 @@ function deskNoteCardHtml(n) {
 function deskInboxHtml() {
   const inb = deskData.inbox || [];
   return `<div class="page-title">📥 Bandeja</div>
-    <div class="page-subtitle">Lo que el Hub detectó solo: comisiones que no te han pagado, día de pago de Cellmart, stock bajo y seguimientos atrasados. Pásalo a tus pendientes o descártalo.</div>
+    <div class="page-subtitle">Lo que el Hub detectó solo: correos de Cellmart sin contestar, comisiones que no te han pagado, día de pago de Cellmart, stock bajo y seguimientos atrasados. Pásalo a tus pendientes o descártalo.</div>
     ${deskData.inboxError ? `<div class="act-hint" style="margin-bottom:12px">⚠️ ${escHtml(deskData.inboxError)}</div>` : ''}
     <div style="max-width:820px">${inb.length ? inb.map(deskInboxItemHtml).join('') : '<div class="desk-card"><div class="desk-empty">La bandeja está vacía. ✨</div></div>'}</div>
     <div class="desk-hint" style="max-width:820px">Las comisiones se calculan con los reportes de Cellmart guardados en Activaciones (Core + Commission). Una conexión aparece aquí cuando ya pasó un pago 4+ semanas después y no viene en ningún Commission Report.</div>`;
@@ -7548,7 +7570,7 @@ async function deskInboxAct(i, accion) {
   const x = (deskData.inbox || [])[i]; if (!x) return;
   if (accion === 'editar') { deskEdit(null, { ...x.item }, { inboxKey: x.key }); return; }
   if (accion === 'contestar') {
-    deskCompose({ kind: 'responder', to: x.de || '', threadId: x.thread, espera: { titulo: 'Confirmación de teléfonos asignados', categoria: 'Cellmart' },
+    deskCompose({ kind: 'responder', to: x.de || '', threadId: x.thread, espera: { titulo: x.esperaTitulo || 'Confirmación de teléfonos asignados', categoria: 'Cellmart' },
       after: () => { deskData.inbox = (deskData.inbox || []).filter(y => y.key !== x.key); deskRerender(); } });
     return;
   }
@@ -8084,6 +8106,7 @@ document.addEventListener('keydown', e => {
 
 // ═══ ✉ BOTONES DE ACCIÓN + CORREOS (Escritorio.gs → escSend_, Asistente.gs → aiDraft_) ═══
 const DESK_COMMISSIONS = 'commissions@cellmart.us';
+const DESK_DISP_KINDS = ['disputa', 'diferencia', 'cargo'];
 const DESK_KIND_LABEL = { disputa: 'Disputa de comisión', diferencia: 'Reclamo de diferencia', cargo: 'Disputa de cargo', recordatorio: 'Recordatorio', responder: 'Respuesta', general: 'Correo' };
 function deskPhone(i) { const d = String(i.LigaValor || '').replace(/\D/g, '').slice(-10); return ['cliente', 'prospecto', 'empleada', 'proveedor'].includes(i.LigaTipo) && d.length === 10 ? d : ''; }
 function deskClaimKind(i) {
@@ -8179,6 +8202,7 @@ async function deskCompose(o) {
     <div class="form-group"><label class="form-label">Asunto</label><input class="form-input" id="dm-sub"></div>
     <div class="form-group"><label class="form-label">Correo</label><textarea class="form-input" id="dm-body" rows="14" style="font-size:13.5px;line-height:1.55"></textarea></div>
     <div id="dm-status" style="font-size:12px;color:var(--cyan);min-height:16px;margin:-6px 0 10px"></div>
+    ${DESK_DISP_KINDS.includes(deskMail.kind) ? '<div id="dm-disp" class="dm-disp"><div class="loading" style="padding:10px"><div class="spinner"></div></div></div>' : ''}
     <div style="display:flex;gap:8px;margin-bottom:14px">
       <input class="form-input" id="dm-ins" placeholder="Pídele cambios a Claude: más corto, más firme, menciona que ya van 2 pagos…" onkeydown="if(event.key==='Enter'){event.preventDefault();deskMailDraft()}">
       <button class="btn btn-ghost" onclick="deskMailDraft()" style="white-space:nowrap">✨ Reescribir</button>
@@ -8191,6 +8215,7 @@ async function deskCompose(o) {
     <div class="desk-hint">Sale desde <b>mircommllc@gmail.com</b>. ${!deskMail.espera && deskMail.kind !== 'recordatorio' ? 'Queda guardado en tus Enviados de Gmail.' : deskMail.kind === 'recordatorio' ? 'Al enviar, el "esperando respuesta" sigue abierto y te aviso otra vez en 3 días hábiles.'
       : `Al enviar: ${deskMail.itemIds.length ? 'el pendiente queda <b>hecho</b> y ' : ''}se crea <b>⏳ Esperando respuesta</b> con aviso en 3 días hábiles. Todo queda en la bitácora.`}</div>`, true);
   deskMailLang();
+  if (DESK_DISP_KINDS.includes(deskMail.kind)) dispLoad();
   if (deskMail.noAutoDraft) {
     document.getElementById('dm-body').value = '\n\n' + (adminFirma || ADMIN_FIRMA_JOEL);
     const st = document.getElementById('dm-status'); st.style.color = 'var(--cyan)';
@@ -8232,6 +8257,7 @@ async function deskMailDraft() {
     const cur = document.getElementById('dm-body').value.trim();
     const r = await apiPost({ action: 'aiDraft', kind: deskMail.kind, to, idioma: deskMail.idioma, itemIds: deskMail.itemIds, cuentas: deskMail.cuentas,
       datos: deskMail.datos, threadId: deskMail.threadId,
+      formato: DESK_DISP_KINDS.includes(deskMail.kind) && (!deskMail.disp || deskMail.disp.on) ? (deskMail.disp && deskMail.disp.rows ? deskMail.disp.rows.length : (deskMail.cuentas.length || deskMail.itemIds.length || 1)) : 0,
       instrucciones: [(ins && ins.value.trim()) || '', cur && ins && ins.value.trim() ? 'Borrador actual:\n' + cur : ''].filter(Boolean).join('\n\n') });
     if (!document.getElementById('dm-sub')) return;
     document.getElementById('dm-sub').value = r.asunto || '';
@@ -8255,15 +8281,103 @@ async function deskMailSend(draftOnly) {
   const bs = ['dm-send', 'dm-draft'].map(id => document.getElementById(id)); bs.forEach(b => b && (b.disabled = true));
   const st = document.getElementById('dm-status'); st.style.color = 'var(--cyan)'; st.textContent = draftOnly ? 'Guardando borrador…' : 'Enviando…';
   try {
+    const d = deskMail.disp;
+    if (d && d.on && d.loading) { st.textContent = 'Espera: el formato de disputa todavía se está llenando…'; bs.forEach(b => b && (b.disabled = false)); return; }
+    if (d && d.on && d.rows && d.rows.length) dispReadInputs();
     const r = await apiPost({ action: 'escSend', to, cc, subject, text, threadId: deskMail.threadId, draftOnly, kind: deskMail.kind,
-      itemIds: draftOnly ? [] : deskMail.itemIds, espera: draftOnly ? null : espera });
+      itemIds: draftOnly ? [] : deskMail.itemIds, espera: draftOnly ? null : espera,
+      disputa: d && d.on && d.rows && d.rows.length ? { rows: d.rows, fecha: d.fecha } : null });
     closeModal();
-    if (draftOnly) { toast('Borrador guardado en Gmail.', 'success'); return; }
+    if (draftOnly) { toast('Borrador guardado en Gmail' + (r.adjuntos && r.adjuntos.length ? ' con el formato de disputa adjunto.' : '.'), 'success'); return; }
     (r.items || []).forEach(deskReplace); if (r.espera) deskReplace(r.espera);
-    toast(`✉ Enviado a ${escHtml(c ? c.Nombre : to)}.${r.espera ? ' Te aviso el ' + deskNice(r.espera.Fecha) + ' si no contestan.' : ''}`, 'success', 4000);
+    toast(`✉ Enviado a ${escHtml(c ? c.Nombre : to)}${r.adjuntos && r.adjuntos.length ? ' con el formato de disputa 📎' : ''}.${r.espera ? ' Te aviso el ' + deskNice(r.espera.Fecha) + ' si no contestan.' : ''}`, 'success', 4500);
     if (typeof deskMail.after === 'function') deskMail.after(r);
     deskRerender();
   } catch (e) { st.style.color = '#FF6B78'; st.textContent = e.message; bs.forEach(b => b && (b.disabled = false)); }
+}
+
+// ── 📎 Formato oficial de disputa de Cellmart (Disputas.gs llena el .xlsm y lo adjunta) ──
+const DISP_FIELDS = [
+  ['activacion', 'Activación', 'date', 120], ['cuenta', 'Cuenta', 'text', 150], ['workOrder', 'Work order', 'text', 150],
+  ['psu', 'PSU', 'psu', 110], ['bundle', 'Bundle', 'bundle', 120], ['lineas', 'Líneas', 'num', 60], ['cliente', 'Cliente', 'text', 150],
+  ['direccion', 'Dirección', 'text', 200], ['estado', 'Edo.', 'text', 50], ['zip', 'ZIP', 'text', 70], ['correo', 'Correo del cliente', 'text', 180],
+  ['motivo', 'Motivo', 'reason', 200], ['info', 'Info adicional (esperado vs. pagado)', 'area', 300]];
+const DISP_REASONS = ['Expected payment not received', 'Incorrect payouts'];
+const DISP_LABEL_ES = { activacion: 'fecha de activación', workOrder: 'work order', cliente: 'nombre', direccion: 'dirección', zip: 'ZIP', correo: 'correo del cliente' };
+async function dispLoad() {
+  const box = document.getElementById('dm-disp'); if (!box) return;
+  deskMail.disp = { on: true, loading: true, open: false };
+  try {
+    const r = await apiPost({ action: 'escDispRows', itemIds: deskMail.itemIds, cuentas: deskMail.cuentas, hints: deskMail.hints || {} });
+    Object.assign(deskMail.disp, { loading: false, rows: r.rows || [], fecha: r.fecha, mercado: r.mercado, formato: r.formato, formatoFecha: r.formatoFecha, error: r.formatoError || '', agente: r.agente });
+  } catch (e) {
+    Object.assign(deskMail.disp, { loading: false, rows: [], error: /desconocida|unknown|escDispRows/i.test(e.message) ? 'Falta instalar Disputas.gs y el Escritorio.gs nuevo en Apps Script.' : e.message });
+  }
+  dispPaint();
+}
+function dispPaint() {
+  const box = document.getElementById('dm-disp'), d = deskMail && deskMail.disp; if (!box || !d) return;
+  if (d.loading) return;
+  const rows = d.rows || [];
+  if (d.error || !rows.length) {
+    d.on = false;
+    box.innerHTML = `<div class="dm-disp-h"><span class="ic">📎</span><div style="flex:1"><b>Formato de disputa de Cellmart</b>
+      <div class="s" style="color:var(--yellow)">${escHtml(d.error || 'No encontré la cuenta para llenar el formato. Va solo el correo.')}</div></div></div>`;
+    return;
+  }
+  const reps = [...new Set(rows.map(r => r.rep))];
+  const falt = rows.filter(r => (r.faltan || []).length);
+  box.innerHTML = `
+    <div class="dm-disp-h"><span class="ic">📎</span>
+      <div style="flex:1;min-width:0"><b>${d.on ? 'Va adjunto' : 'No se adjunta'}: formato de disputa de Cellmart</b>
+        <div class="s">${rows.length} cuenta${rows.length > 1 ? 's' : ''} · ${reps.map(escHtml).join(', ')} · ${escHtml(d.mercado || '')}${reps.length > 1 ? ` · ${reps.length} archivos (uno por SAID)` : ''}${d.formatoFecha ? ` · formato que mandó Cellmart el ${escHtml(deskNice(d.formatoFecha))}` : ''}</div>
+        ${falt.length ? `<div class="s" style="color:var(--yellow)">⚠ Falta ${falt.map(r => `${(r.faltan || []).map(f => DISP_LABEL_ES[f] || f).join(', ')} de ${escHtml(r.cliente || r.cuenta)}`).join(' · ')}. Puedes llenarlo en "Revisar filas" o mandarlo así.</div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="dispToggleOpen()">${d.open ? 'Cerrar filas' : '✏ Revisar filas'}</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="dispDownload()">⬇ Descargar</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="deskMail.disp.on=!deskMail.disp.on;dispReadInputs();dispPaint()">${d.on ? 'Quitar' : 'Adjuntar'}</button>
+      </div></div>
+    ${d.open ? `<div class="dm-disp-rows">${rows.map((r, i) => `<div class="dm-disp-row">
+      <div class="dm-disp-rt">${i + 1}. ${escHtml(r.cliente || r.cuenta)} <span>· ${escHtml(r.rep || '')}</span></div>
+      <div class="dm-disp-fields">${DISP_FIELDS.map(([k, label, t]) => {
+        const v = r[k] ?? '', miss = (r.faltan || []).includes(k) && !v ? ' miss' : '', id = `dp-${i}-${k}`;
+        let inp;
+        if (t === 'reason') inp = `<select class="form-input form-select${miss}" id="${id}">${DISP_REASONS.map(o => `<option ${o === v ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+        else if (t === 'bundle') inp = `<select class="form-input form-select" id="${id}">${['Single Play', 'Double Play', 'Triple Play'].map(o => `<option ${o === v ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+        else if (t === 'area') inp = `<textarea class="form-input" id="${id}" rows="2">${escHtml(v)}</textarea>`;
+        else if (t === 'psu') inp = `<input class="form-input${miss}" id="${id}" value="${escHtml(String(v).replace(/\n/g, ' + '))}" title="Internet, TV, Voice, Mobile (varios con +)">`;
+        else inp = `<input class="form-input${miss}" id="${id}" type="${t === 'date' ? 'date' : t === 'num' ? 'number' : 'text'}" value="${escHtml(v)}">`;
+        return `<label class="${t === 'area' || k === 'direccion' ? 'wide' : k === 'motivo' || k === 'correo' ? 'w2' : ''}"><span>${label}</span>${inp}</label>`;
+      }).join('')}</div></div>`).join('')}</div>
+      <div class="desk-hint" style="margin-top:6px">Así se llena el archivo de Cellmart. Agente: ${escHtml(d.agente || '')} · SAID por cuenta · Mercado ${escHtml(d.mercado || '')} · Fecha ${escHtml(deskNice(d.fecha || ''))}.</div>` : ''}`;
+}
+function dispReadInputs() {
+  const d = deskMail && deskMail.disp; if (!d || !d.rows || !d.open) return;
+  d.rows.forEach((r, i) => DISP_FIELDS.forEach(([k, , t]) => {
+    const el = document.getElementById(`dp-${i}-${k}`); if (!el) return;
+    let v = el.value;
+    if (t === 'psu') v = v.split(/\s*[+,\/]\s*/).map(x => x.trim()).filter(Boolean).join('\n');
+    if (t === 'num') v = Number(v) || 0;
+    r[k] = v;
+    if (r.faltan && v) r.faltan = r.faltan.filter(f => f !== k);
+  }));
+}
+function dispToggleOpen() { dispReadInputs(); deskMail.disp.open = !deskMail.disp.open; dispPaint(); }
+async function dispDownload() {
+  dispReadInputs();
+  const d = deskMail.disp;
+  try {
+    toast('Llenando el formato…', 'info', 1500);
+    const r = await apiPost({ action: 'escDispFile', rows: d.rows, fecha: d.fecha });
+    (r.files || []).forEach(f => {
+      const bin = atob(f.b64), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' }));
+      const a = document.createElement('a'); a.href = url; a.download = f.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    });
+  } catch (e) { toast(escHtml(e.message), 'error'); }
 }
 
 // Desde Activaciones: reclamar una cuenta que el cruce con el Commission Report marcó vencida, de menos o con descuento
@@ -8276,7 +8390,14 @@ function actClaim(id) {
   const datos = `Cliente ${a.CustomerName}; cuenta ${a.AccountNumber}; work order ${a.WorkOrder || '—'}; confirmación ${a.Confirmation || '—'}; fecha de venta ${a.OrderDate}; ` +
     `servicios: ${[s.internetTier && 'Internet ' + s.internetTier, s.mobileLines && s.mobileLines + ' línea(s) ' + (s.mobileType || ''), s.videoTier && 'TV ' + s.videoTier].filter(Boolean).join(', ')}; ` +
     `Rep ID ${a.RepID || ''}. Cruce con Commission Reports: ${cs.issues.join(' · ')}. Esperado ${fmtMoney(cs.expected)}, pagado ${fmtMoney(cs.paid)}.`;
-  deskCompose({ kind, to: DESK_COMMISSIONS, cuentas: [a.AccountNumber], datos,
+  const mdy = d => { const p = String(d || '').slice(0, 10).split('-'); return p.length === 3 ? `${p[1]}/${p[2]}/${p[0]}` : ''; };
+  const psus = [s.internetTier && 'Internet', s.videoTier && 'TV', s.mobileLines && 'Mobile'].filter(Boolean);
+  const conn = typeof actConnectDate === 'function' ? actConnectDate(a) : '';
+  const hints = { [String(a.AccountNumber || '').replace(/\D/g, '')]: {
+    psu: psus.join('\n'), esperado: cs.expected ?? '', pagado: (cs.paid || 0) + (cs.charged || 0),
+    motivo: kind === 'disputa' ? 'Expected payment not received' : 'Incorrect payouts',
+    info: `Expected $${cs.expected ?? '?'}, received $${(cs.paid || 0) + (cs.charged || 0)}${cs.charged ? ` (includes $${cs.charged} charged back)` : ''}. Sold ${mdy(a.OrderDate)}${conn ? `, connected ${mdy(conn)}` : ''}.${s.mobileLines ? ` ${s.mobileLines} mobile line(s) ${s.mobileType || ''}.` : ''}`.replace(/\s+\./g, '.') } };
+  deskCompose({ kind, to: DESK_COMMISSIONS, cuentas: [a.AccountNumber], hints, datos,
     espera: { titulo: `${DESK_KIND_LABEL[kind]}: ${a.CustomerName}`, monto: owed > 0 ? owed : '', ligaTipo: 'cuenta', ligaValor: String(a.AccountNumber || ''), categoria: 'Cellmart' } });
 }
 
