@@ -2052,7 +2052,7 @@ function openCustomerDetail(phone) {
     <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
       <a class="btn btn-primary btn-sm" href="tel:+1${c.phone}">📞 Llamar ${fmtPhone(c.phone)}</a>
       <a class="btn btn-ghost btn-sm" href="sms:+1${c.phone}">💬 SMS</a>
-      ${c.email ? `<a class="btn btn-ghost btn-sm" href="mailto:${escHtml(c.email)}">✉ Correo</a>` : ''}
+      ${c.email ? `<button class="btn btn-ghost btn-sm" onclick="custMail('${escHtml(c.phone)}')">✉ Correo</button>` : ''}
     </div>
     <div class="cust-meta">
       ${field('Correo', c.email)}
@@ -8060,10 +8060,17 @@ async function deskCompose(o) {
       <button class="btn btn-ghost" id="dm-draft" onclick="deskMailSend(true)">Guardar borrador en Gmail</button>
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
     </div>
-    <div class="desk-hint">Sale desde <b>mircommllc@gmail.com</b>. ${deskMail.kind === 'recordatorio' ? 'Al enviar, el "esperando respuesta" sigue abierto y te aviso otra vez en 3 días hábiles.'
+    <div class="desk-hint">Sale desde <b>mircommllc@gmail.com</b>. ${!deskMail.espera && deskMail.kind !== 'recordatorio' ? 'Queda guardado en tus Enviados de Gmail.' : deskMail.kind === 'recordatorio' ? 'Al enviar, el "esperando respuesta" sigue abierto y te aviso otra vez en 3 días hábiles.'
       : `Al enviar: ${deskMail.itemIds.length ? 'el pendiente queda <b>hecho</b> y ' : ''}se crea <b>⏳ Esperando respuesta</b> con aviso en 3 días hábiles. Todo queda en la bitácora.`}</div>`, true);
   deskMailLang();
-  deskMailDraft();
+  if (deskMail.noAutoDraft) {
+    document.getElementById('dm-body').value = '\n\nJoel Chavez\nOwner / General Manager\nMirComm LLC\n956-603-6505';
+    const st = document.getElementById('dm-status'); st.style.color = 'var(--cyan)';
+    st.textContent = '✍ Escribe tú, o dile a Claude qué quieres decir abajo y dale ✨ Redactar.';
+    const b = document.querySelector('#modal-content button[onclick="deskMailDraft()"]'); if (b) b.textContent = '✨ Redactar';
+    document.getElementById('dm-ins').placeholder = 'Ej. agradécele su compra y ofrécele la línea gratis con su internet…';
+    setTimeout(() => document.getElementById('dm-ins')?.focus(), 50);
+  } else deskMailDraft();
 }
 function deskMailLang() {
   const to = document.getElementById('dm-to')?.value || '';
@@ -8071,6 +8078,7 @@ function deskMailLang() {
   const c = deskContactFor(to);
   if (forced) deskMail.idioma = 'en';
   else if (c && c.Idioma === 'es') deskMail.idioma = 'es';
+  else if (deskMail.idiomaIni) { deskMail.idioma = deskMail.idiomaIni; deskMail.idiomaIni = ''; }
   ['en', 'es'].forEach(l => { const b = document.getElementById('dm-' + l); if (b) { b.classList.toggle('on', deskMail.idioma === l); b.disabled = !!forced && l === 'es'; b.style.opacity = forced && l === 'es' ? .35 : 1; } });
   const n = document.getElementById('dm-langnote');
   if (n) n.textContent = forced ? 'Cellmart: siempre en inglés' : '';
@@ -8185,6 +8193,19 @@ async function deskContactDel(id) {
   if (!confirm('¿Eliminar este contacto?')) return;
   try { await apiPost({ action: 'escContactDelete', id }); deskData.contacts = deskData.contacts.filter(x => x.ID !== id); closeModal(); deskRerender(); }
   catch (e) { toast(escHtml(e.message), 'error'); }
+}
+
+// Desde Clientes: correo al cliente por Gmail del Hub (no abre Outlook)
+function custMail(phone) {
+  const c = customersData.find(x => x.phone === phone); if (!c || !c.email) return;
+  const r = c.raw || {};
+  const es = /esp|span/i.test(String(r.Language || ''));
+  const compras = (c.history || []).filter(t => String(t.Status).toLowerCase() !== 'voided').slice(0, 5).map(t => {
+    let it = []; try { it = JSON.parse(t.ItemsJSON || '[]'); } catch (e) {}
+    return new Date(t.Date).toLocaleDateString('en-US') + ': ' + it.map(i => i.name).join(', ');
+  }).join(' | ');
+  deskCompose({ kind: 'general', to: c.email, idiomaIni: es ? 'es' : 'en', noAutoDraft: true,
+    datos: `Cliente de la tienda: ${c.name || ''}; teléfono ${fmtPhone(c.phone)}; compañía actual ${c.carrier || r.Carrier || '—'}; idioma ${r.Language || '—'}; compras recientes: ${compras || '—'}.` });
 }
 </script>
 </body>
