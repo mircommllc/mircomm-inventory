@@ -487,6 +487,7 @@
   .desk-tag { padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: 11px; }
   .desk-money { font-family: var(--font-mono); padding: 2px 8px; border-radius: 6px; background: rgba(0,232,135,0.12); color: var(--green); }
   .desk-link { color: #4D8DFF; cursor: pointer; text-decoration: underline dotted; }
+  .desk-acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .desk-due { text-align: right; flex-shrink: 0; font-size: 12px; font-weight: 600; }
   .desk-due .p { font-size: 11px; color: #8A9AB8; font-weight: 400; margin-top: 3px; }
   .desk-wait { padding: 12px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--border); }
@@ -627,6 +628,9 @@
     </div>
     <div class="nav-item manager-only" data-page="deskLog" onclick="showPage('deskLog')">
       <span class="icon">📒</span> Bitácora
+    </div>
+    <div class="nav-item manager-only" data-page="deskContacts" onclick="showPage('deskContacts')">
+      <span class="icon">👥</span> Contactos
     </div>
     <div class="nav-section">Operations</div>
     <div class="nav-item manager-only" data-page="inventory" onclick="showPage('inventory')">
@@ -894,7 +898,7 @@ function saveConfig() {
 // ─── NAVIGATION ──────────────────────────────────────────────────────
 function showPage(page) {
   // Block non-managers from manager pages
-  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','desk','deskInbox','deskTasks','deskWait','deskNotes','deskLog'];
+  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','desk','deskInbox','deskTasks','deskWait','deskNotes','deskLog','deskContacts'];
   if (managerPages.includes(page) && !isManager) return;
   if (page === 'nomina') nomPreviewRep = '';
   if (page === 'mylines' && isManager) page = 'activations';
@@ -917,7 +921,7 @@ function loadCurrentPage() {
     case 'mipago':       renderMyPay(); break;
     case 'nomina':       renderNomina(); break;
     case 'socios':       renderSocios(); break;
-    case 'desk': case 'deskInbox': case 'deskTasks': case 'deskWait': case 'deskNotes': case 'deskLog': renderDesk(); break;
+    case 'desk': case 'deskInbox': case 'deskTasks': case 'deskWait': case 'deskNotes': case 'deskLog': case 'deskContacts': renderDesk(); break;
   }
 }
 
@@ -3942,7 +3946,8 @@ function renderActTable() {
         <td class="mono" style="text-align:right;color:${x.total?'var(--green)':'var(--muted)'}" title="${escHtml(x.note||'')}">${fmtMoney(x.total)}${x.note?' *':''}</td>
         ${actReco ? `<td>${st ? actStatusBadge(st) : ''}</td>` : ''}
         ${actMobReco ? `<td>${ms ? actMobBadge(ms) : ''}</td>` : ''}
-        ${actComReco ? `<td>${actComReco.byId[a.ID] ? actComBadge(actComReco.byId[a.ID]) : ''}</td>` : ''}
+        ${actComReco ? `<td>${actComReco.byId[a.ID] ? actComBadge(actComReco.byId[a.ID]) : ''}${actComReco.byId[a.ID] && ['overdue', 'under', 'charged'].includes(actComReco.byId[a.ID].code)
+          ? `<div style="margin-top:6px"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();actClaim('${escHtml(a.ID)}')">✉ Reclamar</button></div>` : ''}</td>` : ''}
       </tr>`; }).join('')}
     </tbody></table></div>`;
 }
@@ -7086,7 +7091,7 @@ async function socAfterActSave(saved) {
 // 🗂 MI ESCRITORIO (Escritorio.gs) + ✨ CLAUDE (Asistente.gs) — solo manager
 // ═══════════════════════════════════════════════════════════════════════
 let deskData = null, deskLoadP = null, deskFilter = { cat: '', q: '', who: '' };
-const DESK_PAGES = { desk: 'hoy', deskInbox: 'bandeja', deskTasks: 'pendientes', deskWait: 'espera', deskNotes: 'notas', deskLog: 'bitacora' };
+const DESK_PAGES = { desk: 'hoy', deskInbox: 'bandeja', deskTasks: 'pendientes', deskWait: 'espera', deskNotes: 'notas', deskLog: 'bitacora', deskContacts: 'contactos' };
 const DESK_CATS = {
   Cellmart: ['rgba(255,209,102,0.13)', '#FFD166'], Tienda: ['rgba(26,110,255,0.15)', '#4D8DFF'],
   Prospecto: ['rgba(199,166,255,0.14)', '#C7A6FF'], Empleados: ['rgba(0,196,232,0.13)', '#00C4E8'],
@@ -7161,7 +7166,7 @@ async function renderDesk() {
   if (!DESK_PAGES[currentPage]) return;
   const tab = DESK_PAGES[currentPage];
   el.innerHTML = tab === 'hoy' ? deskHoyHtml() : tab === 'bandeja' ? deskInboxHtml() : tab === 'pendientes' ? deskTasksHtml()
-    : tab === 'espera' ? deskWaitHtml() : tab === 'notas' ? deskNotesHtml() : deskLogHtml();
+    : tab === 'espera' ? deskWaitHtml() : tab === 'notas' ? deskNotesHtml() : tab === 'contactos' ? deskContactsHtml() : deskLogHtml();
   if (tab === 'pendientes') { const q = document.getElementById('desk-q'); if (q && deskFilter.q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
 }
 function deskRerender() { if (DESK_PAGES[currentPage]) renderDesk(); deskBadges(); }
@@ -7266,6 +7271,7 @@ function deskRowHtml(i) {
       <div class="desk-meta">${deskTag(i.Categoria)}${Number(i.Monto) ? `<span class="desk-money">${fmtMoney(i.Monto)}</span>` : ''}${deskLinkHtml(i)}
         ${i.Asignado && i.Asignado !== 'Joel' ? `<span style="color:#C7A6FF">→ ${escHtml(i.Asignado)}</span>` : ''}
         ${i.Repetir ? `<span style="color:#8A9AB8">↻ ${escHtml(i.Repetir)}</span>` : ''}${origin}</div>
+      ${!done ? deskActsHtml(i) : ''}
     </div>
     <div class="desk-due"><div style="color:${dueColor}">${escHtml(done ? '✓ ' + deskDueLabel(String(i.HechoEl).slice(0, 10)) : deskDueLabel(i.Fecha))}${!done && i.Hora ? ' · ' + deskHour12(i.Hora) : ''}</div>
       <div class="p">${i.Prioridad && i.Prioridad !== 'Normal' ? escHtml(i.Prioridad) : ''}</div></div>
@@ -7286,20 +7292,24 @@ function deskWaitHtml1(w) {
     <div class="d">${escHtml(w.Titulo)}${Number(w.Monto) ? ` · <span style="color:var(--green)">${fmtMoney(w.Monto)}</span>` : ''}</div>
     <div class="d" style="font-size:11px">${late ? '⏰ Ya toca recordarle' : w.Fecha ? 'Te aviso el ' + escHtml(deskDueLabel(w.Fecha).toLowerCase()) : ''}</div>
     <div class="a">
-      ${late ? `<button class="btn btn-sm" style="background:var(--yellow);color:#1A1404" onclick="deskFollowUp('${w.ID}')">✨ Preparar seguimiento</button>` : ''}
+      <button class="btn btn-sm ${late ? '' : 'btn-ghost'}" ${late ? 'style="background:var(--yellow);color:#1A1404"' : ''} onclick="deskMailItems(['${w.ID}'],'recordatorio')">✉ ${late ? 'Mandar recordatorio' : 'Recordatorio'}</button>
       <button class="btn btn-ghost btn-sm" onclick="deskToggle('${w.ID}')">✓ Ya contestó</button>
       <button class="btn btn-ghost btn-sm" onclick="deskSnooze('${w.ID}',3)">+3 días</button>
+      ${w.GmailThread ? `<a class="btn btn-ghost btn-sm" href="https://mail.google.com/mail/u/0/#all/${escHtml(w.GmailThread)}" target="_blank" rel="noopener">↗ Gmail</a>` : ''}
     </div>
   </div>`;
 }
-const DESK_INB_ICON = { comision: ['💵', 'rgba(0,232,135,0.14)'], pago: ['📄', 'rgba(255,209,102,0.14)'], stock: ['📦', 'rgba(26,110,255,0.15)'], seguimiento: ['🎯', 'rgba(199,166,255,0.14)'] };
+const DESK_INB_ICON = { alloc: ['📱', 'rgba(0,196,232,0.14)'], comision: ['💵', 'rgba(0,232,135,0.14)'], pago: ['📄', 'rgba(255,209,102,0.14)'], stock: ['📦', 'rgba(26,110,255,0.15)'], seguimiento: ['🎯', 'rgba(199,166,255,0.14)'] };
 function deskInboxItemHtml(x, i) {
   const ic = DESK_INB_ICON[x.tipo] || ['•', 'var(--surface)'];
   return `<div class="desk-inb"><div class="i" style="background:${ic[1]}">${ic[0]}</div>
     <div style="flex:1;min-width:0"><div style="font-weight:600">${escHtml(x.titulo)}</div>
       <div style="font-size:12px;color:#A9B7CF;margin-top:3px;line-height:1.5">${escHtml(x.detalle || '')}</div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" onclick="deskInboxAct(${i},'aceptar')">＋ A mis pendientes</button>
+        ${x.tipo === 'comision' ? `<button class="btn btn-primary btn-sm" onclick="deskInboxAct(${i},'reclamar')">✉ Reclamar ya</button>` : ''}
+        ${x.tipo === 'alloc' ? `<button class="btn btn-primary btn-sm" onclick="deskInboxAct(${i},'contestar')">✉ Contestar</button>` : ''}
+        ${x.tipo === 'pago' ? `<button class="btn btn-primary btn-sm" onclick="deskGoUpload()">📄 Subir Commission Report</button>` : ''}
+        <button class="btn ${['comision', 'alloc', 'pago'].includes(x.tipo) ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="deskInboxAct(${i},'aceptar')">＋ A mis pendientes</button>
         <button class="btn btn-ghost btn-sm" onclick="deskInboxAct(${i},'editar')">Editar</button>
         <button class="btn btn-ghost btn-sm" onclick="deskInboxAct(${i},'descartar')">Descartar</button>
       </div></div></div>`;
@@ -7410,6 +7420,19 @@ async function deskSnooze(id, days) {
 async function deskInboxAct(i, accion) {
   const x = (deskData.inbox || [])[i]; if (!x) return;
   if (accion === 'editar') { deskEdit(null, { ...x.item }, { inboxKey: x.key }); return; }
+  if (accion === 'contestar') {
+    deskCompose({ kind: 'responder', to: x.de || '', threadId: x.thread, espera: { titulo: 'Confirmación de teléfonos asignados', categoria: 'Cellmart' },
+      after: () => { deskData.inbox = (deskData.inbox || []).filter(y => y.key !== x.key); deskRerender(); } });
+    return;
+  }
+  if (accion === 'reclamar') {
+    try {
+      const r = await apiPost({ action: 'escInbox', key: x.key, accion: 'aceptar', item: x.item, titulo: x.titulo });
+      deskData.inbox.splice(i, 1); if (r.item) deskReplace(r.item); deskRerender();
+      if (r.item) deskMailItems([r.item.ID], 'disputa');
+    } catch (e) { toast(escHtml(e.message), 'error'); }
+    return;
+  }
   try {
     const r = await apiPost({ action: 'escInbox', key: x.key, accion, item: x.item, titulo: x.titulo });
     deskData.inbox.splice(i, 1);
@@ -7854,7 +7877,7 @@ function aiRender() {
 }
 function aiContext() {
   const names = { desk: 'Mi Escritorio · Hoy', deskInbox: 'Bandeja', deskTasks: 'Pendientes', deskWait: 'Esperando respuesta', deskNotes: 'Notas', deskLog: 'Bitácora',
-    activations: 'Activaciones', prospects: 'Prospectos', customers: 'Clientes', nomina: 'Nómina', inventory: 'Inventario', pos: 'Point of Sale', report: 'Sales Report', transactions: 'Transactions', socios: 'Socios' };
+    deskContacts: 'Contactos', activations: 'Activaciones', prospects: 'Prospectos', customers: 'Clientes', nomina: 'Nómina', inventory: 'Inventario', pos: 'Point of Sale', report: 'Sales Report', transactions: 'Transactions', socios: 'Socios' };
   let c = 'Joel está en la página ' + (names[currentPage] || currentPage) + '.';
   if (currentPage === 'activations' && actFilter && actFilter.q) c += ' Está buscando "' + actFilter.q + '".';
   return c;
@@ -7930,6 +7953,239 @@ document.addEventListener('keydown', e => {
   else if ((e.ctrlKey || e.metaKey) && k === 'j') { e.preventDefault(); aiToggle(); }
   else if (e.key === 'Escape' && document.getElementById('ai-drawer')?.classList.contains('open') && !document.getElementById('modal-overlay').classList.contains('open')) aiClose();
 });
+
+// ═══ ✉ BOTONES DE ACCIÓN + CORREOS (Escritorio.gs → escSend_, Asistente.gs → aiDraft_) ═══
+const DESK_COMMISSIONS = 'commissions@cellmart.us';
+const DESK_KIND_LABEL = { disputa: 'Disputa de comisión', diferencia: 'Reclamo de diferencia', cargo: 'Disputa de cargo', recordatorio: 'Recordatorio', responder: 'Respuesta', general: 'Correo' };
+function deskPhone(i) { const d = String(i.LigaValor || '').replace(/\D/g, '').slice(-10); return ['cliente', 'prospecto', 'empleada', 'proveedor'].includes(i.LigaTipo) && d.length === 10 ? d : ''; }
+function deskClaimKind(i) {
+  if (i.Tipo === 'Espera' || i.Estado !== 'Abierto') return '';
+  const t = (i.Titulo || '') + ' ' + (i.Notas || '');
+  if (/chargeback|cargo|descuento|deducci/i.test(t) && /cellmart|comisi/i.test(t + i.Categoria)) return 'cargo';
+  if (/(pagaron|pagado|pag[oó]) de menos|diferencia|bono|incremental/i.test(t) && /cellmart|comisi|l[ií]nea/i.test(t + i.Categoria)) return 'diferencia';
+  if (String(i.AutoKey).startsWith('com:') || (/reclamar|disputa|commission/i.test(i.Titulo) && /comisi|commission|cellmart/i.test(t + i.Categoria))) return 'disputa';
+  return '';
+}
+function deskClaims() { return deskTasks().filter(i => deskClaimKind(i) === 'disputa'); }
+function deskActs(i) {
+  if (i.Estado !== 'Abierto') return [];
+  const a = [], ak = String(i.AutoKey || ''), kind = deskClaimKind(i), ph = deskPhone(i);
+  const q = s => escHtml(JSON.stringify(String(s)));
+  if (kind) {
+    a.push([{ disputa: '✉ Enviar disputa', diferencia: '✉ Reclamar diferencia', cargo: '✉ Disputar cargo' }[kind], `deskMailItems([${q(i.ID)}],'${kind}')`, 'p']);
+    const n = deskClaims().length;
+    if (kind === 'disputa' && n > 1) a.push([`✉ Reclamar todas (${n}) en un correo`, `deskMailItems(deskClaims().map(x=>x.ID),'disputa')`]);
+  }
+  if (i.Tipo === 'Espera') a.push(['✉ Mandar recordatorio', `deskMailItems([${q(i.ID)}],'recordatorio')`, deskWaitLate(i) ? 'y' : '']);
+  if (ak.startsWith('alloc:') || (i.GmailThread && i.Tipo !== 'Espera' && !kind)) a.push(['✉ Contestar', `deskMailItems([${q(i.ID)}],'responder')`, 'p']);
+  if (ak.startsWith('pay:') || /commission report/i.test(i.Titulo)) a.push(['📄 Subir Commission Report', `deskGoUpload()`, 'p']);
+  if (ak.startsWith('seg:')) {
+    const who = ak.split(':')[1] || '';
+    a.push(['👀 Ver prospectos', `showPage('prospects')`]);
+    a.push([`💬 Mensaje a ${escHtml(who)}`, `deskWhats('', ${q(`Hola ${who}, tienes seguimientos de prospectos atrasados en el Hub. ¿Me ayudas a ponerlos al día hoy? Gracias.`)})`]);
+  }
+  if (ph) {
+    a.push(['📞 Llamar', `location.href='tel:+1${ph}'`]);
+    a.push(['💬 WhatsApp', `deskWhats('${ph}', ${q(i.Titulo)})`]);
+    a.push(['📱 SMS', `location.href='sms:+1${ph}'`]);
+  }
+  if (!a.some(x => x[0].startsWith('✉'))) a.push(['✨ Redactar correo', `deskMailItems([${q(i.ID)}],'general')`]);
+  return a;
+}
+function deskActsHtml(i) {
+  const a = deskActs(i);
+  if (!a.length) return '';
+  return `<div class="desk-acts" onclick="event.stopPropagation()">${a.map(([l, f, c]) =>
+    `<button class="btn btn-sm ${c === 'p' ? 'btn-primary' : 'btn-ghost'}" ${c === 'y' ? 'style="background:var(--yellow);color:#1A1404;border:none"' : ''} onclick="${f}">${l}</button>`).join('')}</div>`;
+}
+function deskWhats(ph, text) { window.open(`https://wa.me/${ph ? '1' + ph : ''}?text=${encodeURIComponent(text || '')}`, '_blank'); }
+function deskGoUpload() {
+  showPage('activations');
+  const inp = document.querySelector('#content input[type=file]');
+  if (inp) inp.click();
+}
+function deskContactFor(text) {
+  const cs = (deskData && deskData.contacts) || [], t = String(text || '').toLowerCase();
+  if (!t) return null;
+  return cs.find(c => c.Correo && t.includes(c.Correo.toLowerCase())) || cs.find(c => c.Nombre && t.includes(c.Nombre.toLowerCase()))
+    || cs.find(c => c.Nombre && c.Nombre.toLowerCase().split(' ').some(w => w.length > 3 && t.includes(w)));
+}
+function deskLangFor(email) { const e = String(email || '').toLowerCase().trim(); return /@cellmart\.us\b/.test(e) && e !== 'maria@cellmart.us' ? 'en' : ''; }
+
+// Abre el correo para uno o varios pendientes
+async function deskMailItems(ids, kind) {
+  const items = ids.map(id => deskData.items.find(x => x.ID === id)).filter(Boolean);
+  if (!items.length) return;
+  const first = items[0];
+  let to = '', thread = '';
+  if (kind === 'recordatorio' || kind === 'responder') {
+    thread = first.GmailThread || '';
+    const c = deskContactFor(first.EsperaDe || first.Titulo);
+    to = c ? c.Correo : /cellmart/i.test(first.EsperaDe + first.Categoria) ? DESK_COMMISSIONS : '';
+  } else if (['disputa', 'diferencia', 'cargo'].includes(kind)) to = DESK_COMMISSIONS;
+  else { const c = deskContactFor(first.Titulo + ' ' + (first.Notas || '')); to = c ? c.Correo : ''; }
+  const monto = items.reduce((s, i) => s + (Number(i.Monto) || 0), 0);
+  const names = items.map(i => (i.Titulo || '').replace(/^.*?:\s*/, '')).join(', ');
+  deskCompose({ kind, itemIds: items.map(i => i.ID), to, threadId: thread,
+    espera: kind === 'recordatorio' ? null : { titulo: (kind === 'responder' ? 'Respuesta: ' : DESK_KIND_LABEL[kind] + ': ') + names.slice(0, 150), monto,
+      ligaTipo: items.length === 1 ? first.LigaTipo : '', ligaValor: items.length === 1 ? first.LigaValor : '', categoria: first.Categoria } });
+}
+
+// Ventana de correo: Claude escribe, tú revisas, Enviar manda desde mircommllc@gmail.com
+let deskMail = null;
+async function deskCompose(o) {
+  if (!deskData) { try { await deskLoad(); } catch (e) { toast(escHtml(e.message), 'error'); return; } }
+  deskMail = { kind: 'general', itemIds: [], cuentas: [], datos: '', to: '', cc: '', idioma: 'en', threadId: '', espera: null, ...o };
+  const cs = deskData.contacts || [];
+  openModal(`
+    <div class="modal-title">✉ ${escHtml(DESK_KIND_LABEL[deskMail.kind] || 'Correo')}${deskMail.threadId ? ' <span style="font-size:12px;color:var(--cyan);font-family:var(--font-body);font-weight:600">· responde en el mismo hilo</span>' : ''}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <datalist id="dm-dl">${cs.filter(c => c.Correo).map(c => `<option value="${escHtml(c.Correo)}">${escHtml(c.Nombre)}${c.Uso ? ' · ' + escHtml(c.Uso) : ''}</option>`).join('')}</datalist>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Para</label><input class="form-input" id="dm-to" list="dm-dl" value="${escHtml(deskMail.to)}" placeholder="correo@empresa.com" oninput="deskMailLang()"></div>
+      <div class="form-group"><label class="form-label">CC (opcional)</label><input class="form-input" id="dm-cc" list="dm-dl" value="${escHtml(deskMail.cc)}"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <div class="desk-seg"><button type="button" id="dm-en" onclick="deskMailSetLang('en')">🇺🇸 English</button><button type="button" id="dm-es" onclick="deskMailSetLang('es')">🇲🇽 Español</button></div>
+      <span id="dm-langnote" style="font-size:12px;color:#8A9AB8"></span>
+    </div>
+    <div class="form-group"><label class="form-label">Asunto</label><input class="form-input" id="dm-sub"></div>
+    <div class="form-group"><label class="form-label">Correo</label><textarea class="form-input" id="dm-body" rows="14" style="font-size:13.5px;line-height:1.55"></textarea></div>
+    <div id="dm-status" style="font-size:12px;color:var(--cyan);min-height:16px;margin:-6px 0 10px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <input class="form-input" id="dm-ins" placeholder="Pídele cambios a Claude: más corto, más firme, menciona que ya van 2 pagos…" onkeydown="if(event.key==='Enter'){event.preventDefault();deskMailDraft()}">
+      <button class="btn btn-ghost" onclick="deskMailDraft()" style="white-space:nowrap">✨ Reescribir</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-primary" id="dm-send" onclick="deskMailSend(false)">Enviar</button>
+      <button class="btn btn-ghost" id="dm-draft" onclick="deskMailSend(true)">Guardar borrador en Gmail</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+    </div>
+    <div class="desk-hint">Sale desde <b>mircommllc@gmail.com</b>. ${deskMail.kind === 'recordatorio' ? 'Al enviar, el "esperando respuesta" sigue abierto y te aviso otra vez en 3 días hábiles.'
+      : `Al enviar: ${deskMail.itemIds.length ? 'el pendiente queda <b>hecho</b> y ' : ''}se crea <b>⏳ Esperando respuesta</b> con aviso en 3 días hábiles. Todo queda en la bitácora.`}</div>`, true);
+  deskMailLang();
+  deskMailDraft();
+}
+function deskMailLang() {
+  const to = document.getElementById('dm-to')?.value || '';
+  const forced = deskLangFor(to);
+  const c = deskContactFor(to);
+  if (forced) deskMail.idioma = 'en';
+  else if (c && c.Idioma === 'es') deskMail.idioma = 'es';
+  ['en', 'es'].forEach(l => { const b = document.getElementById('dm-' + l); if (b) { b.classList.toggle('on', deskMail.idioma === l); b.disabled = !!forced && l === 'es'; b.style.opacity = forced && l === 'es' ? .35 : 1; } });
+  const n = document.getElementById('dm-langnote');
+  if (n) n.textContent = forced ? 'Cellmart: siempre en inglés' : '';
+}
+function deskMailSetLang(l) {
+  if (deskLangFor(document.getElementById('dm-to')?.value) && l === 'es') return;
+  if (deskMail.idioma === l) return;
+  deskMail.idioma = l; deskMailLang(); deskMailDraft();
+}
+async function deskMailDraft() {
+  const st = document.getElementById('dm-status'), ins = document.getElementById('dm-ins');
+  if (!deskData.ai || !deskData.ai.configured) {
+    const it = deskData.items.find(x => x.ID === deskMail.itemIds[0]);
+    if (!document.getElementById('dm-sub').value) document.getElementById('dm-sub').value = it ? it.Titulo : '';
+    if (!document.getElementById('dm-body').value) document.getElementById('dm-body').value = `${it && it.Notas ? it.Notas + '\n\n' : ''}Joel Chavez\nOwner / General Manager\nMirComm LLC · Spectrum Rep ID CMMCL4423\n956-603-6505`;
+    st.style.color = 'var(--yellow)'; st.textContent = 'Claude no está conectado: escribe el correo tú.';
+    return;
+  }
+  const btn = document.getElementById('dm-send'); if (btn) btn.disabled = true;
+  st.style.color = 'var(--cyan)'; st.textContent = '✨ Claude está escribiendo el correo con los datos de la cuenta…';
+  try {
+    const to = document.getElementById('dm-to').value.trim();
+    const cur = document.getElementById('dm-body').value.trim();
+    const r = await apiPost({ action: 'aiDraft', kind: deskMail.kind, to, idioma: deskMail.idioma, itemIds: deskMail.itemIds, cuentas: deskMail.cuentas,
+      datos: deskMail.datos, threadId: deskMail.threadId,
+      instrucciones: [(ins && ins.value.trim()) || '', cur && ins && ins.value.trim() ? 'Borrador actual:\n' + cur : ''].filter(Boolean).join('\n\n') });
+    if (!document.getElementById('dm-sub')) return;
+    document.getElementById('dm-sub').value = r.asunto || '';
+    document.getElementById('dm-body').value = r.cuerpo || '';
+    deskMail.idioma = r.idioma || deskMail.idioma; deskMailLang();
+    if (deskData.ai) { deskData.ai.spent = r.spent; deskData.ai.limit = r.limit; }
+    if (ins) ins.value = '';
+    st.textContent = '✨ Listo. Revísalo y cámbiale lo que quieras antes de enviar.';
+  } catch (e) { st.style.color = '#FF6B78'; st.textContent = e.message; }
+  if (btn) btn.disabled = false;
+}
+async function deskMailSend(draftOnly) {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const to = g('dm-to'), cc = g('dm-cc'), subject = g('dm-sub'), text = document.getElementById('dm-body').value.trim();
+  if (!to || !subject || !text) { toast('Falta el destinatario, el asunto o el texto.', 'error'); return; }
+  if (deskLangFor(to) && /\b(estimad[oa]|saludos|gracias|cuenta|comisi[oó]n)\b/i.test(text)) {
+    if (!confirm('El correo a Cellmart parece estar en español y debe ir en inglés. ¿Enviarlo así de todos modos?')) return;
+  }
+  const c = deskContactFor(to);
+  const espera = deskMail.espera ? { ...deskMail.espera, quien: c ? c.Nombre : to } : null;
+  const bs = ['dm-send', 'dm-draft'].map(id => document.getElementById(id)); bs.forEach(b => b && (b.disabled = true));
+  const st = document.getElementById('dm-status'); st.style.color = 'var(--cyan)'; st.textContent = draftOnly ? 'Guardando borrador…' : 'Enviando…';
+  try {
+    const r = await apiPost({ action: 'escSend', to, cc, subject, text, threadId: deskMail.threadId, draftOnly, kind: deskMail.kind,
+      itemIds: draftOnly ? [] : deskMail.itemIds, espera: draftOnly ? null : espera });
+    closeModal();
+    if (draftOnly) { toast('Borrador guardado en Gmail.', 'success'); return; }
+    (r.items || []).forEach(deskReplace); if (r.espera) deskReplace(r.espera);
+    toast(`✉ Enviado a ${escHtml(c ? c.Nombre : to)}.${r.espera ? ' Te aviso el ' + deskNice(r.espera.Fecha) + ' si no contestan.' : ''}`, 'success', 4000);
+    if (typeof deskMail.after === 'function') deskMail.after(r);
+    deskRerender();
+  } catch (e) { st.style.color = '#FF6B78'; st.textContent = e.message; bs.forEach(b => b && (b.disabled = false)); }
+}
+
+// Desde Activaciones: reclamar una cuenta que el cruce con el Commission Report marcó vencida, de menos o con descuento
+function actClaim(id) {
+  const a = actData.find(x => x.ID === id), cs = actComReco && actComReco.byId[id];
+  if (!a || !cs) return;
+  const kind = cs.code === 'charged' ? 'cargo' : cs.code === 'under' ? 'diferencia' : 'disputa';
+  const s = actSvcOf(a);
+  const owed = cs.code === 'under' ? (cs.expected || 0) - (cs.paid || 0) : cs.code === 'charged' ? Math.abs(cs.charged || 0) : (cs.expected || 0);
+  const datos = `Cliente ${a.CustomerName}; cuenta ${a.AccountNumber}; work order ${a.WorkOrder || '—'}; confirmación ${a.Confirmation || '—'}; fecha de venta ${a.OrderDate}; ` +
+    `servicios: ${[s.internetTier && 'Internet ' + s.internetTier, s.mobileLines && s.mobileLines + ' línea(s) ' + (s.mobileType || ''), s.videoTier && 'TV ' + s.videoTier].filter(Boolean).join(', ')}; ` +
+    `Rep ID ${a.RepID || ''}. Cruce con Commission Reports: ${cs.issues.join(' · ')}. Esperado ${fmtMoney(cs.expected)}, pagado ${fmtMoney(cs.paid)}.`;
+  deskCompose({ kind, to: DESK_COMMISSIONS, cuentas: [a.AccountNumber], datos,
+    espera: { titulo: `${DESK_KIND_LABEL[kind]}: ${a.CustomerName}`, monto: owed > 0 ? owed : '', ligaTipo: 'cuenta', ligaValor: String(a.AccountNumber || ''), categoria: 'Cellmart' } });
+}
+
+// ── Contactos ──
+function deskContactsHtml() {
+  const cs = (deskData.contacts || []).slice().sort((a, b) => (a.Empresa || '').localeCompare(b.Empresa || '') || a.Nombre.localeCompare(b.Nombre));
+  const lang = { en: '🇺🇸 Inglés', es: '🇲🇽 Español', 'en/es': '🇺🇸/🇲🇽 Los dos' };
+  return `<div class="page-title">👥 Contactos</div>
+    <div class="page-subtitle">A quién le mandan correo los botones de acción. Cellmart siempre en inglés (menos Maria).</div>
+    <div class="action-row"><button class="btn btn-primary" onclick="deskContact(null)">＋ Nuevo contacto</button></div>
+    <div class="table-wrap" style="max-width:980px;overflow-x:auto"><table>
+      <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Idioma</th><th>Para qué</th></tr></thead>
+      <tbody>${cs.map(c => `<tr onclick="deskContact('${c.ID}')" style="cursor:pointer"><td style="font-weight:600">${escHtml(c.Nombre)}</td><td class="mono">${escHtml(c.Correo || '')}</td>
+        <td>${escHtml(c.Empresa || '')}</td><td>${lang[c.Idioma] || ''}</td><td style="color:#A9B7CF">${escHtml(c.Uso || '')}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function deskContact(id) {
+  const c = id ? deskData.contacts.find(x => x.ID === id) : {};
+  window._deskContactId = id || '';
+  const v = k => escHtml((c && c[k]) || '');
+  openModal(`<div class="modal-title">${id ? 'Contacto' : 'Nuevo contacto'}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="ct-n" value="${v('Nombre')}"></div>
+      <div class="form-group"><label class="form-label">Empresa</label><input class="form-input" id="ct-e" value="${v('Empresa')}"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="ct-c" value="${v('Correo')}"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="ct-t" type="tel" value="${v('Telefono')}"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Idioma</label><select class="form-input form-select" id="ct-i">
+      ${[['en', '🇺🇸 Inglés'], ['es', '🇲🇽 Español'], ['en/es', '🇺🇸/🇲🇽 Los dos']].map(([k, l]) => `<option value="${k}" ${(c.Idioma || 'en/es') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Para qué</label><input class="form-input" id="ct-u" value="${v('Uso')}" placeholder="Disputas de comisión, pedidos…"></div></div>
+    <div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="deskContactSave()">Guardar</button>
+      ${id ? `<button class="btn btn-danger" style="margin-left:auto" onclick="deskContactDel('${id}')">Eliminar</button>` : ''}</div>`);
+}
+async function deskContactSave() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  try {
+    const r = await apiPost({ action: 'escContactSave', contact: { ID: window._deskContactId || undefined, Nombre: g('ct-n'), Empresa: g('ct-e'), Correo: g('ct-c'), Telefono: g('ct-t'), Idioma: g('ct-i'), Uso: g('ct-u') } });
+    const i = deskData.contacts.findIndex(x => x.ID === r.contact.ID);
+    if (i >= 0) deskData.contacts[i] = r.contact; else deskData.contacts.push(r.contact);
+    closeModal(); deskRerender();
+    if (r.contact.Idioma === 'en' && /@cellmart/i.test(r.contact.Correo) && g('ct-i') !== 'en') toast('Cellmart va siempre en inglés: lo dejé en inglés.', 'info');
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+async function deskContactDel(id) {
+  if (!confirm('¿Eliminar este contacto?')) return;
+  try { await apiPost({ action: 'escContactDelete', id }); deskData.contacts = deskData.contacts.filter(x => x.ID !== id); closeModal(); deskRerender(); }
+  catch (e) { toast(escHtml(e.message), 'error'); }
+}
 </script>
 </body>
 </html> 
