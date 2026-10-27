@@ -1829,6 +1829,17 @@ async function completeSale() {
       gift: phones.some(i => i.gift),
       Notes: `Venta ${r.saleId} en caja · ${phones.map(i => i.name + (i.gift ? ' (regalado)' : '')).join(', ')}`
     } : null;
+    // SIM sin teléfono (el cliente trae el suyo / BYOD): también lleva línea
+    const sims = phones.length ? [] : cart.filter(isSimItem);
+    if (sims.length) posLastLine = {
+      PosSaleID: String(r.saleId || ''), OrderDate: actToday(), sim: true,
+      AccountNumber: pendingSpectrumAccount ? actAcct(pendingSpectrumAccount.account) : '',
+      CustomerName: (pendingSpectrumAccount && pendingSpectrumAccount.name) || pendingCustomer.name,
+      Phone: pendingCustomer.phone || '', IMEIs: '',
+      MobileLines: String(sims.reduce((n, i) => n + (+i.qty || 1), 0)),
+      gift: sims.some(i => i.gift),
+      Notes: `Venta ${r.saleId} en caja · ${sims.map(i => i.name + ' ' + i.barcode + (i.gift ? ' (regalada)' : '')).join(', ')} · teléfono del cliente (BYOD)`
+    };
     posLastReceipt = null;
     posLogOffer(r.saleId, cart);
     showReceipt(r.saleId, cart, subtotal, discount, discountDesc, tax, total, paymentMethod, pendingCustomer);
@@ -1875,7 +1886,7 @@ async function posRegisterLine() {
   try {
     if (isManager) {
       if (!actData.length) actData = await apiGet({ action: 'getActivations' });
-      openActForm(null, Object.assign({}, pre, { SoldBy: currentUser, _from: `De la venta ${pre.PosSaleID} en caja${pre.gift ? ' (teléfono regalado)' : ''}.` }));
+      openActForm(null, Object.assign({}, pre, { SoldBy: currentUser, _from: `De la venta ${pre.PosSaleID} en caja${pre.sim ? ' (SIM con teléfono del cliente)' : pre.gift ? ' (teléfono regalado)' : ''}.` }));
     } else {
       if (!prosAuth) { toast('Vuelve a entrar con tu PIN.', 'error'); return; }
       if (!mlData) mlData = await mlApi('actRepList');
@@ -5797,13 +5808,13 @@ function posPendingPanel() {
   const worst = posPending.some(p => posAge(p).cls === 'red') ? 'red' : posPending.some(p => posAge(p).cls === 'yellow') ? 'yellow' : 'blue';
   return `<div class="pend-box pend-${worst}">
     <div class="pend-title">📱 Líneas por registrar <span class="pend-count">${posPending.length}</span></div>
-    <div class="pend-sub">Teléfonos vendidos o regalados que todavía no tienen su línea. Regístralas en cuanto se vaya el cliente${isManager ? '' : ': la línea no te cuenta hasta que la registras'}.</div>
+    <div class="pend-sub">Teléfonos o SIM vendidos o regalados que todavía no tienen su línea. Regístralas en cuanto se vaya el cliente${isManager ? '' : ': la línea no te cuenta hasta que la registras'}.</div>
     ${posPending.map(p => {
       const age = posAge(p), name = p.AccountName || p.CustomerName || '—';
       return `<div class="pend-row">
         <span class="pend-dot ${age.cls}" title="${escHtml(age.label)}"></span>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700">${escHtml(name)}${p.gift ? ' <span class="pros-badge pros-b-rev">🎁 regalado</span>' : ''}</div>
+          <div style="font-weight:700">${escHtml(name)}${p.sim ? ' <span class="pros-badge">📶 SIM · teléfono del cliente</span>' : ''}${p.gift ? ` <span class="pros-badge pros-b-rev">🎁 ${p.sim ? 'regalada' : 'regalado'}</span>` : ''}</div>
           <div style="font-size:12px;color:var(--muted)">${escHtml(posFmtTime(p.Date))} · ${escHtml(p.Phones.map(x => x.name).join(', '))}${isManager ? ' · cobró ' + escHtml(p.Employee) : ''} · venta ${escHtml(p.SaleID)}</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="posRegisterPending('${escHtml(p.SaleID)}')">📱 Registrar</button>
@@ -5819,10 +5830,11 @@ function posEmailMatch(list, name, ymd) {
 }
 function posPendingPre(p) {
   const ymd = actYmdOf(posDateObj(p.Date));
-  const imeis = p.Phones.map(x => x.imei).filter(Boolean).join(', ');
+  const imeis = p.sim ? '' : p.Phones.map(x => x.imei).filter(Boolean).join(', ');
   return { PosSaleID: p.SaleID, OrderDate: ymd, AccountNumber: p.AccountNumber || '', CustomerName: p.AccountName || p.CustomerName || '',
-    Phone: p.CustomerPhone || '', IMEIs: imeis, MobileLines: String(p.Phones.reduce((n, x) => n + (x.qty || 1), 0)), gift: p.gift,
-    Notes: `Venta ${p.SaleID} en caja · ${p.Phones.map(x => x.name + (x.gift ? ' (regalado)' : '')).join(', ')}` };
+    Phone: p.CustomerPhone || '', IMEIs: imeis, MobileLines: String(p.Phones.reduce((n, x) => n + (x.qty || 1), 0)), gift: p.gift, sim: !!p.sim,
+    Notes: p.sim ? `Venta ${p.SaleID} en caja · ${p.Phones.map(x => x.name + ' ' + x.imei + (x.gift ? ' (regalada)' : '')).join(', ')} · teléfono del cliente (BYOD)`
+      : `Venta ${p.SaleID} en caja · ${p.Phones.map(x => x.name + (x.gift ? ' (regalado)' : '')).join(', ')}` };
 }
 async function posRegisterPending(saleId) {
   const p = posPending.find(x => x.SaleID === saleId);
@@ -5878,8 +5890,8 @@ function posLineCard(saleId) {
     return `<div class="pos-line-card done"><div style="font-weight:800;font-size:16px">✅ Línea registrada</div></div>`;
   if (!(posLastLine && posLastLine.PosSaleID === String(saleId))) return '';
   return `<div class="pos-line-card">
-    <div style="font-weight:800;font-size:17px;margin-bottom:4px">📱 ${posLastLine.gift ? 'Se regaló un teléfono: falta registrar su línea' : 'Se vendió un teléfono: ¿lleva línea nueva?'}</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Ya va con el cliente${posLastLine.AccountNumber ? ', la cuenta' : ''} y el IMEI. Si hay clientes esperando, dale <b>Listo</b>: queda en <b>📱 Líneas por registrar</b> y la registras en cuanto puedas.</div>
+    <div style="font-weight:800;font-size:17px;margin-bottom:4px">${posLastLine.sim ? '📶 Se usó una SIM con el teléfono del cliente: falta registrar su línea' : posLastLine.gift ? '📱 Se regaló un teléfono: falta registrar su línea' : '📱 Se vendió un teléfono: ¿lleva línea nueva?'}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Ya va con el cliente${posLastLine.AccountNumber ? ', la cuenta' : ''} y ${posLastLine.sim ? 'el serial de la SIM' : 'el IMEI'}. Si hay clientes esperando, dale <b>Listo</b>: queda en <b>📱 Líneas por registrar</b> y la registras en cuanto puedas.</div>
     <button class="btn btn-primary btn-full pos-line-btn" onclick="posRegisterLine()">📱 Registrar la línea ahora</button>
   </div>`;
 }
