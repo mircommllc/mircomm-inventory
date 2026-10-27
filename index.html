@@ -1627,6 +1627,9 @@ function addToCart(barcode) {
   renderPOSLayout();
 }
 // Any phone category spelling shows the "Regalar" checkbox, not only the exact word "Phone".
+// SIM regalada (el cliente trae su teléfono / BYOD): la cuenta de Spectrum es opcional
+function isSimItem(i) { return /sim/i.test(String(i.category || '')) || /\bsim\b/i.test(String(i.name || '')); }
+function posSimGiftOnly() { return cart.some(i => i.gift && isSimItem(i)) && !cart.some(i => i.gift && isPhoneCategory(i.category)); }
 function isPhoneCategory(c) {
   return /^(phones?|tel[eé]fonos?|celular(es)?|cell ?phones?)$/i.test(String(c||'').trim());
 }
@@ -1649,6 +1652,7 @@ function removeFromCart(i) { cart.splice(i,1); posLastAdded = null; renderPOSLay
 function openCustomerModal() {
   if (!cart.length) return;
   const hasGift = cart.some(i => i.gift && isPhoneCategory(i.category));   // only a gifted PHONE requires a Spectrum line
+  const simGift = posSimGiftOnly();
   openModal(`
     <div class="modal-title">🧾 Datos del Cliente <button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="form-group">
@@ -1693,6 +1697,15 @@ function openCustomerModal() {
       <input type="checkbox" id="cu-consent" style="width:16px;height:16px">
       <label for="cu-consent" style="font-size:12px;color:var(--muted)">Acepta recibir promociones por SMS/correo</label>
     </div>
+    ${simGift ? `
+    <div style="border-top:1px dashed var(--border);margin:16px 0;padding-top:14px">
+      <div class="form-label" style="color:var(--cyan)">📶 SIM regalada (el cliente trae su teléfono) — cuenta de Spectrum, opcional</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nombre en la cuenta</label><input class="form-input" id="cu-spectrum-name" placeholder="Nombre del titular" oninput="this.dataset.edited='1'"></div>
+        <div class="form-group"><label class="form-label">Número de cuenta</label><input class="form-input" id="cu-spectrum-account" inputmode="numeric" placeholder="8260…"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Si ya tienes la cuenta, ponla: así la SIM queda ligada a la línea. Después registra la línea en 📱 Mis líneas.</div>
+    </div>` : ''}
     ${hasGift ? `
     <div style="border-top:1px dashed var(--border);margin:16px 0;padding-top:14px">
       <div class="form-label" style="color:var(--yellow)">🎁 Teléfono regalado — requiere línea de Spectrum</div>
@@ -1768,6 +1781,10 @@ function confirmCustomerAndSale() {
       return;
     }
     pendingSpectrumAccount = { name: spName, account: spAccount };
+  } else if (posSimGiftOnly()) {
+    const spName = (document.getElementById('cu-spectrum-name')?.value || '').trim();
+    const spAccount = (document.getElementById('cu-spectrum-account')?.value || '').trim();
+    if (spName || spAccount) pendingSpectrumAccount = { name: spName, account: spAccount };
   }
 
   pendingCustomer = {
