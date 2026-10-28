@@ -602,6 +602,15 @@
   .dm-disp-grid td { padding: 4px; border-top: 1px solid var(--border); vertical-align: top; }
   .dm-disp-grid .form-input { padding: 6px 8px; font-size: 12.5px; width: 100%; min-height: 0; }
   .dm-disp-grid .form-input.miss { border-color: rgba(255,209,102,.7); background: rgba(255,209,102,.08); }
+  .rem-sec { border: 1px solid var(--border); border-left-width: 4px; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; background: var(--surface); }
+  .rem-sec.red { border-left-color: #FF6B78; } .rem-sec.blue { border-left-color: #4D8DFF; } .rem-sec.yellow { border-left-color: #FFD166; } .rem-sec.purple { border-left-color: #C7A6FF; }
+  .rem-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 700; margin-bottom: 6px; }
+  .rem-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid rgba(255,255,255,.05); font-size: 13.5px; }
+  .rem-row:first-of-type { border-top: 0; }
+  .rem-s { font-size: 12px; color: var(--muted); }
+  .rem-when { font-size: 12px; color: var(--muted); white-space: nowrap; font-family: var(--font-mono, monospace); }
+  .rem-more { font-size: 12px; color: var(--muted); padding-top: 4px; }
+  .rem-tip { font-size: 13px; color: #A9B7CF; background: rgba(0,196,232,.08); border: 1px solid rgba(0,196,232,.25); border-radius: 10px; padding: 10px 12px; }
 </style>
 </head>
 <body>
@@ -846,6 +855,7 @@ async function repLogin() {
     err.textContent = ''; err.style.color = '';
     document.getElementById('rep-pin-box').style.display = 'none';
     completeLogin();
+    repReminder();
   } catch (e) {
     err.style.color = '';
     err.textContent = /unknown|invalid action|repLogin/i.test(e.message)
@@ -1096,6 +1106,50 @@ async function auditLogoutOthers() {
   if (!confirm('¿Cerrar todas las demás sesiones de administrador? Tendrán que volver a escribir su PIN. La tuya sigue abierta.')) return;
   try { const r = await apiPost({ action: 'adminLogoutOthers' }); toast(`Listo: se cerraron ${r.closed} sesión(es).`, 'success'); auditLoad(); }
   catch (e) { toast(escHtml(e.message), 'error'); }
+}
+
+// ─── 🔔 Recordatorio al entrar (asesoras): seguimientos, líneas por registrar y pendientes asignados ──
+let repRem = null;
+async function repReminder() {
+  if (isManager || !prosAuth) return;
+  try { repRem = await apiGet({ action: 'repResumen', user: prosAuth.user, pin: prosAuth.pin }); } catch (e) { return; }
+  if (!repRem || !repRem.ok || isManager) return;
+  repRemPaint(true);
+}
+function repRemPaint(open) {
+  const r = repRem; if (!r) return;
+  const n = r.vencidos.length + r.hoy.length + r.lineas.length + r.pendientes.length;
+  if (!n && !r.sinLinea) { if (!open) closeModal(); return; }
+  const tipoIc = t => ({ 'Llamada': '📞', 'Mensaje': '💬', 'WhatsApp': '🟢', 'Cita en tienda': '🏪', 'Visita': '🚗' }[t] || '•');
+  const seg = x => `<div class="rem-row"><span>${tipoIc(x.tipo)}</span><div style="flex:1;min-width:0"><b>${escHtml(x.nombre || '—')}</b>${x.temp === 'Caliente' ? ' 🔥' : ''}
+      <div class="rem-s">${escHtml(x.tipo)}${x.paso ? ' · ' + escHtml(x.paso) : ''}${x.telefono ? ' · ' + escHtml(String(x.telefono).replace(/\D/g, '').replace(/^1?(\d{3})(\d{3})(\d{4})$/, '($1) $2-$3')) : ''}</div></div>
+      <span class="rem-when">${escHtml(x.fecha === actToday() ? (x.hora ? deskHour12(x.hora) : 'hoy') : deskDueLabel(x.fecha))}</span></div>`;
+  const list = (arr, fn, max) => arr.slice(0, max).map(fn).join('') + (arr.length > max ? `<div class="rem-more">y ${arr.length - max} más…</div>` : '');
+  const sec = (ic, title, cls, body, btn) => `<div class="rem-sec ${cls}"><div class="rem-h"><span>${ic} ${title}</span>${btn || ''}</div>${body}</div>`;
+  openModal(`
+    <div class="modal-title">🔔 Hola ${escHtml(r.name)}, esto tienes pendiente <button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${r.vencidos.length ? sec('⚠️', `Seguimientos vencidos (${r.vencidos.length})`, 'red', list(r.vencidos, seg, 6),
+      `<button class="btn btn-sm btn-primary" onclick="closeModal();showPage('prospects')">Ponerlos al día</button>`) : ''}
+    ${r.hoy.length ? sec('📅', `Seguimientos de hoy (${r.hoy.length})`, 'blue', list(r.hoy, seg, 6),
+      !r.vencidos.length ? `<button class="btn btn-sm btn-primary" onclick="closeModal();showPage('prospects')">Ver seguimientos</button>` : '') : ''}
+    ${r.lineas.length ? sec('📱', `Líneas por registrar (${r.lineas.length})`, 'yellow',
+      list(r.lineas, x => `<div class="rem-row"><span>${x.sim ? '📶' : '📱'}</span><div style="flex:1"><b>${escHtml(x.cliente || '—')}</b><div class="rem-s">venta ${escHtml(x.venta)}${x.regalo ? ' · 🎁 regalo' : ''}</div></div><span class="rem-when">${escHtml(posFmtTime(x.fecha))}</span></div>`, 5),
+      `<button class="btn btn-sm btn-primary" onclick="closeModal();showPage('mylines')">Registrar</button>`) : ''}
+    ${r.pendientes.length ? sec('📌', `Te pidieron (${r.pendientes.length})`, 'purple',
+      r.pendientes.slice(0, 6).map(x => `<div class="rem-row"><span>${x.prioridad === 'Alta' ? '🔴' : '•'}</span><div style="flex:1;min-width:0"><b>${escHtml(x.titulo)}</b>
+        <div class="rem-s">de ${escHtml(x.de)}${x.notas ? ' · ' + escHtml(x.notas.slice(0, 120)) : ''}</div></div>
+        ${x.fecha ? `<span class="rem-when">${escHtml(deskDueLabel(x.fecha))}</span>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="repRemDone('${escHtml(x.id)}')">✓ Hecho</button></div>`).join('')) : ''}
+    ${r.sinLinea ? `<div class="rem-tip">📶 Tienes <b>${r.sinLinea}</b> cliente${r.sinLinea > 1 ? 's' : ''} con internet sin línea móvil a quien${r.sinLinea > 1 ? 'es' : ''} todavía no le${r.sinLinea > 1 ? 's' : ''} ofreces la línea gratis. Están en 🎯 Prospectos.</div>` : ''}
+    <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="closeModal()">Entendido</button>`);
+}
+async function repRemDone(id) {
+  try {
+    await apiGet({ action: 'repDeskDone', user: prosAuth.user, pin: prosAuth.pin, id });
+    repRem.pendientes = repRem.pendientes.filter(x => x.id !== id);
+    toast('Listo, marcado como hecho.', 'success', 1800);
+    repRemPaint(false);
+  } catch (e) { toast(escHtml(e.message), 'error'); }
 }
 
 // ─── API ─────────────────────────────────────────────────────────────
