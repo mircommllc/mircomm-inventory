@@ -6885,7 +6885,10 @@ function socPayTab(G) {
       ${g.ready.length ? `<div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap">
           <div class="total-row grand" style="flex:1;margin:0;padding-top:8px"><span>A pagar</span><span>${fmtMoney(g.net)}</span></div>
           <button class="btn btn-primary" onclick="socOpenPay('${p.id}')">💸 Pagar a ${escHtml(socFirst(p.name))}</button></div>`
-        : g.cbs.length || g.debt ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">Se descuenta de su siguiente pago.</div>` : ''}
+        : (g.cbs.length || g.debt ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">Se descuenta de su siguiente pago.</div>` : '') +
+          (g.wait.some(x => !x.t.blocker) ? `<div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--muted);flex:1">¿Ya le pagaste antes de la fecha? Regístralo aquí.</span>
+            <button class="btn btn-ghost" onclick="socOpenPay('${p.id}')">💸 Registrar pago a ${escHtml(socFirst(p.name))}</button></div>` : '')}
       ${g.wait.length ? `<details style="margin-top:8px" ${g.ready.length ? '' : 'open'}><summary style="cursor:pointer;font-size:13px;color:var(--muted)">Esperando que te paguen (${g.wait.length}) · ${fmtMoney(g.waitAmt)}</summary>
         <div style="margin-top:6px">${g.wait.sort((a, b) => (a.t.due || '9').localeCompare(b.t.due || '9')).map(x => row(x, false)).join('')}</div></details>` : ''}
     </div>`;
@@ -6913,7 +6916,7 @@ function socOpenPay(pid) {
     <div class="modal-title">💸 Pagar a ${escHtml(p.name)} <button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="pros-section-title" style="margin-top:0">Ventas</div>
     ${g.ready.map(x => item(x, true)).join('')}
-    ${g.wait.length ? `<details style="margin:6px 0"><summary style="cursor:pointer;font-size:12px;color:var(--muted)">Adelantar alguna que todavía no te pagan (${g.wait.length})</summary>${g.wait.map(x => item(x, false)).join('')}</details>` : ''}
+    ${(w => w.length ? `<details style="margin:6px 0" ${g.ready.length ? '' : 'open'}><summary style="cursor:pointer;font-size:12px;color:var(--muted)">${g.ready.length ? 'Adelantar alguna que todavía no te pagan' : 'Pago adelantado: marca las que ya le pagaste'} (${w.length})</summary>${w.map(x => item(x, false)).join('')}</details>` : '')(g.wait.filter(x => !x.t.blocker))}
     ${g.cbs.length || g.debt ? `<div class="pros-section-title">Descuentos</div>
       ${g.cbs.map(r => `<div class="total-row"><span>↩ Chargeback · ${escHtml(r.name)}</span><span style="color:var(--red)">−${fmtMoney(+r.chargebackAmount)}</span></div>`).join('')}
       ${g.debt ? `<div class="total-row"><span>↩ Saldo anterior</span><span style="color:var(--red)">−${fmtMoney(g.debt)}</span></div>` : ''}` : ''}
