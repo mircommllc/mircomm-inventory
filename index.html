@@ -763,6 +763,14 @@
       <label class="form-label">Web App URL</label>
       <textarea id="config-url-input" class="form-input" rows="3" placeholder="https://script.google.com/macros/s/.../exec" style="resize:vertical"></textarea>
     </div>
+    <div class="form-group">
+      <label class="form-label">WhatsApp en esta computadora</label>
+      <select id="config-wa" class="form-input form-select">
+        <option value="auto">Automático: la app de escritorio si está instalada, si no WhatsApp Web</option>
+        <option value="app">Siempre la app de escritorio</option>
+        <option value="web">Siempre WhatsApp Web</option>
+      </select>
+    </div>
     <button class="btn btn-primary btn-full" onclick="saveConfig()">Save & Connect</button>
   </div>
 </div>
@@ -937,8 +945,36 @@ function openConfig() {
   // (needed so the manager PIN can be checked against the backend).
   if (!isManager && SHEETS_URL) return;
   document.getElementById('config-url-input').value = SHEETS_URL;
+  document.getElementById('config-wa').value = waPref();
   document.getElementById('config-overlay').classList.add('open');
 }
+// ─── WHATSAPP: app de escritorio (whatsapp://) o WhatsApp Web (wa.me) ─────
+function waPref() { try { return localStorage.getItem('mircomm_wa') || 'auto'; } catch (e) { return 'auto'; } }
+function waIsPhone() { return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent); }
+// url: un link https://wa.me/1XXXXXXXXXX?text=...
+function waOpen(url) {
+  const u = new URL(url), phone = u.pathname.replace(/\D/g, ''), text = u.searchParams.get('text') || '';
+  const pref = waPref();
+  if (waIsPhone() || pref === 'web') { window.open(url, '_blank'); return; }   // en el celular wa.me abre la app solo
+  const app = `whatsapp://send?${phone ? 'phone=' + phone + '&' : ''}text=${encodeURIComponent(text)}`;
+  if (pref === 'app') { location.href = app; return; }
+  // Automático: si en 1.5 s la ventana no pierde el foco (no se abrió la app), abre WhatsApp Web
+  let left = false;
+  const mark = () => { left = true; };
+  window.addEventListener('blur', mark, { once: true });
+  document.addEventListener('visibilitychange', mark, { once: true });
+  location.href = app;
+  setTimeout(() => {
+    window.removeEventListener('blur', mark); document.removeEventListener('visibilitychange', mark);
+    if (!left) window.open(url, '_blank');
+  }, 1500);
+}
+// Cualquier link a wa.me en el Hub usa waOpen
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('a[href^="https://wa.me/"]');
+  if (!a || waIsPhone()) return;
+  e.preventDefault(); waOpen(a.href);
+}, true);
 function closeConfig(e) {
   // Tocar fuera ya no la cierra (se perdía lo que se estaba escribiendo); se cierra con ✕ o al guardar
   if (e) return;
@@ -948,6 +984,7 @@ function saveConfig() {
   const url = document.getElementById('config-url-input').value.trim();
   SHEETS_URL = url;
   localStorage.setItem('mircomm_url', url);
+  try { localStorage.setItem('mircomm_wa', document.getElementById('config-wa').value); } catch (e) {}
   document.getElementById('config-overlay').classList.remove('open');
   toast('Configuration saved!', 'success');
   loadCurrentPage();
@@ -956,7 +993,7 @@ function saveConfig() {
 // ─── NAVIGATION ──────────────────────────────────────────────────────
 function showPage(page) {
   // Block non-managers from manager pages
-  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','desk','deskInbox','deskTasks','deskWait','deskNotes','deskLog','deskContacts'];
+  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','audit','desk','deskInbox','deskTasks','deskWait','deskNotes','deskLog','deskContacts'];
   if (managerPages.includes(page) && !isManager) return;
   if (page === 'nomina') nomPreviewRep = '';
   if (page === 'mylines' && isManager) page = 'activations';
@@ -6967,7 +7004,7 @@ function socShowSummary(pay) {
     <textarea class="form-input" id="soc-sum" rows="9" style="font-size:13px">${escHtml(txt)}</textarea>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('soc-sum').value).then(()=>toast('Copiado.','success'))">📋 Copiar</button>
-      <button class="btn btn-ghost" style="color:#25D366;border-color:rgba(37,211,102,.45)" onclick="window.open('https://wa.me/${ph.length === 10 ? '1' + ph : ''}?text='+encodeURIComponent(document.getElementById('soc-sum').value),'_blank')">🟢 WhatsApp</button>
+      <button class="btn btn-ghost" style="color:#25D366;border-color:rgba(37,211,102,.45)" onclick="waOpen('https://wa.me/${ph.length === 10 ? '1' + ph : ''}?text='+encodeURIComponent(document.getElementById('soc-sum').value))">🟢 WhatsApp</button>
       ${ph.length === 10 ? `<a class="btn btn-ghost" href="sms:${ph}?&body=${encodeURIComponent(txt)}">💬 Mandar por mensaje</a>` : ''}
       <button class="btn btn-ghost" style="margin-left:auto" onclick="closeModal()">Listo</button>
     </div>`);
@@ -8184,7 +8221,7 @@ function deskActsHtml(i) {
   return `<div class="desk-acts" onclick="event.stopPropagation()">${a.map(([l, f, c]) =>
     `<button class="btn btn-sm ${c === 'p' ? 'btn-primary' : 'btn-ghost'}" ${c === 'y' ? 'style="background:var(--yellow);color:#1A1404;border:none"' : ''} onclick="${f}">${l}</button>`).join('')}</div>`;
 }
-function deskWhats(ph, text) { window.open(`https://wa.me/${ph ? '1' + ph : ''}?text=${encodeURIComponent(text || '')}`, '_blank'); }
+function deskWhats(ph, text) { waOpen(`https://wa.me/${ph ? '1' + ph : ''}?text=${encodeURIComponent(text || '')}`); }
 function deskGoUpload() {
   showPage('activations');
   const inp = document.querySelector('#content input[type=file]');
