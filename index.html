@@ -493,6 +493,12 @@
   .desk-wait { padding: 12px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--border); }
   .desk-wait.late { background: rgba(255,68,85,0.07); border-color: rgba(255,68,85,0.35); }
   .desk-wait + .desk-wait { margin-top: 10px; }
+  .desk-wait.resp { background: rgba(0,232,135,0.07); border-color: rgba(0,232,135,0.4); }
+  .desk-wait.resp.auto { background: var(--surface2); border-color: var(--border); }
+  .desk-wait.resp.rebote { background: rgba(255,68,85,0.07); border-color: rgba(255,68,85,0.35); }
+  .desk-wait .rq { margin-top: 8px; padding: 8px 10px; border-left: 3px solid var(--green); background: rgba(0,0,0,0.18); border-radius: 0 8px 8px 0; font-size: 12px; color: #D5DEEE; line-height: 1.5; }
+  .desk-wait.auto .rq { border-left-color: #6A7A96; color: #A9B7CF; }
+  .desk-wait.rebote .rq { border-left-color: #FF6B78; }
   .desk-wait .h { display: flex; gap: 8px; align-items: baseline; }
   .desk-wait .h b { flex: 1; }
   .desk-wait .d { font-size: 12px; color: #A9B7CF; margin-top: 3px; }
@@ -7387,21 +7393,32 @@ function deskHour12(hm) { if (!hm) return ''; let [h, m] = hm.split(':').map(Num
 async function deskLoad(force) {
   if (!isManager || !SHEETS_URL) return null;
   if (deskData && !force) return deskData;
-  if (!deskLoadP) deskLoadP = apiPost({ action: 'escLoad' }).then(d => { deskData = d; deskBadges(); return d; })
+  if (!deskLoadP) deskLoadP = apiPost({ action: 'escLoad' }).then(d => { deskData = d; deskBadges(); try { deskRespToast(); } catch (e) {} return d; })
     .finally(() => { deskLoadP = null; });
   return deskLoadP;
 }
 function deskOpen() { return (deskData ? deskData.items : []).filter(i => i.Estado === 'Abierto'); }
 function deskTasks() { return deskOpen().filter(i => i.Tipo !== 'Espera'); }
-function deskWaits() { return deskOpen().filter(i => i.Tipo === 'Espera').sort((a, b) => (a.Fecha || '9').localeCompare(b.Fecha || '9')); }
-function deskWaitLate(w) { return w.Fecha && w.Fecha <= deskToday(); }
+function deskWaits() { return deskOpen().filter(i => i.Tipo === 'Espera').sort((a, b) => (deskWaitNew(b) - deskWaitNew(a)) || (a.Fecha || '9').localeCompare(b.Fecha || '9')); }
+function deskWaitLate(w) { return !deskWaitNew(w) && w.Fecha && w.Fecha <= deskToday(); }
+// Fase 2: el backend revisa el hilo de Gmail; w.Resp = { de, nombre, fecha, txt, msgId, n, auto, rebote, cierre }
+function deskWaitNew(w) { return !!(w.Resp && !w.Resp.auto); }
+function deskWaitReplied() { return deskWaits().filter(deskWaitNew); }
+const deskRespSeen = new Set();
+function deskRespToast() {
+  const nuevos = deskWaitReplied().filter(w => !deskRespSeen.has(w.Resp.msgId));
+  nuevos.forEach(w => deskRespSeen.add(w.Resp.msgId));
+  if (!nuevos.length) return;
+  const n = nuevos.map(w => w.Resp.rebote ? 'un correo rebotó' : (String(w.Resp.nombre).split(' ')[0] || w.EsperaDe) + ' ya contestó').slice(0, 3).join(' · ');
+  toast(`📩 ${escHtml(n)}${nuevos.length > 3 ? ` y ${nuevos.length - 3} más` : ''}. Velo en ⏳ Esperando respuesta.`, 'info', 6000);
+}
 function deskMoneyOpen() { return deskOpen().reduce((s, i) => s + (Number(i.Monto) || 0), 0); }
 function deskBadges() {
   if (!deskData) return;
   const t = deskToday(), tasks = deskTasks();
   const due = tasks.filter(i => i.Fecha && i.Fecha <= t).length;
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ? String(v) : ''; };
-  set('nb-desk', due); set('nb-inbox', (deskData.inbox || []).length); set('nb-wait', deskWaits().filter(deskWaitLate).length);
+  set('nb-desk', due); set('nb-inbox', (deskData.inbox || []).length); set('nb-wait', deskWaitReplied().length + deskWaits().filter(deskWaitLate).length);
 }
 function deskReplace(it) {
   if (!deskData || !it) return;
@@ -7459,7 +7476,7 @@ function deskHoyHtml() {
       <div class="desk-stat money" onclick="showPage('deskTasks')"><div class="l">Dinero en juego</div><div class="v">${fmtMoney(money)}</div><div class="s">${moneyN} asunto${moneyN === 1 ? '' : 's'} con monto</div></div>
       <div class="desk-stat red" onclick="showPage('deskTasks')"><div class="l">Vencidos</div><div class="v">${over.length}</div><div class="s">${over.length ? 'se pasaron de su fecha' : 'todo al día'}</div></div>
       <div class="desk-stat blue"><div class="l">Para hoy</div><div class="v">${doneToday.length}/${doneToday.length + todayOpen.length}</div><div class="s">hechos</div></div>
-      <div class="desk-stat yel" onclick="showPage('deskWait')"><div class="l">Esperando respuesta</div><div class="v">${waits.length}</div><div class="s">${lateW ? `${lateW} ya toca${lateW === 1 ? '' : 'n'} recordar` : 'en tiempo'}</div></div>
+      <div class="desk-stat yel" onclick="showPage('deskWait')"><div class="l">Esperando respuesta</div><div class="v">${waits.length}</div><div class="s">${(() => { const rN = deskWaitReplied().length; return [rN ? `<span style="color:var(--green)">📩 ${rN} ya contest${rN === 1 ? 'ó' : 'aron'}</span>` : '', lateW ? `${lateW} ya toca${lateW === 1 ? '' : 'n'} recordar` : ''].filter(Boolean).join(' · ') || 'en tiempo'; })()}</div></div>
     </div>
     <div class="desk-cols">
       <div class="desk-main">
@@ -7558,6 +7575,7 @@ function deskWaitCard(waits) {
   </div>`;
 }
 function deskWaitHtml1(w) {
+  if (w.Resp) return deskWaitRespHtml(w);
   const t = deskToday(), days = w.EnviadoEl ? deskDiff(String(w.EnviadoEl).slice(0, 10), t) : null, late = deskWaitLate(w);
   return `<div class="desk-wait ${late ? 'late' : ''}">
     <div class="h"><b>${escHtml(w.EsperaDe || '—')}</b><span style="font-family:var(--font-mono);font-size:11px;color:${late ? '#FF6B78' : '#00E887'}">${days === null ? '' : days === 0 ? 'hoy' : days + ' día' + (days === 1 ? '' : 's')}</span></div>
@@ -7572,6 +7590,44 @@ function deskWaitHtml1(w) {
     </div>
   </div>`;
 }
+// 📩 Ya contestaron (o solo llegó respuesta automática / rebotó)
+function deskWaitRespHtml(w) {
+  const R = w.Resp;
+  const cuando = (() => { const d = String(R.fecha).slice(0, 10), h = String(R.fecha).slice(11, 16), dd = deskDiff(d, deskToday());
+    return (dd === 0 ? 'hoy' : dd === 1 ? 'ayer' : 'hace ' + dd + ' días') + (h ? ' · ' + deskHour12(h) : ''); })();
+  const quien = escHtml(String(R.nombre || R.de).split(' ')[0] || R.de);
+  const head = R.rebote ? '⚠ El correo rebotó' : R.auto ? `🤖 Respuesta automática de ${quien}` : `📩 ${quien} ya contestó${R.n > 1 ? ` (${R.n} correos)` : ''}`;
+  return `<div class="desk-wait resp ${R.auto ? 'auto' : ''} ${R.rebote ? 'rebote' : ''}">
+    <div class="h"><b>${escHtml(w.EsperaDe || R.nombre || '—')}</b><span style="font-family:var(--font-mono);font-size:11px;color:${R.rebote ? '#FF6B78' : R.auto ? '#8A9AB8' : '#00E887'}">${escHtml(cuando)}</span></div>
+    <div class="d">${escHtml(w.Titulo)}${Number(w.Monto) ? ` · <span style="color:var(--green)">${fmtMoney(w.Monto)}</span>` : ''}</div>
+    <div class="rq"><b style="color:${R.rebote ? '#FF6B78' : R.auto ? '#A9B7CF' : 'var(--green)'}">${head}</b>${R.txt ? '<br>' + escHtml(R.txt) : ''}</div>
+    ${R.cierre ? '<div class="d" style="font-size:11px;color:var(--green);margin-top:6px">Parece que ya quedó resuelto. Si es así, ciérralo.</div>' : R.auto ? '<div class="d" style="font-size:11px;margin-top:6px">No cuenta como respuesta: sigue esperando.</div>' : ''}
+    <div class="a">
+      ${R.auto || R.rebote ? '' : `<button class="btn btn-sm ${R.cierre ? 'btn-primary' : 'btn-ghost'}" onclick="deskToggle('${w.ID}')">✓ Resuelto, cerrar</button>`}
+      ${R.rebote ? '' : `<button class="btn btn-sm ${R.cierre ? 'btn-ghost' : 'btn-primary'}" onclick="deskMailItems(['${w.ID}'],'responder')">✉ Contestar</button>`}
+      ${R.auto || R.rebote ? '' : `<button class="btn btn-ghost btn-sm" onclick="deskWaitAck('${w.ID}')">⏳ Sigo esperando</button>`}
+      ${R.rebote ? `<button class="btn btn-ghost btn-sm" onclick="deskEdit('${w.ID}')">Corregir correo</button>` : ''}
+      <button class="btn btn-ghost btn-sm" onclick="deskAskAboutReply('${w.ID}')">✨ ¿Qué contesto?</button>
+      ${w.GmailThread ? `<a class="btn btn-ghost btn-sm" href="https://mail.google.com/mail/u/0/#all/${escHtml(w.GmailThread)}" target="_blank" rel="noopener">↗ Gmail</a>` : ''}
+    </div>
+  </div>`;
+}
+async function deskWaitAck(id) {
+  const it = deskData.items.find(x => x.ID === id); if (!it || !it.Resp) return;
+  const prev = { ...it }, R = it.Resp;
+  delete it.Resp; deskRerender();
+  try {
+    const r = await apiPost({ action: 'escWaitAck', id, msgId: R.msgId, de: R.nombre || R.de, dias: 3 });
+    deskReplace(r.item); deskRerender();
+    toast('Sigues esperando. Te aviso el ' + deskNice(r.item.Fecha) + '.', 'info');
+  } catch (e) { Object.assign(it, prev); deskRerender(); toast(escHtml(e.message), 'error'); }
+}
+function deskAskAboutReply(id) {
+  const w = deskData.items.find(x => x.ID === id); if (!w || !w.Resp) return;
+  aiOpen();
+  aiSend(`${w.Resp.nombre || w.Resp.de} me contestó sobre "${w.Titulo}" (esperaba respuesta de ${w.EsperaDe || 'esa persona'}).\n\nSu respuesta:\n"${w.Resp.txt}"\n\n¿Qué significa y qué le contesto? Si hay algo que hacer, propónmelo como pendiente.`);
+}
+
 const DESK_INB_ICON = { correo: ['✉', 'rgba(77,141,255,0.15)'], alloc: ['📱', 'rgba(0,196,232,0.14)'], comision: ['💵', 'rgba(0,232,135,0.14)'], pago: ['📄', 'rgba(255,209,102,0.14)'], stock: ['📦', 'rgba(26,110,255,0.15)'], seguimiento: ['🎯', 'rgba(199,166,255,0.14)'] };
 function deskInboxItemHtml(x, i) {
   const ic = DESK_INB_ICON[x.tipo] || ['•', 'var(--surface)'];
@@ -7644,7 +7700,8 @@ function deskTasksHtml() {
 function deskWaitHtml() {
   const w = deskWaits();
   return `<div class="page-title">⏳ Esperando respuesta</div>
-    <div class="page-subtitle">Lo que mandaste y alguien te debe contestar. Si no contestan para la fecha, te sale aquí para recordarles (con el correo listo con ✨ Claude).</div>
+    <div class="page-subtitle">Lo que mandaste y alguien te debe contestar. El Hub revisa Gmail solo: cuando contestan, sube arriba en verde 📩 con lo que dijeron. Si no contestan para la fecha, te sale para recordarles (con el correo listo con ✨ Claude).</div>
+    ${deskData.waitError ? `<div class="act-hint" style="margin-bottom:12px">⚠️ No pude revisar Gmail: ${escHtml(deskData.waitError)}</div>` : ''}
     <div class="action-row"><button class="btn btn-primary" onclick="deskEdit(null,{Tipo:'Espera'})">＋ Anotar algo que espero</button></div>
     <div style="max-width:820px">${w.length ? w.map(deskWaitHtml1).join('') : '<div class="desk-card"><div class="desk-empty">No estás esperando nada.</div></div>'}</div>`;
 }
@@ -8298,7 +8355,7 @@ async function deskMailItems(ids, kind) {
   if (kind === 'recordatorio' || kind === 'responder' || kind === 'formato') {
     thread = first.GmailThread || '';
     const c = deskContactFor(first.EsperaDe || first.Titulo);
-    to = c ? c.Correo : /cellmart/i.test(first.EsperaDe + first.Categoria) ? DESK_COMMISSIONS : '';
+    to = first.Resp && first.Resp.de && !first.Resp.rebote ? first.Resp.de : c ? c.Correo : /cellmart/i.test(first.EsperaDe + first.Categoria) ? DESK_COMMISSIONS : '';
   } else if (['disputa', 'diferencia', 'cargo'].includes(kind)) to = DESK_COMMISSIONS;
   else { const c = deskContactFor(first.Titulo + ' ' + (first.Notas || '')); to = c ? c.Correo : ''; }
   const monto = items.reduce((s, i) => s + (Number(i.Monto) || 0), 0);
