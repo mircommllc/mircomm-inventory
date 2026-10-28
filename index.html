@@ -6967,6 +6967,7 @@ function socShowSummary(pay) {
     <textarea class="form-input" id="soc-sum" rows="9" style="font-size:13px">${escHtml(txt)}</textarea>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('soc-sum').value).then(()=>toast('Copiado.','success'))">📋 Copiar</button>
+      <button class="btn btn-ghost" style="color:#25D366;border-color:rgba(37,211,102,.45)" onclick="window.open('https://wa.me/${ph.length === 10 ? '1' + ph : ''}?text='+encodeURIComponent(document.getElementById('soc-sum').value),'_blank')">🟢 WhatsApp</button>
       ${ph.length === 10 ? `<a class="btn btn-ghost" href="sms:${ph}?&body=${encodeURIComponent(txt)}">💬 Mandar por mensaje</a>` : ''}
       <button class="btn btn-ghost" style="margin-left:auto" onclick="closeModal()">Listo</button>
     </div>`);
