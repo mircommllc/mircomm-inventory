@@ -320,6 +320,20 @@
   .pros-subrow td { color: var(--muted); font-size: 12px; padding-top: 4px !important; padding-bottom: 4px !important; }
   @media (max-width: 1600px) { .pros-two { grid-template-columns: 1fr; } }
 
+  /* ── 🎯 Meta de la asesora siempre a la vista ── */
+  .rep-goal { margin-top: auto; padding: 12px 10px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--border); cursor: pointer; }
+  .rep-goal .rg-h { font-size: 12px; font-weight: 700; display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+  .rep-goal .rg-h span { font-size: 10px; font-weight: 500; color: #8A9AB8; font-family: var(--font-mono); }
+  .rg-rings { display: flex; justify-content: space-around; gap: 4px; }
+  .rg-ring { position: relative; width: 70px; text-align: center; }
+  .rg-ring .c { position: absolute; top: 0; left: 0; width: 70px; height: 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+  .rg-ring .c b { font-family: var(--font-mono); font-size: 18px; } .rg-ring .c small { font-size: 9px; color: #8A9AB8; margin-top: 2px; }
+  .rg-ring .l { font-size: 11px; color: #A9B7CF; margin-top: 2px; }
+  .rep-goal .rg-t { font-size: 11px; color: #A9B7CF; margin-top: 8px; line-height: 1.45; text-align: center; }
+  .rep-goal-m { display: none !important; }
+  .rep-goal-m .rg-m { display: inline-flex; flex-direction: column; min-width: 74px; } .rep-goal-m .rg-m .desk-bar { margin-top: 3px; }
+  .rep-goal-m .rg-mt { font-size: 11px; color: #A9B7CF; flex: 1 1 100%; }
+
   /* ── PHONE LAYOUT ── */
   @media (max-width: 700px) {
     .topbar { padding: 0 12px; gap: 8px; }
@@ -329,6 +343,9 @@
     .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding: 8px; border-right: none; border-bottom: 1px solid var(--border); flex-shrink: 0; }
     .nav-section { display: none !important; }
     .nav-item { white-space: nowrap; flex-shrink: 0; }
+    .sidebar .rep-goal { display: none !important; }
+    .rep-goal-m { display: flex !important; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 16px; font-size: 12px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-shrink: 0; cursor: pointer; }
+    .rep-goal-m[style*="none"] { display: none !important; }
     .content { padding: 16px; }
     .form-row { grid-template-columns: 1fr; gap: 0; }
     .login-box { width: 92vw; padding: 28px 22px; }
@@ -751,7 +768,9 @@
     <div class="nav-item manager-only" data-page="receive" onclick="showPage('receive')">
       <span class="icon">📥</span> Receive Stock
     </div>
+    <div class="rep-goal" id="rep-goal" style="display:none" onclick="repGoalRefresh(true)" title="Toca para actualizar"></div>
   </div>
+  <div class="rep-goal-m" id="rep-goal-m" style="display:none" onclick="repGoalRefresh(true)"></div>
   <div class="content" id="content"></div>
 </div>
 
@@ -885,6 +904,7 @@ async function repLogin() {
     document.getElementById('rep-pin-box').style.display = 'none';
     completeLogin();
     repReminder();
+    repGoalStart();
   } catch (e) {
     err.style.color = '';
     err.textContent = /unknown|invalid action|repLogin/i.test(e.message)
@@ -969,7 +989,7 @@ function logout(msg) {
   closeModal();
   document.getElementById('rep-pin-box').style.display = 'none';
   document.getElementById('rep-pin-error').textContent = '';
-  prosAuth = null; prosData = null; segData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {}; prosMgrTried = false;
+  prosAuth = null; prosData = null; segData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {}; prosMgrTried = false; repGoalStop();
   posPending = []; posPendingAt = 0; posPaintPending();
   deskData = null; aiMsgs = []; aiClose(); document.body.classList.remove('has-ai');
   document.getElementById('login-screen').style.display = 'flex';
@@ -1038,6 +1058,7 @@ function showPage(page) {
   if (page === 'mylines' && isManager) page = 'activations';
   if (page === 'mipago' && isManager) page = 'nomina';
   currentPage = page;
+  repGoalRefresh();
   document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.page === page));
   loadCurrentPage();
 }
@@ -1135,6 +1156,70 @@ async function auditLogoutOthers() {
   if (!confirm('¿Cerrar todas las demás sesiones de administrador? Tendrán que volver a escribir su PIN. La tuya sigue abierta.')) return;
   try { const r = await apiPost({ action: 'adminLogoutOthers' }); toast(`Listo: se cerraron ${r.closed} sesión(es).`, 'success'); auditLoad(); }
   catch (e) { toast(escHtml(e.message), 'error'); }
+}
+
+// ── 🎯 Meta de la asesora, siempre a la vista (sidebar en compu; franja arriba en celular) ──
+// Datos: Escritorio.gs → escRepGet (usuario + PIN). Se actualiza al cambiar de pantalla (cada 90 s máx.) y cada 5 min.
+let repGoal = null, repGoalAt = 0, repGoalTimer = null;
+async function repGoalRefresh(force) {
+  if (isManager || !prosAuth) return;
+  if (!force && Date.now() - repGoalAt < 90000) return;
+  repGoalAt = Date.now();
+  try {
+    const r = await apiPost({ action: 'escRepGet', user: prosAuth.user, pin: prosAuth.pin });
+    if (!r || !r.ok || isManager || !prosAuth) return;
+    const prev = repGoal; repGoal = r; repGoalPaint();
+    if (prev && prev.semana === r.semana && r.meta) [['internet', 'internet'], ['lineas', 'líneas']].forEach(([k, l]) => {
+      const g = Number(r.meta[k]) || 0;
+      if (g && (prev.hecho[k] || 0) < g && (r.hecho[k] || 0) >= g) toast(`🎉 ¡Cumpliste tu meta de ${l} de la semana!`, 'success', 7000);
+    });
+  } catch (e) { /* sin Escritorio.gs nuevo: no se muestra */ }
+}
+function repGoalStart() {
+  clearInterval(repGoalTimer);
+  repGoal = null; repGoalAt = 0; repGoalPaint();
+  if (isManager || !prosAuth) return;
+  repGoalRefresh(true);
+  repGoalTimer = setInterval(() => repGoalRefresh(true), 5 * 60000);
+}
+function repGoalStop() { clearInterval(repGoalTimer); repGoal = null; repGoalPaint(); }
+function repRing(act, goal, el, label) {
+  const R = 25, C = 2 * Math.PI * R, pct = goal ? Math.min(1, act / goal) : 0;
+  const col = goal ? deskPaceColor(act, goal, el) : '#4D8DFF';
+  const pace = goal && el > 0 && el < 6 ? el / 6 : 0, a = pace * 2 * Math.PI - Math.PI / 2;
+  return `<div class="rg-ring" title="${escHtml(label)}: ${act}${goal ? ' de ' + goal : ''}">
+    <svg viewBox="0 0 64 64" width="66" height="66">
+      <circle cx="32" cy="32" r="${R}" fill="none" style="stroke:rgba(255,255,255,0.09)" stroke-width="7"/>
+      ${pct > 0 ? `<circle cx="32" cy="32" r="${R}" fill="none" style="stroke:${col}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(pct * C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)"/>` : ''}
+      ${pace ? `<line x1="${(32 + 19 * Math.cos(a)).toFixed(1)}" y1="${(32 + 19 * Math.sin(a)).toFixed(1)}" x2="${(32 + 31 * Math.cos(a)).toFixed(1)}" y2="${(32 + 31 * Math.sin(a)).toFixed(1)}" style="stroke:#A9B7CF" stroke-width="2"/>` : ''}
+    </svg>
+    <div class="c"><b style="color:${col}">${act}</b>${goal ? `<small>de ${goal}</small>` : ''}</div>
+    <div class="l">${escHtml(label)}</div></div>`;
+}
+function repGoalInfo(r) {
+  const K = [['internet', '🌐 Internet'], ['lineas', '📱 Líneas']], g = r.meta || {};
+  const falta = K.map(([k]) => { const f = (Number(g[k]) || 0) - (r.hecho[k] || 0); return f > 0 ? deskMetUnit(f, k) : ''; }).filter(Boolean);
+  const hasGoal = K.some(([k]) => Number(g[k]) > 0), quedan = 6 - r.dias;
+  const atiempo = K.every(([k]) => !(Number(g[k]) > 0) || (r.hecho[k] || 0) >= Number(g[k]) * r.dias / 6);
+  const txt = !hasGoal ? 'Esta semana todavía no tienes meta.'
+    : !falta.length ? '✅ ¡Meta cumplida esta semana!'
+    : `${falta.length === 1 && /^1 /.test(falta[0]) ? 'Te falta' : 'Te faltan'} ${falta.join(' y ')}${quedan > 0 ? ` · quedan ${quedan} día${quedan === 1 ? '' : 's'}` : ''}`;
+  return { K, g, txt, atiempo, hasGoal, done: hasGoal && !falta.length };
+}
+function repGoalPaint() {
+  const side = document.getElementById('rep-goal'), top = document.getElementById('rep-goal-m');
+  if (!side || !top) return;
+  const r = repGoal;
+  if (!r || isManager) { side.style.display = 'none'; top.style.display = 'none'; return; }
+  const I = repGoalInfo(r), el = r.dias;
+  const st = !I.hasGoal || I.done ? '' : I.atiempo ? '<span style="color:var(--green)">👍 Vas a tiempo</span>' : '<span style="color:var(--yellow)">Vas un poco atrás</span>';
+  side.innerHTML = `<div class="rg-h">🎯 Mi meta <span>${escHtml(deskNice(r.semana))} – ${escHtml(deskNice(r.fin))}</span></div>
+    <div class="rg-rings">${I.K.map(([k, l]) => repRing(r.hecho[k] || 0, Number(I.g[k]) || 0, el, l.replace(/^\S+ /, ''))).join('')}</div>
+    <div class="rg-t">${escHtml(I.txt)}${st ? '<br>' + st : ''}</div>`;
+  top.innerHTML = `<b>🎯 Mi meta</b>${I.K.map(([k, l]) => { const a = r.hecho[k] || 0, go = Number(I.g[k]) || 0;
+      return `<span class="rg-m"><span>${l.split(' ')[0]} <b style="color:${go ? deskPaceColor(a, go, el) : '#4D8DFF'}">${a}</b>${go ? '/' + go : ''}</span>${go ? deskBar(a, go, el) : ''}</span>`; }).join('')}
+    <span class="rg-mt">${escHtml(I.txt)}</span>`;
+  side.style.display = ''; top.style.display = '';
 }
 
 // ─── 🔔 Recordatorio al entrar (asesoras): seguimientos, líneas por registrar y pendientes asignados ──
