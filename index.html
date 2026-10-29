@@ -629,7 +629,7 @@
   .dm-disp-grid .form-input { padding: 6px 8px; font-size: 12.5px; width: 100%; min-height: 0; }
   .dm-disp-grid .form-input.miss { border-color: rgba(255,209,102,.7); background: rgba(255,209,102,.08); }
   .rem-sec { border: 1px solid var(--border); border-left-width: 4px; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; background: var(--surface); }
-  .rem-sec.red { border-left-color: #FF6B78; } .rem-sec.blue { border-left-color: #4D8DFF; } .rem-sec.yellow { border-left-color: #FFD166; } .rem-sec.purple { border-left-color: #C7A6FF; }
+  .rem-sec.red { border-left-color: #FF6B78; } .rem-sec.blue { border-left-color: #4D8DFF; } .rem-sec.yellow { border-left-color: #FFD166; } .rem-sec.purple { border-left-color: #C7A6FF; } .rem-sec.green { border-left-color: #00E887; }
   .rem-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 700; margin-bottom: 6px; }
   .rem-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid rgba(255,255,255,.05); font-size: 13.5px; }
   .rem-row:first-of-type { border-top: 0; }
@@ -1141,14 +1141,19 @@ async function auditLogoutOthers() {
 let repRem = null;
 async function repReminder() {
   if (isManager || !prosAuth) return;
-  try { repRem = await apiGet({ action: 'repResumen', user: prosAuth.user, pin: prosAuth.pin }); } catch (e) { return; }
+  let meta = null;
+  try {
+    [repRem, meta] = await Promise.all([apiGet({ action: 'repResumen', user: prosAuth.user, pin: prosAuth.pin }),
+      apiPost({ action: 'escRepGet', user: prosAuth.user, pin: prosAuth.pin }).catch(() => null)]);
+  } catch (e) { return; }
   if (!repRem || !repRem.ok || isManager) return;
+  repRem.meta = meta && meta.ok && meta.meta ? meta : null;
   repRemPaint(true);
 }
 function repRemPaint(open) {
   const r = repRem; if (!r) return;
   const n = r.vencidos.length + r.hoy.length + r.lineas.length + r.pendientes.length;
-  if (!n && !r.sinLinea) { if (!open) closeModal(); return; }
+  if (!n && !r.sinLinea && !r.meta) { if (!open) closeModal(); return; }
   const tipoIc = t => ({ 'Llamada': '📞', 'Mensaje': '💬', 'WhatsApp': '🟢', 'Cita en tienda': '🏪', 'Visita': '🚗' }[t] || '•');
   const seg = x => `<div class="rem-row"><span>${tipoIc(x.tipo)}</span><div style="flex:1;min-width:0"><b>${escHtml(x.nombre || '—')}</b>${x.temp === 'Caliente' ? ' 🔥' : ''}
       <div class="rem-s">${escHtml(x.tipo)}${x.paso ? ' · ' + escHtml(x.paso) : ''}${x.telefono ? ' · ' + escHtml(String(x.telefono).replace(/\D/g, '').replace(/^1?(\d{3})(\d{3})(\d{4})$/, '($1) $2-$3')) : ''}</div></div>
@@ -1157,6 +1162,7 @@ function repRemPaint(open) {
   const sec = (ic, title, cls, body, btn) => `<div class="rem-sec ${cls}"><div class="rem-h"><span>${ic} ${title}</span>${btn || ''}</div>${body}</div>`;
   openModal(`
     <div class="modal-title">🔔 Hola ${escHtml(r.name)}, esto tienes pendiente <button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${r.meta ? repRemMetaHtml(r.meta) : ''}
     ${r.vencidos.length ? sec('⚠️', `Seguimientos vencidos (${r.vencidos.length})`, 'red', list(r.vencidos, seg, 6),
       `<button class="btn btn-sm btn-primary" onclick="closeModal();showPage('prospects')">Ponerlos al día</button>`) : ''}
     ${r.hoy.length ? sec('📅', `Seguimientos de hoy (${r.hoy.length})`, 'blue', list(r.hoy, seg, 6),
@@ -1171,6 +1177,19 @@ function repRemPaint(open) {
         <button class="btn btn-ghost btn-sm" onclick="repRemDone('${escHtml(x.id)}')">✓ Hecho</button></div>`).join('')) : ''}
     ${r.sinLinea ? `<div class="rem-tip">📶 Tienes <b>${r.sinLinea}</b> cliente${r.sinLinea > 1 ? 's' : ''} con internet sin línea móvil a quien${r.sinLinea > 1 ? 'es' : ''} todavía no le${r.sinLinea > 1 ? 's' : ''} ofreces la línea gratis. Están en 🎯 Prospectos.</div>` : ''}
     <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="closeModal()">Entendido</button>`);
+}
+// 🎯 Su meta de la semana (Escritorio.gs → escRepGet)
+function deskMetUnit(n, k) { return n + ' ' + (k === 'internet' ? 'internet' : k === 'lineas' ? (n === 1 ? 'línea' : 'líneas') : (n === 1 ? 'línea extra' : 'líneas extra')); }
+function repRemMetaHtml(m) {
+  const L = [['internet', '🌐 Internet'], ['lineas', '📱 Líneas'], ['extra', '🔁 Líneas extra']].filter(([k]) => Number(m.meta[k]) > 0);
+  if (!L.length) return '';
+  const falta = L.map(([k]) => { const f = Number(m.meta[k]) - (m.hecho[k] || 0); return f > 0 ? deskMetUnit(f, k) : ''; }).filter(Boolean);
+  const quedan = 6 - m.dias;
+  return `<div class="rem-sec green"><div class="rem-h"><span>🎯 Tu meta de la semana</span><span class="rem-when">${escHtml(deskNice(m.semana))} – ${escHtml(deskNice(m.fin))}</span></div>
+    <div class="desk-gl" style="grid-template-columns:repeat(${L.length},1fr);margin:6px 0 4px">${L.map(([k, l]) =>
+      `<div><div class="l">${l}</div>${deskGoalCell(m.hecho[k] || 0, Number(m.meta[k]), m.dias)}</div>`).join('')}</div>
+    <div class="rem-s" style="margin-top:6px">${falta.length ? `Te ${falta.length === 1 && /^1 /.test(falta[0]) ? 'falta' : 'faltan'} ${falta.join(', ')}${quedan > 0 ? ` · quedan ${quedan} día${quedan === 1 ? '' : 's'} (con hoy)` : ''}.` : '✅ ¡Ya cumpliste tu meta de esta semana!'}
+      ${m.meta.extra ? '<br>🔁 Líneas extra = las que el cliente trae de su compañía después de la línea gratis.' : ''}</div></div>`;
 }
 async function repRemDone(id) {
   try {
@@ -7841,7 +7860,7 @@ function deskGoalsCard() {
     ${deskActsErr ? `<div class="act-hint">⚠️ ${escHtml(deskActsErr)}</div>` : ''}
     <div class="desk-gl">${DESK_MET.map(([k, l, tip]) => `<div title="${escHtml(tip)}"><div class="l">${l}</div>${deskGoalCell(st.tienda[k], deskGoalOf(g, '', k), el)}</div>`).join('')}</div>
     ${hasGoals ? `<div class="desk-gp">${deskWeekPeople(ws, st, g).map(p => { const s = st.por[p] || deskZero();
-      return `<span><b>${escHtml(p)}</b> ${DESK_MET.map(([k, l]) => { const go = deskGoalOf(g, p, k); return `<span style="color:${deskPaceColor(s[k], go, el)}">${l.split(' ')[0]} ${s[k]}${go ? '/' + go : ''}</span>`; }).join(' ')}</span>`; }).join('')}</div>`
+      return `<span><b>${escHtml(p)}</b> ${DESK_MET.map(([k, l]) => { const go = deskGoalOf(g, p, k); return `<span style="color:${deskPaceColor(s[k], go, el)}">${l.split(' ')[0]} ${s[k]}${go ? '/' + go : ''}</span>`; }).join(' ')}<a href="#" style="margin-left:auto" title="Mandarle por WhatsApp cómo va" onclick="deskWaGoal('${escHtml(p).replace(/'/g, '&#39;')}');return false">🟢</a></span>`; }).join('')}</div>`
       : `<div class="desk-empty" style="padding:10px">Pon las metas de la semana para ver si van a tiempo.<br><button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="deskGoalsEdit('${ws}')">🎯 Poner metas</button></div>`}
   </div>`;
 }
@@ -7853,7 +7872,7 @@ function deskWeekHtml() {
   const st = deskWeekStats(ws), g = deskGoalsFor(ws), el = deskWeekElapsed(ws), prevWs = deskAdd(ws, -7), P = deskWeekStats(prevWs);
   const people = deskWeekPeople(ws, st, g), done = ws < cur, we = deskAdd(ws, 6);
   const delta = (a, b) => a === b ? '<span style="color:#8A9AB8">=</span>' : a > b ? `<span style="color:var(--green)">▲${a - b}</span>` : `<span style="color:#FF6B78">▼${b - a}</span>`;
-  const row = (name, s, who) => `<tr><td><b>${escHtml(name)}</b></td>${DESK_MET.map(([k]) => `<td>${deskGoalCell(s[k], deskGoalOf(g, who, k), el)}</td>`).join('')}</tr>`;
+  const row = (name, s, who) => `<tr><td><b>${escHtml(name)}</b>${who && ws === cur ? `<br><a href="#" style="font-size:11px" onclick="deskWaGoal('${escHtml(who).replace(/'/g, '&#39;')}','${ws}');return false" title="Mandarle por WhatsApp cómo va">🟢 Mandarle cómo va</a>` : ''}</td>${DESK_MET.map(([k]) => `<td>${deskGoalCell(s[k], deskGoalOf(g, who, k), el)}</td>`).join('')}</tr>`;
   const items = deskData.items || [];
   const hechos = items.filter(i => i.Estado === 'Hecho' && i.Tipo !== 'Espera' && String(i.HechoEl).slice(0, 10) >= ws && String(i.HechoEl).slice(0, 10) <= we);
   const contestaron = items.filter(i => i.Estado === 'Hecho' && i.Tipo === 'Espera' && String(i.HechoEl).slice(0, 10) >= ws && String(i.HechoEl).slice(0, 10) <= we);
@@ -7938,6 +7957,25 @@ async function deskGoalsSave() {
     btn.disabled = false; btn.textContent = 'Guardar';
     toast(/desconocida|unknown/i.test(e.message) ? 'Falta actualizar Escritorio.gs en Apps Script (Deploy → New version).' : escHtml(e.message), 'error');
   }
+}
+// 🟢 Mandarle a la asesora cómo va (WhatsApp con el texto listo; si su teléfono está en 👥 Contactos, abre su chat)
+function deskWaGoalText(p, ws) {
+  const st = deskWeekStats(ws), g = deskGoalsFor(ws), s = st.por[p] || deskZero(), el = deskWeekElapsed(ws), quedan = 6 - el;
+  const seg = ((deskData && deskData.segPor) || {})[p];
+  const L = DESK_MET.filter(([k]) => deskGoalOf(g, p, k) || s[k]);
+  const lines = L.map(([k, l]) => { const go = deskGoalOf(g, p, k); return `${l}: ${s[k]}${go ? ' de ' + go + (s[k] >= go ? ' ✅' : '') : ''}`; });
+  const falta = L.map(([k]) => { const f = deskGoalOf(g, p, k) - s[k]; return f > 0 ? deskMetUnit(f, k) : ''; }).filter(Boolean);
+  const hr = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
+  return [`${hr < 12 ? 'Buenos días' : 'Buenas tardes'}, ${p}.`, '',
+    `Así vas esta semana (${deskNice(ws)} – ${deskNice(deskAdd(ws, 6))}):`, ...lines, '',
+    falta.length ? `Te ${falta.length === 1 && /^1 /.test(falta[0]) ? 'falta' : 'faltan'} ${falta.join(', ')}${quedan > 0 ? `, y quedan ${quedan} día${quedan === 1 ? '' : 's'}` : ''}.` : (L.length ? 'Ya cumpliste la meta de la semana. 👏' : ''),
+    seg && (seg.venc || seg.hoy) ? `Tienes ${seg.hoy} seguimiento${seg.hoy === 1 ? '' : 's'} para hoy${seg.venc ? ` y ${seg.venc} atrasado${seg.venc === 1 ? '' : 's'}` : ''} en Prospectos.` : '',
+    '', 'Si necesitas algo, me dices.'].filter((x, i, a) => x !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
+}
+function deskWaGoal(p, ws) {
+  const c = deskContactFor(p), ph = c && String(c.Telefono || '').replace(/\D/g, '').slice(-10);
+  deskWhats(ph && ph.length === 10 ? ph : '', deskWaGoalText(p, ws || deskWeekStart(deskToday())));
+  if (!ph) toast(`Escoge a ${escHtml(p)} en WhatsApp. Si pones su teléfono en 👥 Contactos, se abre su chat directo.`, 'info', 5000);
 }
 function deskWeekAsk(ws) {
   const st = deskWeekStats(ws), g = deskGoalsFor(ws), P = deskWeekStats(deskAdd(ws, -7));
