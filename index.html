@@ -493,6 +493,26 @@
   .desk-wait { padding: 12px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--border); }
   .desk-wait.late { background: rgba(255,68,85,0.07); border-color: rgba(255,68,85,0.35); }
   .desk-wait + .desk-wait { margin-top: 10px; }
+  .desk-gl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .desk-gl .l { font-size: 11px; color: #8A9AB8; margin-bottom: 4px; }
+  .desk-gc { font-family: var(--font-mono); font-size: 15px; }
+  .desk-bar { position: relative; height: 6px; border-radius: 4px; background: rgba(255,255,255,0.08); margin-top: 5px; overflow: visible; }
+  .desk-bar i { display: block; height: 100%; border-radius: 4px; }
+  .desk-bar b { position: absolute; top: -3px; width: 2px; height: 12px; background: #A9B7CF; border-radius: 1px; }
+  .desk-gp { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; }
+  .desk-gp > span { display: flex; gap: 10px; flex-wrap: wrap; } .desk-gp > span > b { min-width: 70px; }
+  .desk-rev { margin-bottom: 12px; padding: 9px 11px; border-radius: 10px; background: rgba(77,141,255,0.10); border: 1px solid rgba(77,141,255,0.35); font-size: 12.5px; cursor: pointer; line-height: 1.5; }
+  .desk-gt { width: 100%; border-collapse: collapse; } .desk-gt th { font-size: 11px; color: #8A9AB8; font-weight: 600; text-align: left; padding: 6px 8px; }
+  .desk-gt td { padding: 9px 8px; border-top: 1px solid var(--border); vertical-align: middle; } .desk-gt td:first-child { width: 22%; }
+  .desk-gt-in td { padding: 6px; } .desk-gt-in input { max-width: 90px; }
+  .desk-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; align-items: end; }
+  .desk-days > div { text-align: center; } .desk-days .b { height: 90px; display: flex; align-items: flex-end; background: rgba(255,255,255,0.04); border-radius: 6px; overflow: hidden; }
+  .desk-days .b i { display: block; width: 100%; background: var(--blue, #4D8DFF); border-radius: 6px 6px 0 0; }
+  .desk-days .n { font-family: var(--font-mono); font-size: 12px; margin-top: 4px; min-height: 15px; } .desk-days .w { font-size: 11px; color: #8A9AB8; }
+  .desk-days .hoy .w { color: var(--cyan); font-weight: 700; }
+  .desk-cmp { display: flex; gap: 10px; align-items: baseline; padding: 7px 0; font-size: 13px; } .desk-cmp + .desk-cmp { border-top: 1px solid var(--border); }
+  .desk-cmp > span:first-child { flex: 1; } .desk-cmp b { font-family: var(--font-mono); }
+  @media (max-width: 640px) { .desk-gl { grid-template-columns: 1fr; } .desk-gt td:first-child { width: auto; } }
   .desk-wait.resp { background: rgba(0,232,135,0.07); border-color: rgba(0,232,135,0.4); }
   .desk-wait.resp.auto { background: var(--surface2); border-color: var(--border); }
   .desk-wait.resp.rebote { background: rgba(255,68,85,0.07); border-color: rgba(255,68,85,0.35); }
@@ -676,6 +696,9 @@
     </div>
     <div class="nav-item manager-only" data-page="deskWait" onclick="showPage('deskWait')">
       <span class="icon">⏳</span> Esperando respuesta <span class="nav-badge y" id="nb-wait"></span>
+    </div>
+    <div class="nav-item manager-only" data-page="deskWeek" onclick="showPage('deskWeek')">
+      <span class="icon">🎯</span> Metas y semana
     </div>
     <div class="nav-item manager-only" data-page="deskNotes" onclick="showPage('deskNotes')">
       <span class="icon">📝</span> Notas
@@ -1009,7 +1032,7 @@ function saveConfig() {
 // ─── NAVIGATION ──────────────────────────────────────────────────────
 function showPage(page) {
   // Block non-managers from manager pages
-  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','audit','desk','deskInbox','deskTasks','deskWait','deskNotes','deskLog','deskContacts'];
+  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','audit','desk','deskInbox','deskTasks','deskWait','deskWeek','deskNotes','deskLog','deskContacts'];
   if (managerPages.includes(page) && !isManager) return;
   if (page === 'nomina') nomPreviewRep = '';
   if (page === 'mylines' && isManager) page = 'activations';
@@ -1033,7 +1056,7 @@ function loadCurrentPage() {
     case 'nomina':       renderNomina(); break;
     case 'socios':       renderSocios(); break;
     case 'audit':        renderAudit(); break;
-    case 'desk': case 'deskInbox': case 'deskTasks': case 'deskWait': case 'deskNotes': case 'deskLog': case 'deskContacts': renderDesk(); break;
+    case 'desk': case 'deskInbox': case 'deskTasks': case 'deskWait': case 'deskWeek': case 'deskNotes': case 'deskLog': case 'deskContacts': renderDesk(); break;
   }
 }
 
@@ -7357,7 +7380,7 @@ async function socAfterActSave(saved) {
 // 🗂 MI ESCRITORIO (Escritorio.gs) + ✨ CLAUDE (Asistente.gs) — solo manager
 // ═══════════════════════════════════════════════════════════════════════
 let deskData = null, deskLoadP = null, deskFilter = { cat: '', q: '', who: '', mine: false };
-const DESK_PAGES = { desk: 'hoy', deskInbox: 'bandeja', deskTasks: 'pendientes', deskWait: 'espera', deskNotes: 'notas', deskLog: 'bitacora', deskContacts: 'contactos' };
+const DESK_PAGES = { desk: 'hoy', deskInbox: 'bandeja', deskTasks: 'pendientes', deskWait: 'espera', deskWeek: 'semana', deskNotes: 'notas', deskLog: 'bitacora', deskContacts: 'contactos' };
 const DESK_CATS = {
   Cellmart: ['rgba(255,209,102,0.13)', '#FFD166'], Tienda: ['rgba(26,110,255,0.15)', '#4D8DFF'],
   Prospecto: ['rgba(199,166,255,0.14)', '#C7A6FF'], Empleados: ['rgba(0,196,232,0.13)', '#00C4E8'],
@@ -7443,7 +7466,7 @@ async function renderDesk() {
   if (!DESK_PAGES[currentPage]) return;
   const tab = DESK_PAGES[currentPage];
   el.innerHTML = tab === 'hoy' ? deskHoyHtml() : tab === 'bandeja' ? deskInboxHtml() : tab === 'pendientes' ? deskTasksHtml()
-    : tab === 'espera' ? deskWaitHtml() : tab === 'notas' ? deskNotesHtml() : tab === 'contactos' ? deskContactsHtml() : deskLogHtml();
+    : tab === 'espera' ? deskWaitHtml() : tab === 'semana' ? deskWeekHtml() : tab === 'notas' ? deskNotesHtml() : tab === 'contactos' ? deskContactsHtml() : deskLogHtml();
   if (tab === 'pendientes') { const q = document.getElementById('desk-q'); if (q && deskFilter.q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
 }
 function deskRerender() { if (DESK_PAGES[currentPage]) renderDesk(); deskBadges(); }
@@ -7496,6 +7519,7 @@ function deskHoyHtml() {
         </div>
       </div>
       <div class="desk-side">
+        ${deskGoalsCard()}
         ${deskWaitCard(waits.slice(0, 4))}
         ${deskInboxCard()}
         ${deskAgendaCard()}
@@ -7723,6 +7747,205 @@ function deskNoteCardHtml(n) {
   return `<div class="desk-note" onclick="deskNote('${n.ID}')"><div class="t">${n.Fijada === 'Sí' ? '📌 ' : ''}${escHtml(n.Titulo || 'Nota')}</div>
     <div class="x">${escHtml(n.Texto || '')}</div>
     <div style="font-size:11px;color:#6A7A96;margin-top:6px">${escHtml(deskDueLabel(String(n.Actualizado).slice(0, 10)))}${n.LigaValor ? ' · ' + escHtml(n.LigaValor) : ''}</div></div>`;
+}
+
+// ── 🎯 Metas semanales y revisión del lunes (Fase 3) ──
+// Avance con las activaciones (OrderDate, lunes a domingo). Metas en Escritorio.gs → Script Properties ESC_METAS.
+const DESK_MET = [
+  ['internet', '🌐 Internet', 'Ventas de internet'],
+  ['lineas', '📱 Líneas', 'Todas las líneas móviles'],
+  ['extra', '🔁 Líneas extra', 'Las que traen después de la primera gratis (portadas o adicionales)']];
+let deskActsP = null, deskActsReady = false, deskWeekView = '';
+async function deskActsLoad(force) {
+  if (deskActsReady && !force) return actData;
+  if (!deskActsP) deskActsP = Promise.all([apiGet({ action: 'getActivations' }), apiGet({ action: 'getRepMap' }).catch(() => null)])
+    .then(([rows, rm]) => {
+      if (rm && typeof rm === 'object' && !Array.isArray(rm)) Object.assign(ACT_REPS, rm);
+      if (Array.isArray(rows)) actData = rows;
+      deskActsReady = true; return actData;
+    }).finally(() => { deskActsP = null; });
+  return deskActsP;
+}
+function deskActsKick() {
+  if (deskActsReady || deskActsP) return;
+  deskActsLoad().then(() => { if (DESK_PAGES[currentPage] === 'hoy' || DESK_PAGES[currentPage] === 'semana') renderDesk(); })
+    .catch(e => { deskActsReady = true; deskActsErr = e.message; if (DESK_PAGES[currentPage]) renderDesk(); });
+}
+let deskActsErr = '';
+function deskWeekStart(ymd) { const d = deskDow(ymd); return deskAdd(ymd, d === 0 ? -6 : 1 - d); }
+function deskWeekLabel(ws) {
+  const we = deskAdd(ws, 6), cur = deskWeekStart(deskToday());
+  const rango = `${deskNice(ws)} – ${deskNice(we)}`;
+  return ws === cur ? `Esta semana · ${rango}` : ws === deskAdd(cur, -7) ? `Semana pasada · ${rango}` : `Semana del ${rango}`;
+}
+function deskZero() { return { internet: 0, lineas: 0, extra: 0 }; }
+function deskWeekStats(ws) {
+  const we = deskAdd(ws, 6), out = { tienda: deskZero(), por: {}, dias: {}, ventas: [] };
+  (actData || []).forEach(a => {
+    const d = String(a.OrderDate || '').slice(0, 10);
+    if (!d || d < ws || d > we) return;
+    const internet = nomHas(a.InternetTier) ? 1 : 0, lineas = actRealLines(a);
+    if (!internet && !lineas) return;
+    const extra = Math.max(0, lineas - (lineas > 0 && actMobileTypeOf(a).type !== 'Incremental' ? 1 : 0));
+    const who = actRepName(a) || '—';
+    const p = out.por[who] = out.por[who] || deskZero(), dd = out.dias[d] = out.dias[d] || deskZero();
+    [['internet', internet], ['lineas', lineas], ['extra', extra]].forEach(([k, v]) => { p[k] += v; out.tienda[k] += v; dd[k] += v; });
+    out.ventas.push({ d, who, internet, lineas, extra, name: a.CustomerName || '' });
+  });
+  return out;
+}
+function deskGoalsFor(ws) {
+  const m = (deskData && deskData.metas) || {};
+  if (m.semanas && m.semanas[ws]) return m.semanas[ws];
+  const prev = Object.keys(m.semanas || {}).filter(k => k <= ws).sort().pop();   // la última que había para esa semana
+  return prev ? m.semanas[prev] : ws >= deskWeekStart(deskToday()) ? m.base || null : null;
+}
+function deskGoalOf(g, who, k) { return g ? Number(who ? ((g.personas || {})[who] || {})[k] : (g.tienda || {})[k]) || 0 : 0; }
+// Días de venta que ya terminaron en la semana (lun–sáb = 6); hoy todavía no cuenta
+function deskWeekElapsed(ws) {
+  const t = deskToday(), cur = deskWeekStart(t);
+  if (ws < cur) return 6; if (ws > cur) return 0;
+  return Math.min(6, deskDiff(ws, t));
+}
+function deskPaceColor(act, goal, elapsed) {
+  if (!goal) return '#8A9AB8';
+  if (act >= goal) return 'var(--green)';
+  const pace = goal * elapsed / 6;
+  if (!pace) return '#A9B7CF';
+  return act >= pace ? 'var(--green)' : act >= pace * 0.7 ? 'var(--yellow)' : '#FF6B78';
+}
+function deskBar(act, goal, elapsed) {
+  const pct = goal ? Math.min(100, Math.round(act / goal * 100)) : 0, c = deskPaceColor(act, goal, elapsed);
+  const pace = goal && elapsed > 0 && elapsed < 6 ? Math.round(elapsed / 6 * 100) : 0;
+  return `<div class="desk-bar"><i style="width:${pct}%;background:${c}"></i>${pace ? `<b style="left:${pace}%" title="Donde deberías ir hoy"></b>` : ''}</div>`;
+}
+function deskGoalCell(act, goal, elapsed) {
+  return `<div class="desk-gc"><div><span style="color:${deskPaceColor(act, goal, elapsed)};font-weight:700">${act}</span>${goal ? `<span style="color:#8A9AB8"> / ${goal}</span>` : ''}</div>${goal ? deskBar(act, goal, elapsed) : ''}</div>`;
+}
+function deskWeekPeople(ws, st, g) {
+  const set = new Set(['Lizbeth', 'Alondra'].concat(Object.keys((g && g.personas) || {}), Object.keys(st.por)));
+  return [...set].filter(p => p && p !== '—').sort((a, b) => (st.por[b] ? st.por[b].lineas + st.por[b].internet : 0) - (st.por[a] ? st.por[a].lineas + st.por[a].internet : 0));
+}
+
+// Tarjeta en ☀ Hoy
+function deskGoalsCard() {
+  const t = deskToday(), ws = deskWeekStart(t);
+  if (!deskActsReady) { deskActsKick(); return `<div class="desk-card"><div class="desk-card-h"><h3>🎯 Metas de la semana</h3></div><div class="loading" style="padding:14px"><div class="spinner"></div></div></div>`; }
+  const st = deskWeekStats(ws), g = deskGoalsFor(ws), el = deskWeekElapsed(ws);
+  const lastWs = deskAdd(ws, -7), monday = deskDow(t) === 1;
+  const hasGoals = g && Object.keys(g.tienda || {}).length;
+  return `<div class="desk-card">
+    <div class="desk-card-h"><h3>🎯 Metas de la semana</h3><span class="r"><a href="#" onclick="showPage('deskWeek');return false">${hasGoals ? 'ver detalle' : ''}</a></span></div>
+    ${monday ? (() => { const L = deskWeekStats(lastWs), LG = deskGoalsFor(lastWs);
+      return `<div class="desk-rev" onclick="deskWeekView='${lastWs}';showPage('deskWeek')">📊 <b>Revisión del lunes:</b> la semana pasada cerró con ${DESK_MET.map(([k, l]) => `${L.tienda[k]}${deskGoalOf(LG, '', k) ? '/' + deskGoalOf(LG, '', k) : ''} ${l.split(' ').slice(1).join(' ').toLowerCase()}`).join(' · ')} →</div>`; })() : ''}
+    ${deskActsErr ? `<div class="act-hint">⚠️ ${escHtml(deskActsErr)}</div>` : ''}
+    <div class="desk-gl">${DESK_MET.map(([k, l, tip]) => `<div title="${escHtml(tip)}"><div class="l">${l}</div>${deskGoalCell(st.tienda[k], deskGoalOf(g, '', k), el)}</div>`).join('')}</div>
+    ${hasGoals ? `<div class="desk-gp">${deskWeekPeople(ws, st, g).map(p => { const s = st.por[p] || deskZero();
+      return `<span><b>${escHtml(p)}</b> ${DESK_MET.map(([k, l]) => { const go = deskGoalOf(g, p, k); return `<span style="color:${deskPaceColor(s[k], go, el)}">${l.split(' ')[0]} ${s[k]}${go ? '/' + go : ''}</span>`; }).join(' ')}</span>`; }).join('')}</div>`
+      : `<div class="desk-empty" style="padding:10px">Pon las metas de la semana para ver si van a tiempo.<br><button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="deskGoalsEdit('${ws}')">🎯 Poner metas</button></div>`}
+  </div>`;
+}
+
+// Página 🎯 Metas y semana
+function deskWeekHtml() {
+  const cur = deskWeekStart(deskToday()), ws = deskWeekView || cur;
+  if (!deskActsReady) { deskActsKick(); return `<div class="page-title">🎯 Metas y semana</div><div class="loading"><div class="spinner"></div></div>`; }
+  const st = deskWeekStats(ws), g = deskGoalsFor(ws), el = deskWeekElapsed(ws), prevWs = deskAdd(ws, -7), P = deskWeekStats(prevWs);
+  const people = deskWeekPeople(ws, st, g), done = ws < cur, we = deskAdd(ws, 6);
+  const delta = (a, b) => a === b ? '<span style="color:#8A9AB8">=</span>' : a > b ? `<span style="color:var(--green)">▲${a - b}</span>` : `<span style="color:#FF6B78">▼${b - a}</span>`;
+  const row = (name, s, who) => `<tr><td><b>${escHtml(name)}</b></td>${DESK_MET.map(([k]) => `<td>${deskGoalCell(s[k], deskGoalOf(g, who, k), el)}</td>`).join('')}</tr>`;
+  const items = deskData.items || [];
+  const hechos = items.filter(i => i.Estado === 'Hecho' && i.Tipo !== 'Espera' && String(i.HechoEl).slice(0, 10) >= ws && String(i.HechoEl).slice(0, 10) <= we);
+  const contestaron = items.filter(i => i.Estado === 'Hecho' && i.Tipo === 'Espera' && String(i.HechoEl).slice(0, 10) >= ws && String(i.HechoEl).slice(0, 10) <= we);
+  const venc = deskTasks().filter(i => i.Fecha && i.Fecha < deskToday());
+  const dias = [0, 1, 2, 3, 4, 5, 6].map(n => deskAdd(ws, n));
+  const maxD = Math.max(1, ...dias.map(d => (st.dias[d] || deskZero()).internet + (st.dias[d] || deskZero()).lineas));
+  return `<div class="page-title">🎯 Metas y semana</div>
+    <div class="page-subtitle">Internet, líneas y líneas extra (las que traen después de la primera gratis) de lunes a domingo, con la fecha de orden de Activaciones. La rayita en la barra marca dónde deberías ir hoy.</div>
+    <div class="action-row" style="align-items:center">
+      <button class="btn btn-ghost btn-sm" onclick="deskWeekView='${prevWs}';renderDesk()">◀</button>
+      <b style="min-width:220px;text-align:center">${escHtml(deskWeekLabel(ws))}</b>
+      <button class="btn btn-ghost btn-sm" ${ws >= cur ? 'disabled' : ''} onclick="deskWeekView='${deskAdd(ws, 7)}';renderDesk()">▶</button>
+      ${ws !== cur ? `<button class="btn btn-ghost btn-sm" onclick="deskWeekView='';renderDesk()">Hoy</button>` : ''}
+      <span style="flex:1"></span>
+      <button class="btn btn-ghost" onclick="deskWeekAsk('${ws}')">✨ Analizar la semana</button>
+      <button class="btn btn-primary" onclick="deskGoalsEdit('${ws}')">🎯 ${g ? 'Cambiar' : 'Poner'} metas</button>
+    </div>
+    ${deskActsErr ? `<div class="act-hint">⚠️ ${escHtml(deskActsErr)}</div>` : ''}
+    <div class="desk-card" style="margin-bottom:16px"><table class="desk-gt"><thead><tr><th></th>${DESK_MET.map(([, l, tip]) => `<th title="${escHtml(tip)}">${l}</th>`).join('')}</tr></thead>
+      <tbody>${row('Tienda', st.tienda, '')}${people.map(p => row(p, st.por[p] || deskZero(), p)).join('')}</tbody></table>
+      ${g ? '' : '<div class="desk-hint">Sin metas para esta semana: solo se ve lo que vendieron.</div>'}
+    </div>
+    <div class="desk-cols">
+      <div class="desk-main">
+        <div class="desk-card"><div class="desk-card-h"><h3>Día por día</h3><span class="r">internet + líneas</span></div>
+          <div class="desk-days">${dias.map(d => { const x = st.dias[d] || deskZero(), n = x.internet + x.lineas;
+            return `<div class="${d === deskToday() ? 'hoy' : ''}"><div class="b"><i style="height:${Math.round(n / maxD * 100)}%"></i></div><div class="n">${n || ''}</div><div class="w">${DESK_DOW3[deskDow(d)]}</div></div>`; }).join('')}</div>
+        </div>
+        <div class="desk-card"><div class="desk-card-h"><h3>Contra la semana anterior</h3><span class="r">${escHtml(deskWeekLabel(prevWs).replace(/^.*· /, ''))}</span></div>
+          ${DESK_MET.map(([k, l]) => `<div class="desk-cmp"><span>${l}</span><b>${st.tienda[k]}</b><span style="color:#8A9AB8">vs ${P.tienda[k]}</span>${done || el >= 6 ? delta(st.tienda[k], P.tienda[k]) : ''}</div>`).join('')}
+          ${!done && el < 6 ? '<div class="desk-hint">La semana todavía no termina.</div>' : ''}
+        </div>
+      </div>
+      <div class="desk-side">
+        <div class="desk-card"><div class="desk-card-h"><h3>${done ? 'Cómo cerró' : 'Hasta hoy'}</h3></div>
+          <div class="desk-cmp"><span>✅ Pendientes terminados</span><b>${hechos.length}</b></div>
+          <div class="desk-cmp"><span>📩 Te contestaron</span><b>${contestaron.length}</b></div>
+          <div class="desk-cmp"><span>⏰ Vencidos hoy</span><b style="color:${venc.length ? '#FF6B78' : 'var(--green)'}">${venc.length}</b></div>
+          <div class="desk-cmp"><span>⏳ Esperando respuesta</span><b>${deskWaits().length}</b></div>
+          ${venc.length ? `<div style="margin-top:10px"><a href="#" onclick="showPage('deskTasks');return false" style="font-size:12px">Ver vencidos →</a></div>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+function deskGoalsEdit(ws) {
+  const g = deskGoalsFor(ws) || {}, st = deskWeekStats(ws), people = deskWeekPeople(ws, st, g);
+  window._deskGoals = { ws, people };
+  const inp = (id, v) => `<input class="form-input" id="${id}" inputmode="numeric" style="text-align:center" value="${v || ''}">`;
+  const row = (name, who, key) => `<tr><td><b>${escHtml(name)}</b></td>${DESK_MET.map(([k]) => `<td>${inp(`dg-${key}-${k}`, deskGoalOf(g, who, k))}</td>`).join('')}</tr>`;
+  openModal(`<div class="modal-title">🎯 Metas · ${escHtml(deskWeekLabel(ws))}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <table class="desk-gt desk-gt-in"><thead><tr><th></th>${DESK_MET.map(([, l, tip]) => `<th title="${escHtml(tip)}">${l}</th>`).join('')}</tr></thead>
+      <tbody>${row('Tienda', '', 't')}${people.map((p, i) => row(p, p, 'p' + i)).join('')}</tbody></table>
+    <div class="desk-hint" style="margin-top:4px">🔁 Líneas extra = las que traen después de la primera línea gratis. Deja en blanco lo que no quieras medir. Si la tienda va vacía, se suma lo de cada persona.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+      <button class="btn btn-primary" id="dg-save" onclick="deskGoalsSave()">Guardar</button>
+      <button class="btn btn-ghost" onclick="deskGoalsSuggest()">💡 Sugerir (promedio de 4 semanas +10%)</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+    </div>
+    <div class="desk-hint">${ws >= deskWeekStart(deskToday()) ? 'Se quedan para las siguientes semanas hasta que las cambies.' : 'Solo cambia esa semana pasada.'}</div>`, true);
+}
+function deskGoalsSuggest() {
+  const { ws, people } = window._deskGoals, weeks = [1, 2, 3, 4].map(n => deskWeekStats(deskAdd(ws, -7 * n)));
+  const sug = (get) => { const avg = weeks.reduce((s, w) => s + get(w), 0) / 4; return avg ? Math.max(1, Math.ceil(avg * 1.1)) : ''; };
+  DESK_MET.forEach(([k]) => {
+    document.getElementById(`dg-t-${k}`).value = sug(w => w.tienda[k]);
+    people.forEach((p, i) => { document.getElementById(`dg-p${i}-${k}`).value = sug(w => (w.por[p] || deskZero())[k]); });
+  });
+  toast('Sugerencia con lo que vendieron en las últimas 4 semanas, +10%. Ajústala si quieres.', 'info');
+}
+async function deskGoalsSave() {
+  const { ws, people } = window._deskGoals, n = id => Number((document.getElementById(id)?.value || '').replace(/\D/g, '')) || 0;
+  const metas = { tienda: {}, personas: {} };
+  DESK_MET.forEach(([k]) => {
+    people.forEach((p, i) => { const v = n(`dg-p${i}-${k}`); if (v) (metas.personas[p] = metas.personas[p] || {})[k] = v; });
+    metas.tienda[k] = n(`dg-t-${k}`) || people.reduce((s, p) => s + ((metas.personas[p] || {})[k] || 0), 0);
+  });
+  const btn = document.getElementById('dg-save'); btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    const r = await apiPost({ action: 'escMetasSave', semana: ws, metas });
+    deskData.metas = r.metas; closeModal(); toast('🎯 Metas guardadas.', 'success'); deskRerender();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Guardar';
+    toast(/desconocida|unknown/i.test(e.message) ? 'Falta actualizar Escritorio.gs en Apps Script (Deploy → New version).' : escHtml(e.message), 'error');
+  }
+}
+function deskWeekAsk(ws) {
+  const st = deskWeekStats(ws), g = deskGoalsFor(ws), P = deskWeekStats(deskAdd(ws, -7));
+  const fmt = (s, who) => DESK_MET.map(([k, l]) => `${l.replace(/^\S+ /, '')}: ${s[k]}${deskGoalOf(g, who, k) ? ' de ' + deskGoalOf(g, who, k) : ''}`).join(', ');
+  const people = deskWeekPeople(ws, st, g).map(p => `- ${p}: ${fmt(st.por[p] || deskZero(), p)}`).join('\n');
+  const dias = [0, 1, 2, 3, 4, 5, 6].map(n => { const d = deskAdd(ws, n), x = st.dias[d] || deskZero(); return `${DESK_DOW3[deskDow(d)]} ${x.internet}i/${x.lineas}l`; }).join(', ');
+  aiOpen();
+  aiSend(`Analiza mi semana (${deskWeekLabel(ws)}, ${deskWeekElapsed(ws) >= 6 ? 'ya terminó' : 'han terminado ' + deskWeekElapsed(ws) + ' de 6 días de venta, hoy es ' + DESK_DOW[deskDow(deskToday())]}).\nTienda: ${fmt(st.tienda, '')}.\nSemana anterior: ${fmt(P.tienda, '')}.\nPor persona:\n${people}\nPor día: ${dias}.\nRecuerda la meta del negocio: dar una línea gratis y que porten sus otras líneas (líneas extra). Dime en pocas líneas cómo vamos, quién necesita ayuda, qué hacer en los días que quedan, y propón pendientes concretos si hacen falta.`);
 }
 
 function deskInboxHtml() {
@@ -8259,7 +8482,7 @@ function aiRender() {
   body.scrollTop = body.scrollHeight;
 }
 function aiContext() {
-  const names = { desk: 'Mi Escritorio · Hoy', deskInbox: 'Bandeja', deskTasks: 'Pendientes', deskWait: 'Esperando respuesta', deskNotes: 'Notas', deskLog: 'Bitácora',
+  const names = { desk: 'Mi Escritorio · Hoy', deskInbox: 'Bandeja', deskTasks: 'Pendientes', deskWait: 'Esperando respuesta', deskWeek: 'Metas y semana', deskNotes: 'Notas', deskLog: 'Bitácora',
     deskContacts: 'Contactos', activations: 'Activaciones', prospects: 'Prospectos', customers: 'Clientes', nomina: 'Nómina', inventory: 'Inventario', pos: 'Point of Sale', report: 'Sales Report', transactions: 'Transactions', socios: 'Socios' };
   let c = currentUser + ' está en la página ' + (names[currentPage] || currentPage) + '.';
   if (currentPage === 'activations' && actFilter && actFilter.q) c += ' Está buscando "' + actFilter.q + '".';
