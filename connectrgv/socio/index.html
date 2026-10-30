@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bienvenido a tu nueva casa · ConnectRGV</title>
+<meta name="description" content="Tu concierge de mudanza: internet, luz y celular listos el día que llegas.">
+<meta name="robots" content="noindex">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Bienvenido a tu nueva casa · ConnectRGV">
+<meta property="og:description" content="Tu concierge de mudanza: internet, luz y celular listos el día que llegas.">
+<meta property="og:image" content="https://connectrgv.com/assets/og-image.jpg">
+<meta property="og:locale" content="es_MX">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1E3A32">
+<link rel="icon" href="/assets/connectrgv-symbol.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Inter+Tight:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#111312}a:hover{color:#1E3A32}
+*{box-sizing:border-box}
+input,button{font:inherit}
+input:focus{outline:2px solid #1E3A32;outline-offset:2px}
+.phone-icon{display:none}
+@media (max-width: 700px){.phone-pill{display:none!important}.phone-icon{display:inline-flex!important}}
+input:invalid:not(:placeholder-shown){border-bottom-color:#B3261E!important}
+[hidden]{display:none!important}
+button:disabled{opacity:.6;cursor:default}
+/* Mientras llegan los datos del socio, su nombre no parpadea */
+.cargando [data-s]{visibility:hidden}
+[data-s]{transition:opacity .25s}
+.socio-logo{display:block;max-height:44px;max-width:150px;width:auto;height:auto;object-fit:contain}
+</style>
+</head>
+<body class="cargando">
+
+<div style="font-family: 'Inter Tight', system-ui, sans-serif; color: #111312; background: #FFFFFF; font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #ECEAE5">
+<div style="max-width: 1360px; margin: 0 auto; padding: 18px clamp(20px, 4vw, 48px); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; align-items: center; gap: 14px">
+<div data-s="marca" data-solo-socio="" style="display: flex; align-items: center"></div>
+<span data-solo-socio="" aria-hidden="true" style="width: 1px; height: 28px; background: #D9D5CD"></span>
+<a href="/" aria-label="ConnectRGV"><img src="/assets/connectrgv-logo.svg" alt="ConnectRGV" width="128" height="30" style="display: block"></a>
+</div>
+<a class="phone-icon" href="tel:+19564676695" aria-label="Llamar al (956) 467-6695" style="min-height: 44px; min-width: 44px; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid #111312"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111312" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg></a>
+<a class="phone-pill" href="tel:+19564676695" style="min-height: 44px; display: inline-flex; align-items: center; padding: 0 20px; border-radius: 999px; border: 1px solid #111312; color: #111312; text-decoration: none; font-size: 15px; font-weight: 500">(956) 467-6695</a>
+</div>
+</header>
+
+<section style="background: #FFFFFF">
+<div style="max-width: 1360px; margin: 0 auto; padding: clamp(40px, 6vw, 80px) clamp(20px, 4vw, 48px) clamp(80px, 10vw, 136px); display: flex; flex-wrap: wrap; gap: 48px clamp(40px, 6vw, 96px); align-items: stretch">
+<div style="flex: 1.1 1 520px; min-width: 0; display: flex; flex-direction: column; justify-content: center">
+<p data-s="eyebrow" style="margin: 0; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: #5B615E">Tu concierge de mudanza</p>
+<h1 style="margin: 24px 0 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(52px, 7vw, 108px); line-height: 0.96; letter-spacing: -0.025em">Bienvenido a tu nueva casa.</h1>
+<p data-s="intro" style="margin: 32px 0 0; max-width: 500px; font-size: 19px; line-height: 1.55; color: #3A403D">Te atendemos personalmente. Dejamos internet, luz y celular listos para el día que llegas, y a ti no te cuesta nada.</p>
+
+<div style="margin-top: 44px; max-width: 560px; background: #F4F2EE; border-radius: 24px; padding: clamp(24px, 3vw, 36px)">
+
+<form data-form="cliente-de-socio" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 22px 24px">
+<div><label for="p-nombre" style="display: block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #5B615E">Tu nombre</label><input id="p-nombre" name="nombre" autocomplete="name" required style="width: 100%; min-height: 48px; margin-top: 6px; padding: 0 2px; border: 0; border-bottom: 1px solid #A9ABA7; background: transparent; color: #111312; font-size: 18px"></div>
+<div><label for="p-tel" style="display: block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #5B615E">Teléfono</label><input id="p-tel" name="telefono" type="tel" autocomplete="tel" required style="width: 100%; min-height: 48px; margin-top: 6px; padding: 0 2px; border: 0; border-bottom: 1px solid #A9ABA7; background: transparent; color: #111312; font-size: 18px"></div>
+<div><label for="p-fecha" style="display: block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #5B615E">Fecha de mudanza</label><input id="p-fecha" name="fecha" type="date" style="width: 100%; min-height: 48px; margin-top: 6px; padding: 0 2px; border: 0; border-bottom: 1px solid #A9ABA7; background: transparent; color: #111312; font-size: 18px"></div>
+<fieldset data-address="" style="grid-column: 1 / -1; margin: 0; padding: 0; border: 0; min-width: 0">
+<legend style="padding: 0; margin-bottom: 4px; font-size: 15px; font-weight: 600; color: #111312">Dirección de la casa nueva</legend>
+<p style="margin: 0 0 14px; font-size: 14px; line-height: 1.45; color: #4A504D">Con ella revisamos qué servicios llegan a tu casa. Escríbela completa, por favor.</p>
+<div style="display: grid; gap: 20px">
+<div><label for="p-calle" style="display: block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #5B615E">Número y calle</label><input id="p-calle" name="calle" autocomplete="address-line1" required pattern="\s*\d+\S*\s+\S.*" placeholder="Ej. 1234 N. 10th St." style="width: 100%; min-height: 48px; margin-top: 6px; padding: 0 2px; border: 0; border-bottom: 1px solid #A9ABA7; background: transparent; color: #111312; font-size: 18px"></div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px 24px">
+<div><label for="p-depto" style="display: block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #5B615E">Depto., unidad o lote</label><input id="p-depto" name="depto" autocomplete="address-line2" placeholder="Si aplica" style="width: 100%; min-height: 48px; margin-top: 6px; padding: 0 2px; border: 0; border-bottom: 1px solid #A9ABA7; background: transparent; color: #111312; font-size: 18px"></div>
+<div><label for="p-ciudad" style="display: block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #5B615E">Ciudad</label><input id="p-ciudad" name="ciudad" list="p-ciudades" autocomplete="address-level2" required placeholder="Ej. McAllen" style="width: 100%; min-height: 48px; margin-top: 6px; padding: 0 2px; border: 0; border-bottom: 1px solid #A9ABA7; background: transparent; color: #111312; font-size: 18px"><datalist id="p-ciudades"><option value="Alamo"></option><option value="Alton"></option><option value="Brownsville"></option><option value="Donna"></option><option value="Edcouch"></option><option value="Edinburg"></option><option value="Elsa"></option><option value="Harlingen"></option><option value="Hidalgo"></option><option value="La Feria"></option><option value="La Joya"></option><option value="Los Fresnos"></option><option value="Mercedes"></option><option value="McAllen"></option><option value="Mission"></option><option value="Palmhurst"></option><option value="Palmview"></option><option value="Pharr"></option><option value="Port Isabel"></option><option value="Raymondville"></option><option value="Rio Grande City"></option><option value="Roma"></option><option value="San Benito"></option><option value="San Juan"></option><option value="Weslaco"></option></datalist></div>
+<div><label for="p-zip" style="display: block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #5B615E">Código postal</label><input id="p-zip" name="codigo_postal" autocomplete="postal-code" inputmode="numeric" required pattern="\d{5}" maxlength="5" placeholder="78504" style="width: 100%; min-height: 48px; margin-top: 6px; padding: 0 2px; border: 0; border-bottom: 1px solid #A9ABA7; background: transparent; color: #111312; font-size: 18px"></div>
+</div>
+</div>
+<p data-zip-warn="" hidden style="margin: 12px 0 0; font-size: 14px; color: #8A5A1F">Ese código postal no es del Valle. Revísalo, por favor.</p>
+<div style="margin-top: 18px; padding: 16px 18px; border-radius: 14px; background: #FFFFFF; border: 1px solid #DCD8CF">
+<p style="margin: 0; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #5B615E">Así la tenemos</p>
+<p data-addr-preview="" aria-live="polite" style="margin: 6px 0 0; font-size: 17px; line-height: 1.4; color: #111312">Escribe tu dirección arriba.</p>
+<label style="margin-top: 12px; display: flex; align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.4; color: #33393A; cursor: pointer"><input type="checkbox" name="direccion_confirmada" value="sí" required style="width: 20px; height: 20px; margin: 1px 0 0; flex: 0 0 auto; accent-color: #1E3A32">Confirmo que la dirección está completa y correcta.</label>
+</div>
+</fieldset>
+<div style="grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; justify-content: space-between">
+<p style="margin: 0; font-size: 14px; color: #5B615E">Te llamamos hoy mismo, en español o inglés.</p>
+<button type="submit" style="min-height: 54px; padding: 0 30px; border: 0; border-radius: 999px; background: #1E3A32; color: #FFFFFF; font-size: 17px; font-weight: 500; cursor: pointer">Que me llamen hoy</button>
+</div>
+</form>
+<div data-ok="" hidden tabindex="-1" role="status">
+<p style="margin: 0; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #5B615E">Listo</p>
+<p style="margin: 14px 0 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 40px; line-height: 1.05">Te llamamos hoy para armar tu Plan de Mudanza.</p>
+<p data-s="ok" data-solo-socio="" style="margin: 14px 0 0; color: #4A504D"></p>
+<button type="button" data-reset="" style="margin-top: 24px; min-height: 48px; padding: 0 22px; border: 1px solid #111312; border-radius: 999px; background: transparent; color: #111312; font-size: 16px; cursor: pointer">Corregir mis datos</button>
+</div>
+</div>
+</div>
+
+<figure style="flex: 1 1 420px; min-width: 0; margin: 0; min-height: clamp(360px, 48vw, 720px); border-radius: 4px; background: #E5E2DB; position: relative; overflow: hidden">
+<img src="/assets/hero-puerta.jpg" alt="Entrada de una casa del Valle con la puerta de madera abierta, luz de tarde y sombra de palma" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 62% 40%">
+</figure>
+</div>
+</section>
+
+<section aria-labelledby="que-hacemos" style="background: #F4F2EE">
+<div style="max-width: 1360px; margin: 0 auto; padding: clamp(80px, 10vw, 136px) clamp(20px, 4vw, 48px)">
+<h2 id="que-hacemos" style="margin: 0; max-width: 760px; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(38px, 4.4vw, 60px); line-height: 1.02; letter-spacing: -0.02em">Lo que hacemos por ti, de principio a fin.</h2>
+<ol style="list-style: none; margin: 56px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 48px">
+<li style="padding: 28px 0 8px; border-top: 1px solid #111312"><p style="margin: 0; font-size: 14px; color: #5B615E">01</p><h3 style="margin: 14px 0 0; font-size: 20px; font-weight: 600">Revisamos tu dirección</h3><p style="margin: 8px 0 0; color: #4A504D">Te decimos qué internet y qué compañías de luz llegan de verdad a tu casa.</p></li>
+<li style="padding: 28px 0 8px; border-top: 1px solid #111312"><p style="margin: 0; font-size: 14px; color: #5B615E">02</p><h3 style="margin: 14px 0 0; font-size: 20px; font-weight: 600">Contratamos y confirmamos</h3><p style="margin: 8px 0 0; color: #4A504D">Precio por escrito antes de firmar y cada cita confirmada, con recordatorio.</p></li>
+<li style="padding: 28px 0 8px; border-top: 1px solid #111312"><p style="margin: 0; font-size: 14px; color: #5B615E">03</p><h3 style="margin: 14px 0 0; font-size: 20px; font-weight: 600">Te guiamos con lo demás</h3><p style="margin: 8px 0 0; color: #4A504D">Agua y basura de la ciudad, exención homestead y cambio de domicilio.</p></li>
+</ol>
+</div>
+</section>
+
+<section data-solo-socio="" data-s="alianza" style="background: #FFFFFF">
+<div style="max-width: 1360px; margin: 0 auto; padding: clamp(80px, 10vw, 136px) clamp(20px, 4vw, 48px); display: flex; flex-wrap: wrap; gap: 32px clamp(40px, 7vw, 120px)">
+<p style="flex: 1 1 260px; margin: 0; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: #5B615E">Con el respaldo de<br><span data-s="quien"></span></p>
+<div style="flex: 2.4 1 560px; min-width: 0">
+<p data-s="alianza-txt" style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(32px, 3.8vw, 54px); line-height: 1.1; letter-spacing: -0.012em"></p>
+<p style="margin: 32px 0 0; font-size: 16px; color: #5B615E"><span data-s="dudas"></span> ¿Dudas sobre internet, luz o celular? Llámanos al <a href="tel:+19564676695" style="color: #111312">(956) 467-6695</a>.</p>
+</div>
+</div>
+</section>
+
+<footer style="background: #111312; color: #B7BBB7; font-size: 15px">
+<div style="max-width: 1360px; margin: 0 auto; padding: 48px clamp(20px, 4vw, 48px) 36px; display: flex; flex-wrap: wrap; gap: 24px 56px; justify-content: space-between; align-items: center">
+<img src="/assets/connectrgv-logo-white.svg" alt="ConnectRGV" width="152" height="36" style="display: block">
+<p style="margin: 0">4415 N. Conway Ave., Ste. 180, Palmhurst, TX 78573 · <a href="tel:+19564676695" style="color: #F3F1EC">(956) 467-6695</a></p>
+</div>
+<div style="max-width: 1360px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px) 36px; font-size: 13px; color: #9A9F9B"><span data-s="divulgacion"></span>Servicios de internet a través de MirComm, retailer autorizado. © 2026 ConnectRGV.</div>
+</footer>
+
+</div>
+
+<script>
+/* Página de socio: connectrgv.com/<nombre> → los datos del socio vienen de la hoja (pestaña Directorio, Publicada = Sí).
+   Se arma desde el Hub (🧰 Página y kit). Esta misma página sirve para todos los socios. */
+(function () {
+  var DATOS = 'https://script.google.com/macros/s/AKfycbxqbu5EMlw3wmq6zEywKCEPJ3_yejlNfKrsMqcuGcU0P2RCHjjPFKhEOzK3f8Ivqw_JNQ/exec';
+  var parts = location.pathname.split('/').filter(Boolean);
+  var slug = (parts[0] || '').toLowerCase();
+  if (slug === 'socio') slug = (new URLSearchParams(location.search).get('p') || '').toLowerCase();
+  slug = slug.replace(/[^a-z0-9-]/g, '').slice(0, 40);
+  var $ = function (k) { return document.querySelectorAll('[data-s="' + k + '"]'); };
+  var set = function (k, t) { $(k).forEach(function (el) { el.textContent = t; }); };
+  var done = false;
+  function listo() { document.body.classList.remove('cargando'); }
+  function generica() {
+    document.querySelectorAll('[data-solo-socio]').forEach(function (el) { el.hidden = true; });
+    listo();
+  }
+  function pintar(d) {
+    done = true;
+    var nom = String(d.nombre || '').trim(), emp = String(d.empresa || '').trim(), quien = emp || nom;
+    if (!nom) return generica();
+    document.body.setAttribute('data-socio', d.clave || (emp ? nom + ' · ' + emp : nom));
+    var marca = $('marca')[0];
+    marca.innerHTML = '';
+    if (d.foto) {
+      var img = document.createElement('img'); img.src = d.foto; img.alt = quien; img.className = 'socio-logo'; marca.appendChild(img);
+    } else {
+      var p = document.createElement('p');
+      p.setAttribute('style', 'margin: 0; max-width: 130px; font-size: 12px; line-height: 1.25; font-weight: 600; letter-spacing: 0.02em; color: #111312');
+      p.textContent = quien; marca.appendChild(p);
+    }
+    set('eyebrow', 'Un regalo de ' + nom + (emp ? ' · ' + emp : ''));
+    set('intro', (emp ? nom + ', de ' + emp + ', nos pidió' : nom + ' nos pidió') + ' que te atendiéramos personalmente. Dejamos internet, luz y celular listos para el día que llegas, y a ti no te cuesta nada.');
+    set('ok', 'Le avisaremos a ' + nom + ' que ya estás en buenas manos.');
+    set('quien', quien);
+    set('alianza-txt', quien + ' trabaja con nosotros para que llegues a una casa que ya funciona.');
+    set('dudas', '¿Dudas sobre tu casa o tu contrato? Sigue con ' + nom + '.');
+    set('divulgacion', quien + ' puede recibir una compensación por recomendar este servicio. ');
+    $('alianza')[0].setAttribute('aria-label', 'Alianza con ' + quien);
+    document.title = 'Bienvenido a tu nueva casa · ' + quien + ' y ConnectRGV';
+    document.querySelectorAll('[data-solo-socio]').forEach(function (el) { el.hidden = false; });
+    listo();
+  }
+  if (!slug) return generica();
+  // Lo último que se vio de este socio sale al instante; luego se actualiza
+  try { var c = JSON.parse(localStorage.getItem('cgv_socio_' + slug) || 'null'); if (c && c.ok) pintar(c); } catch (e) {}
+  setTimeout(function () { if (!done) generica(); }, 4000);
+  fetch(DATOS + '?p=' + encodeURIComponent(slug)).then(function (r) { return r.json(); }).then(function (d) {
+    if (d && d.ok) { pintar(d); try { localStorage.setItem('cgv_socio_' + slug, JSON.stringify(d)); } catch (e) {} }
+    else { try { localStorage.removeItem('cgv_socio_' + slug); } catch (e) {} if (!done) generica(); }
+  }).catch(function () { if (!done) generica(); });
+})();
+</script>
+<script src="/assets/site.js" defer></script>
+</body>
+</html>
