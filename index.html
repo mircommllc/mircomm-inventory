@@ -1264,9 +1264,9 @@ function repRemPaint(open) {
     <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="closeModal()">Entendido</button>`);
 }
 // 🎯 Su meta de la semana (Escritorio.gs → escRepGet)
-function deskMetUnit(n, k) { return n + ' ' + (k === 'internet' ? 'internet' : k === 'lineas' ? (n === 1 ? 'línea' : 'líneas') : (n === 1 ? 'línea extra' : 'líneas extra')); }
+function deskMetUnit(n, k) { return n + ' ' + (k === 'internet' ? 'internet' : k === 'lineas' ? (n === 1 ? 'línea' : 'líneas') : (n === 1 ? 'línea incremental' : 'líneas incrementales')); }
 function repRemMetaHtml(m) {
-  const L = [['internet', '🌐 Internet'], ['lineas', '📱 Líneas'], ['extra', '🔁 Líneas extra']].filter(([k]) => Number(m.meta[k]) > 0);
+  const L = [['internet', '🌐 Internet'], ['lineas', '📱 Líneas'], ['extra', '➕ Incrementales']].filter(([k]) => Number(m.meta[k]) > 0);
   if (!L.length) return '';
   const falta = L.map(([k]) => { const f = Number(m.meta[k]) - (m.hecho[k] || 0); return f > 0 ? deskMetUnit(f, k) : ''; }).filter(Boolean);
   const quedan = 6 - m.dias;
@@ -1274,7 +1274,7 @@ function repRemMetaHtml(m) {
     <div class="desk-gl" style="grid-template-columns:repeat(${L.length},1fr);margin:6px 0 4px">${L.map(([k, l]) =>
       `<div><div class="l">${l}</div>${deskGoalCell(m.hecho[k] || 0, Number(m.meta[k]), m.dias)}</div>`).join('')}</div>
     <div class="rem-s" style="margin-top:6px">${falta.length ? `Te ${falta.length === 1 && /^1 /.test(falta[0]) ? 'falta' : 'faltan'} ${falta.join(', ')}${quedan > 0 ? ` · quedan ${quedan} día${quedan === 1 ? '' : 's'} (con hoy)` : ''}.` : '✅ ¡Ya cumpliste tu meta de esta semana!'}
-      ${m.meta.extra ? '<br>🔁 Líneas extra = las que el cliente trae de su compañía después de la línea gratis.' : ''}</div></div>`;
+      ${m.meta.extra ? '<br>➕ Incrementales = las líneas después de la primera (la gratis): las que el cliente trae de su compañía o agrega.' : ''}</div></div>`;
 }
 async function repRemDone(id) {
   try {
@@ -7858,7 +7858,7 @@ function deskNoteCardHtml(n) {
 const DESK_MET = [
   ['internet', '🌐 Internet', 'Ventas de internet'],
   ['lineas', '📱 Líneas', 'Todas las líneas móviles'],
-  ['extra', '🔁 Líneas extra', 'Las que traen después de la primera gratis (portadas o adicionales)']];
+  ['extra', '➕ Incrementales', 'Líneas incrementales: las que vienen después de la primera línea gratis (portadas o adicionales), igual que en Activaciones']];
 let deskActsP = null, deskActsReady = false, deskWeekView = '';
 async function deskActsLoad(force) {
   if (deskActsReady && !force) return actData;
@@ -7965,7 +7965,7 @@ function deskWeekHtml() {
   const dias = [0, 1, 2, 3, 4, 5, 6].map(n => deskAdd(ws, n));
   const maxD = Math.max(1, ...dias.map(d => (st.dias[d] || deskZero()).internet + (st.dias[d] || deskZero()).lineas));
   return `<div class="page-title">🎯 Metas y semana</div>
-    <div class="page-subtitle">Internet, líneas y líneas extra (las que traen después de la primera gratis) de lunes a domingo, con la fecha de orden de Activaciones. La rayita en la barra marca dónde deberías ir hoy.</div>
+    <div class="page-subtitle">Internet, líneas y líneas incrementales (las que vienen después de la primera gratis) de lunes a domingo, con la fecha de orden de Activaciones. La rayita en la barra marca dónde deberías ir hoy.</div>
     <div class="action-row" style="align-items:center">
       <button class="btn btn-ghost btn-sm" onclick="deskWeekView='${prevWs}';renderDesk()">◀</button>
       <b style="min-width:220px;text-align:center">${escHtml(deskWeekLabel(ws))}</b>
@@ -8010,7 +8010,7 @@ function deskGoalsEdit(ws) {
   openModal(`<div class="modal-title">🎯 Metas · ${escHtml(deskWeekLabel(ws))}<button class="modal-close" onclick="closeModal()">✕</button></div>
     <table class="desk-gt desk-gt-in"><thead><tr><th></th>${DESK_MET.map(([, l, tip]) => `<th title="${escHtml(tip)}">${l}</th>`).join('')}</tr></thead>
       <tbody>${row('Tienda', '', 't')}${people.map((p, i) => row(p, p, 'p' + i)).join('')}</tbody></table>
-    <div class="desk-hint" style="margin-top:4px">🔁 Líneas extra = las que traen después de la primera línea gratis. Deja en blanco lo que no quieras medir. Si la tienda va vacía, se suma lo de cada persona.</div>
+    <div class="desk-hint" style="margin-top:4px">➕ Incrementales = las líneas que vienen después de la primera línea gratis, igual que en Activaciones. Deja en blanco lo que no quieras medir. Si la tienda va vacía, se suma lo de cada persona.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
       <button class="btn btn-primary" id="dg-save" onclick="deskGoalsSave()">Guardar</button>
       <button class="btn btn-ghost" onclick="deskGoalsSuggest()">💡 Sugerir (promedio de 4 semanas +10%)</button>
@@ -8068,7 +8068,7 @@ function deskWeekAsk(ws) {
   const people = deskWeekPeople(ws, st, g).map(p => `- ${p}: ${fmt(st.por[p] || deskZero(), p)}`).join('\n');
   const dias = [0, 1, 2, 3, 4, 5, 6].map(n => { const d = deskAdd(ws, n), x = st.dias[d] || deskZero(); return `${DESK_DOW3[deskDow(d)]} ${x.internet}i/${x.lineas}l`; }).join(', ');
   aiOpen();
-  aiSend(`Analiza mi semana (${deskWeekLabel(ws)}, ${deskWeekElapsed(ws) >= 6 ? 'ya terminó' : 'han terminado ' + deskWeekElapsed(ws) + ' de 6 días de venta, hoy es ' + DESK_DOW[deskDow(deskToday())]}).\nTienda: ${fmt(st.tienda, '')}.\nSemana anterior: ${fmt(P.tienda, '')}.\nPor persona:\n${people}\nPor día: ${dias}.\nRecuerda la meta del negocio: dar una línea gratis y que porten sus otras líneas (líneas extra). Dime en pocas líneas cómo vamos, quién necesita ayuda, qué hacer en los días que quedan, y propón pendientes concretos si hacen falta.`);
+  aiSend(`Analiza mi semana (${deskWeekLabel(ws)}, ${deskWeekElapsed(ws) >= 6 ? 'ya terminó' : 'han terminado ' + deskWeekElapsed(ws) + ' de 6 días de venta, hoy es ' + DESK_DOW[deskDow(deskToday())]}).\nTienda: ${fmt(st.tienda, '')}.\nSemana anterior: ${fmt(P.tienda, '')}.\nPor persona:\n${people}\nPor día: ${dias}.\nRecuerda la meta del negocio: dar una línea gratis y que porten sus otras líneas (líneas incrementales). Dime en pocas líneas cómo vamos, quién necesita ayuda, qué hacer en los días que quedan, y propón pendientes concretos si hacen falta.`);
 }
 
 function deskInboxHtml() {
