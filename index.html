@@ -7669,16 +7669,23 @@ async function kitMail(btn) {
 function kitCards() {
   const p = kitP, url = kitUrl(), qr = kitQrSvg(url), quien = p.empresa || p.nombre, foto = p.foto;
   const esc = escHtml;
-  const card = `<section class="card">
+  // Arriba en inglés, abajo en español
+  const T = {
+    en: { gift: 'A gift from', h: 'Welcome to your new home.', lead: 'We’ll have your internet, electricity and phone ready for moving day. One person helps you from start to finish, at no cost to you.',
+      scan: 'Scan or call', other: '¿Prefieres español? Llámanos, hablamos español.', disc: `${quien} may receive compensation for referring this service. Internet through MirComm, authorized retailer.` },
+    es: { gift: 'Un regalo de', h: 'Bienvenido a tu nueva casa.', lead: 'Te dejamos internet, luz y celular listos para el día de tu mudanza. Una persona te atiende de principio a fin, y a ti no te cuesta nada.',
+      scan: 'Escanea o llama', other: 'We speak English too. Scan or call us.', disc: `${quien} puede recibir una compensación por recomendar este servicio. Internet a través de MirComm, retailer autorizado.` }
+  };
+  const card = L => `<section class="card" lang="${L}">
     <div class="top">${foto ? `<img class="plogo" src="${foto}" alt="">` : `<p class="pname">${esc(quien)}</p>`}<span class="bar"></span>
       <img class="clogo" src="https://${KIT_SITE}/assets/connectrgv-logo.svg" alt="ConnectRGV"></div>
-    <p class="eyebrow">Un regalo de ${esc(p.nombre)}</p>
-    <h1>Bienvenido a tu nueva casa.</h1>
-    <p class="lead">Te dejamos internet, luz y celular listos para el día de tu mudanza. Una persona te atiende de principio a fin, y a ti no te cuesta nada.</p>
+    <p class="eyebrow">${T[L].gift} ${esc(p.nombre)}</p>
+    <h1>${T[L].h}</h1>
+    <p class="lead">${T[L].lead}</p>
     <div class="row"><div class="qr">${qr}</div>
-      <div class="info"><p class="eyebrow">Escanea o llama</p><p class="tel">(956) 467-6695</p><p class="url">${esc(KIT_SITE + '/' + p.pagina)}</p>
-        <p class="en">Welcome home. Scan or call and we'll set up your internet, electricity and phone, at no cost to you.</p></div></div>
-    <p class="disc">${esc(quien)} puede recibir una compensación por recomendar este servicio. Internet a través de MirComm, retailer autorizado.</p>
+      <div class="info"><p class="eyebrow">${T[L].scan}</p><p class="tel">(956) 467-6695</p><p class="url">${esc(KIT_SITE + '/' + p.pagina)}</p>
+        <p class="en">${T[L].other}</p></div></div>
+    <p class="disc">${esc(T[L].disc)}</p>
   </section>`;
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Tarjetas · ${esc(quien)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
@@ -7698,8 +7705,8 @@ h1{margin:.06in 0 0;font-family:'Instrument Serif',Georgia,serif;font-weight:400
 .url{margin:.04in 0 0;font-size:9.5pt;font-weight:600}.en{margin:.1in 0 0;max-width:3.4in;font-size:8pt;line-height:1.4;color:#4A504D}
 .disc{margin:auto 0 0;font-size:6.5pt;color:#6B706C}
 .tip{font:13px Arial;padding:12px;background:#FFF7E0;border-bottom:1px solid #E8D9A8;text-align:center}@media print{.tip{display:none}}
-</style></head><body><div class="tip">Se abre la ventana para imprimir. Para guardarlo, escoge "Guardar como PDF". Corta por la línea punteada.</div>
-<div class="page">${card}${card}</div>
+</style></head><body><div class="tip">Se abre la ventana para imprimir. Para guardarlo, escoge "Guardar como PDF". Arriba va en inglés y abajo en español; corta por la línea punteada.</div>
+<div class="page">${card('en')}${card('es')}</div>
 <script>Promise.all([document.fonts.ready].concat([].map.call(document.images,function(i){return i.complete?0:new Promise(function(r){i.onload=i.onerror=r;})}))).then(function(){setTimeout(function(){window.print();},300);});<\/script>
 </body></html>`;
   const w = window.open('', '_blank');
