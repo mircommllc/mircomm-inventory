@@ -7414,7 +7414,7 @@ function cgvDirTab() {
   const D = cgvData, dir = (D.dir || []).slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
   if (!dir.length) return `<div class="empty-state"><div class="icon">📇</div><p>Cuando un socio te mande su primer cliente (o des de alta a uno) aparece aquí.</p></div>`;
   const pName = id => ((D.partners || []).find(p => p.id === id) || {}).name;
-  return `<div class="cgv-hint" style="margin-bottom:10px">De aquí sale el correo para los avisos automáticos. "Clave" es como llegan marcados sus clientes desde su página.</div>
+  return `<div class="cgv-hint" style="margin-bottom:10px">El correo de los avisos es el del perfil de cada socio en 🤝 Socios. "Clave" es como llegan marcados sus clientes desde su página.</div>
   <div class="table-wrap"><div style="overflow-x:auto"><table><thead><tr><th>Socio</th><th>Avisos</th><th>Clientes</th><th>🤝 Socios</th></tr></thead><tbody>
   ${dir.map(d => {
     const mine = D.clientes.filter(r => r.tipo === 'cliente' && cgvDirOf(r) && cgvDirOf(r).clave === d.clave);
@@ -7435,7 +7435,8 @@ function cgvDirOpen(clave) {
     <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="cd-nombre" value="${escHtml(d.nombre || '')}"></div>
       <div class="form-group"><label class="form-label">Empresa</label><input class="form-input" id="cd-empresa" value="${escHtml(d.empresa || '')}"></div>
-      <div class="form-group"><label class="form-label">Correo para avisos</label><input class="form-input" id="cd-correo" type="email" value="${escHtml(d.correo || '')}" placeholder="nombre@correo.com"></div>
+      <div class="form-group"><label class="form-label">Correo para avisos</label><input class="form-input" id="cd-correo" type="email" value="${escHtml(d.correo || '')}" placeholder="nombre@correo.com">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px" id="cd-mail-hint">${d.socioId ? 'Es el de su perfil en 🤝 Socios: si lo cambias aquí, cambia allá.' : 'Al ligarlo a 🤝 Socios se pasa a su perfil.'}</div></div>
       <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="cd-tel" type="tel" value="${escHtml(d.telefono || '')}"></div>
       <div class="form-group"><label class="form-label">Idioma de los avisos</label><select class="form-input form-select" id="cd-idioma"><option value="ES" ${d.idioma !== 'EN' ? 'selected' : ''}>Español</option><option value="EN" ${d.idioma === 'EN' ? 'selected' : ''}>English</option></select></div>
       <div class="form-group"><label class="form-label">Su página</label><input class="form-input" id="cd-pag" value="${escHtml(d.pagina || '')}" placeholder="/missionpm/"></div>
@@ -7453,6 +7454,8 @@ async function cgvDirSave() {
   try {
     const res = await apiGet({ action: 'cgvDirSave', data: JSON.stringify(data) });
     cgvData.dir = res.dir || cgvData.dir;
+    if (res.partners) cgvData.partners = res.partners;
+    if (typeof socData !== 'undefined' && socData && data.socioId) { const p = socData.partners.find(x => x.id === data.socioId); if (p) p.email = data.correo; }
     toast('Guardado.', 'success');
     closeModal(); cgvPaint();
   } catch (e) { toast(escHtml(e.message), 'error'); }
@@ -7969,7 +7972,7 @@ function socPartnersTab() {
   const card = p => { const s = stats(p); return `<div class="act-reco" style="margin:0">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:16px">${escHtml(p.name)}</b>
         <span class="pros-badge ${p.rateType === 'flat' ? 'pros-b-rev' : 'pros-b-new'}">${escHtml(socPlanLabel(p))}</span>${p.active === 'no' ? '<span class="pros-badge pros-b-exp">inactivo</span>' : ''}</div>
-      <div style="font-size:12px;color:var(--muted);margin:4px 0 8px">${escHtml(p.property || '')}${p.phone ? ' · ' + escHtml(p.phone) : ''}</div>
+      <div style="font-size:12px;color:var(--muted);margin:4px 0 8px">${escHtml(p.property || '')}${p.phone ? ' · ' + escHtml(p.phone) : ''}${p.email ? '<br>✉️ ' + escHtml(p.email) : ''}</div>
       <div class="total-row"><span>Este mes (Spectrum)</span><span>${s.month}${p.rateType !== 'flat' ? ` → $${s.month >= D.config.tierCut ? D.config.tier2 : D.config.tier1}` : ''}</span></div>
       <div class="total-row"><span>Ventas ${yr}</span><span>${s.year}</span></div>
       <div class="total-row"><span>Leads abiertos</span><span>${s.leads}</span></div>
@@ -7993,7 +7996,11 @@ function socOpenPartner(id) {
       <div class="form-group"><label class="form-label">Nombre *</label><input class="form-input" id="spn-name" value="${escHtml(p.name || '')}"></div>
       <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="spn-phone" type="tel" placeholder="(956) 000-0000" value="${escHtml(p.phone || '')}"></div>
     </div>
-    <div class="form-group"><label class="form-label">Negocio / propiedades</label><input class="form-input" id="spn-property" value="${escHtml(p.property || '')}" placeholder="Ej. Mission Property Management"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Negocio / propiedades</label><input class="form-input" id="spn-property" value="${escHtml(p.property || '')}" placeholder="Ej. Mission Property Management"></div>
+      <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="spn-email" type="email" placeholder="nombre@correo.com" value="${escHtml(p.email || '')}">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Aquí le llegan los avisos de 🏡 Concierge.</div></div>
+    </div>
     <div class="form-group"><label class="form-label">Plan para Spectrum</label>
       <label class="ml-mail" style="cursor:pointer"><input type="radio" name="spn-plan" value="tiered" ${p.rateType !== 'flat' ? 'checked' : ''}> Escalonado: $${D.config.tier1} las primeras ${D.config.tierCut} del mes, $${D.config.tier2} de la ${D.config.tierCut + 1} en adelante</label>
       <label class="ml-mail" style="cursor:pointer"><input type="radio" name="spn-plan" value="flat" ${p.rateType === 'flat' ? 'checked' : ''}> Fijo: $<input class="form-input" type="number" min="0" id="spn-flat" style="width:90px;display:inline-block" value="${+p.flatRate || D.config.flat}"> por venta</label>
@@ -8013,7 +8020,26 @@ async function socSavePartner(id) {
     notes: v('spn-notes'), rateType: document.querySelector('input[name="spn-plan"]:checked')?.value || 'tiered', flatRate: v('spn-flat'),
     active: document.getElementById('spn-active').checked ? 'yes' : 'no' };
   if (!data.name) { toast('Escribe el nombre.', 'error'); return; }
-  if (await socPost('socSavePartner', data, 'Socio guardado.')) { closeModal(); renderSociosBody(); }
+  const email = v('spn-email'), old = id ? ((socData.partners.find(x => x.id === id) || {}).email || '') : '';
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast('Ese correo no se ve bien.', 'error'); return; }
+  const r = await socPost('socSavePartner', data, email === old ? 'Socio guardado.' : '');
+  if (!r) return;
+  // El correo se guarda en su perfil (columna email de Partners) con Concierge.gs
+  if (email !== old) {
+    const pid = id || r.id;
+    try {
+      await apiGet({ action: 'cgvPartnerEmail', data: JSON.stringify({ partnerId: pid, email }) });
+      const p = socData.partners.find(x => x.id === pid); if (p) p.email = email;
+      if (cgvData) {
+        (cgvData.partners || []).forEach(x => { if (x.id === pid) x.email = email; });
+        (cgvData.dir || []).forEach(x => { if (x.socioId === pid) x.correo = email; });
+      }
+      toast('Socio guardado.', 'success');
+    } catch (e) {
+      toast(/cgvPartnerEmail|unknown|desconocida/i.test(e.message) ? 'Socio guardado, pero el correo no: falta actualizar Concierge.gs en Apps Script.' : 'Socio guardado, pero el correo no: ' + escHtml(e.message), 'error', 6000);
+    }
+  }
+  closeModal(); renderSociosBody();
 }
 async function socDeletePartner(id) {
   if (!confirm('¿Borrar este socio? Si tiene referidos, solo se marca como inactivo.')) return;
