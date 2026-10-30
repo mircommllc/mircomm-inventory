@@ -654,6 +654,65 @@
   .rem-when { font-size: 12px; color: var(--muted); white-space: nowrap; font-family: var(--font-mono, monospace); }
   .rem-more { font-size: 12px; color: var(--muted); padding-top: 4px; }
   .rem-tip { font-size: 13px; color: #A9B7CF; background: rgba(0,196,232,.08); border: 1px solid rgba(0,196,232,.25); border-radius: 10px; padding: 10px 12px; }
+
+  /* ── 🏡 CONCIERGE ── */
+  .cgv-alert { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; padding:10px 14px; font-size:13px; }
+  .cgv-alert .btn { margin-left:auto; }
+  .cgv-list { display:flex; flex-direction:column; gap:10px; }
+  .cgv-card { display:flex; gap:14px; align-items:center; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; cursor:pointer; transition:border .15s, background .15s; }
+  .cgv-card:hover { border-color:rgba(26,110,255,.45); background:var(--surface2); }
+  .cgv-card.late { border-left:3px solid var(--red); }
+  .cgv-card-main { flex:1; min-width:0; }
+  .cgv-card-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .cgv-name { font-size:15px; }
+  .cgv-sub { font-size:12px; color:var(--muted); margin-top:3px; overflow:hidden; text-overflow:ellipsis; }
+  .cgv-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .cgv-tag { font-size:11px; padding:3px 9px; border-radius:20px; background:var(--surface2); border:1px solid var(--border); color:var(--text); }
+  .cgv-tag.blue { color:var(--blue); border-color:rgba(26,110,255,.35); background:rgba(26,110,255,.10); }
+  .cgv-tag.red { color:var(--red); border-color:rgba(255,68,85,.35); background:rgba(255,68,85,.10); }
+  .cgv-tag.yel { color:var(--yellow); border-color:rgba(255,209,102,.35); background:rgba(255,209,102,.10); }
+  .cgv-tag.muted { color:var(--muted); }
+  .cgv-card-side { display:flex; flex-direction:column; align-items:flex-end; gap:10px; flex-shrink:0; }
+  .cgv-dots { display:flex; gap:4px; }
+  .cgv-dots span { width:26px; height:5px; border-radius:3px; background:var(--border); }
+  .cgv-dots span.on { background:var(--green); }
+  .cgv-dots span.x { background:rgba(255,68,85,.45); }
+  .cgv-btns { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .cgv-btns a.btn-primary, .cgv-actions a.btn-primary { color:#fff; }
+  .cgv-stepper { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:4px 0 14px; }
+  .cgv-step { font-size:12px; color:var(--muted); text-align:center; display:flex; flex-direction:column; align-items:center; gap:5px; position:relative; }
+  .cgv-step span { width:26px; height:26px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-weight:700; background:var(--surface2); border:1px solid var(--border); font-size:12px; }
+  .cgv-step.done { color:var(--text); } .cgv-step.done span { background:var(--green); border-color:var(--green); color:#062; }
+  .cgv-step.cur { color:var(--text); font-weight:700; } .cgv-step.cur span { border-color:var(--blue); color:var(--blue); background:rgba(26,110,255,.14); }
+  .cgv-step.x span { border-color:rgba(255,68,85,.5); color:var(--red); }
+  .cgv-info { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px 16px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+  .cgv-info div { min-width:0; } .cgv-info span { display:block; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+  .cgv-info b { font-weight:600; font-size:13px; word-break:break-word; }
+  .cgv-actions, .cgv-foot { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .cgv-foot { padding-top:12px; border-top:1px solid var(--border); margin-top:14px; }
+  .cgv-sec-h { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin:16px 0 8px; }
+  .cgv-serv { display:flex; flex-direction:column; gap:6px; }
+  .cgv-srow { display:grid; grid-template-columns:120px 1.1fr 1fr 150px 110px; gap:6px; align-items:center; opacity:.55; }
+  .cgv-srow.on { opacity:1; }
+  .cgv-srow .form-input { padding:7px 9px; font-size:13px; }
+  .cgv-schk { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .cgv-schk.sm { font-weight:500; font-size:12px; color:var(--muted); }
+  .cgv-hint { font-size:12px; color:var(--muted); margin-top:8px; line-height:1.5; }
+  .cgv-warn { margin-top:14px; font-size:13px; background:rgba(0,196,232,.07); border:1px solid rgba(0,196,232,.25); border-radius:10px; padding:10px 12px; }
+  .cgv-warn a, .cgv-hint a { color:var(--cyan); }
+  .cgv-prev { margin-top:10px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:13px; }
+  .cgv-prev .s { font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .cgv-prev pre { white-space:pre-wrap; font-family:var(--font-body); font-size:13px; margin:6px 0 0; color:var(--text); }
+  .cgv-tl { display:flex; flex-direction:column; gap:8px; }
+  .cgv-tl-row { display:flex; gap:10px; font-size:13px; } .cgv-tl-row .i { width:20px; text-align:center; }
+  .cgv-tl-row .s { font-size:11px; color:var(--muted); }
+  @media (max-width: 700px) {
+    .cgv-card { flex-direction:column; align-items:stretch; }
+    .cgv-card-side { align-items:stretch; }
+    .cgv-btns { justify-content:flex-start; }
+    .cgv-srow { grid-template-columns:1fr 1fr; }
+    .cgv-srow .cgv-schk:first-child { grid-column:1 / -1; }
+  }
 </style>
 </head>
 <body>
@@ -760,6 +819,9 @@
     </div>
     <div class="nav-item manager-only" data-page="socios" onclick="showPage('socios')">
       <span class="icon">🤝</span> Socios
+    </div>
+    <div class="nav-item manager-only" data-page="concierge" onclick="showPage('concierge')">
+      <span class="icon">🏡</span> Concierge <span class="nav-badge" id="nb-cgv"></span>
     </div>
     <div class="nav-item manager-only" data-page="audit" onclick="showPage('audit')">
       <span class="icon">🧾</span> Historial de cambios
@@ -980,6 +1042,7 @@ function completeLogin() {
   const activeNav = document.querySelector(`.nav-item[data-page="${currentPage}"]`);
   if (activeNav) activeNav.classList.add('active');
 
+  if (isManager) cgvStartBadge(); else cgvStop();
   loadCurrentPage();
 }
 
@@ -991,7 +1054,7 @@ function logout(msg) {
   document.getElementById('rep-pin-error').textContent = '';
   prosAuth = null; prosData = null; segData = null; mlData = null; nomData = null; nomPeriod = null; nomEdits = {}; prosMgrTried = false; repGoalStop();
   posPending = []; posPendingAt = 0; posPaintPending();
-  deskData = null; aiMsgs = []; aiClose(); document.body.classList.remove('has-ai');
+  deskData = null; aiMsgs = []; aiClose(); document.body.classList.remove('has-ai'); cgvStop();
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('pin-input').value = '';
   document.getElementById('pin-error').textContent = typeof msg === 'string' ? msg : '';
@@ -1052,7 +1115,7 @@ function saveConfig() {
 // ─── NAVIGATION ──────────────────────────────────────────────────────
 function showPage(page) {
   // Block non-managers from manager pages
-  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','audit','desk','deskInbox','deskTasks','deskWait','deskWeek','deskNotes','deskLog','deskContacts'];
+  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','concierge','audit','desk','deskInbox','deskTasks','deskWait','deskWeek','deskNotes','deskLog','deskContacts'];
   if (managerPages.includes(page) && !isManager) return;
   if (page === 'nomina') nomPreviewRep = '';
   if (page === 'mylines' && isManager) page = 'activations';
@@ -1076,6 +1139,7 @@ function loadCurrentPage() {
     case 'mipago':       renderMyPay(); break;
     case 'nomina':       renderNomina(); break;
     case 'socios':       renderSocios(); break;
+    case 'concierge':    renderConcierge(); break;
     case 'audit':        renderAudit(); break;
     case 'desk': case 'deskInbox': case 'deskTasks': case 'deskWait': case 'deskWeek': case 'deskNotes': case 'deskLog': case 'deskContacts': renderDesk(); break;
   }
@@ -6842,6 +6906,556 @@ async function nomSaveConfig() {
 function errorState(msg) {
   return `<div class="empty-state"><div class="icon">⚠️</div><p style="color:var(--red)">${msg}</p>
     <button class="btn btn-ghost" style="margin-top:12px" onclick="loadCurrentPage()">Retry</button></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 🏡 CONCIERGE — solicitudes de connectrgv.com (familias, clientes de socios y socios nuevos)
+// Backend: Concierge.gs (hoja "ConnectRGV -Solicitudes"). Solo administradores.
+// Cada mudanza: Nuevo → Contactado → Servicios elegidos → Instalado (o No avanzó).
+// En cada paso se le puede avisar solo al socio que refirió; el internet elegido entra solo a 🤝 Socios.
+// Promesa del sitio: llamar el mismo día hábil (lunes a sábado; lo que llega después de las 6 pm cuenta para el siguiente día).
+// ═══════════════════════════════════════════════════════════════════════
+let cgvData = null, cgvTab = 'mudanzas', cgvF = { st: 'activas', q: '' }, cgvSocF = 'abiertos', cgvLoadedAt = 0, cgvTimer = null;
+let cgvOpenId = null, cgvDraft = null;   // solicitud abierta y sus servicios sin guardar
+const CGV_STEPS = ['Nuevo', 'Contactado', 'Servicios elegidos', 'Instalado'];
+const CGV_ST_SOCIO = ['Nuevo', 'Contactado', 'Reunión', 'Dado de alta', 'No avanzó'];
+const CGV_SERV = [
+  { s: 'Internet', ic: '🌐', comps: [['Spectrum', 'Spectrum'], ['AT&T', 'AT&T'], ['Viasat', 'Viasat'], ['Tracfone', 'Tracfone 5G'], ['Otra', 'Otra']] },
+  { s: 'Luz', ic: '💡', comps: [] },
+  { s: 'Celular', ic: '📱', comps: [['Spectrum Mobile', 'Spectrum Mobile'], ['AT&T', 'AT&T'], ['Otra', 'Otra']] },
+  { s: 'TV', ic: '📺', comps: [['Spectrum TV', 'Spectrum TV'], ['Otra', 'Otra']] }
+];
+const CGV_COMP_LABEL = { 'Tracfone': 'Tracfone 5G' };
+const CGV_SOC_CARR = ['Spectrum', 'AT&T', 'Viasat', 'Tracfone'];
+
+async function cgvLoad(silent) {
+  const d = await apiGet({ action: 'cgvList' });
+  cgvData = d; cgvLoadedAt = Date.now();
+  cgvBadge();
+  return d;
+}
+// Badge del menú: solicitudes nuevas sin atender (rojo si ya se pasó la promesa de llamar)
+function cgvBadge() {
+  const el = document.getElementById('nb-cgv');
+  if (!el) return;
+  if (!cgvData) { el.textContent = ''; return; }
+  const nuevos = cgvData.clientes.filter(r => r.estatus === 'Nuevo' && !r.primerContacto).concat(cgvData.socios.filter(r => r.estatus === 'Nuevo' && !r.primerContacto));
+  el.textContent = nuevos.length ? String(nuevos.length) : '';
+  el.classList.toggle('red', nuevos.some(r => cgvSla(r).late));
+}
+// Al entrar un administrador y cada 10 min: revisa si llegaron solicitudes
+function cgvStartBadge() {
+  cgvStop();
+  if (!isManager) return;
+  const tick = () => { if (isManager && SHEETS_URL) cgvLoad(true).then(() => { if (currentPage === 'concierge' && !document.getElementById('modal-overlay').classList.contains('open')) cgvPaint(); }).catch(() => {}); };
+  setTimeout(tick, 2500);
+  cgvTimer = setInterval(tick, 10 * 60000);
+}
+function cgvStop() { if (cgvTimer) clearInterval(cgvTimer); cgvTimer = null; cgvData = null; cgvBadge(); }
+
+async function renderConcierge() {
+  if (!isManager) { showPage('pos'); return; }
+  const el = document.getElementById('content');
+  if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
+  if (!cgvData) el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  else cgvPaint();
+  try { await cgvLoad(); }
+  catch (e) {
+    if (cgvData) { toast(escHtml(e.message), 'error'); return; }
+    el.innerHTML = errorState(/cgvList|unknown|desconocida|invalid action/i.test(e.message)
+      ? 'Falta instalar <b>Concierge.gs</b> en Apps Script (y la línea conciergeRouter_ en Code.gs), luego Deploy → New version.' : escHtml(e.message));
+    return;
+  }
+  if (currentPage === 'concierge') cgvPaint();
+}
+
+// ── Tiempos ──
+function cgvLocalYmd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function cgvAgo(iso) {
+  const t = new Date(iso); if (isNaN(t)) return '';
+  const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (m < 1) return 'ahorita';
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60); if (h < 24) return `hace ${h} h`;
+  const d = Math.round(h / 24); return `hace ${d} día${d === 1 ? '' : 's'}`;
+}
+function cgvFmtWhen(iso) {
+  const t = new Date(iso); if (isNaN(t)) return '';
+  return `${t.getMonth() + 1}/${t.getDate()} ${deskHour12(`${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`)}`;
+}
+// Promesa: llamar el mismo día hábil (lun–sáb; después de las 6 pm cuenta para el siguiente)
+function cgvSla(r) {
+  if (r.estatus !== 'Nuevo' || r.primerContacto) return { open: false };
+  const rec = new Date(r.recibido); if (isNaN(rec)) return { open: false };
+  const due = new Date(rec);
+  if (due.getHours() >= 18) due.setDate(due.getDate() + 1);
+  while (due.getDay() === 0) due.setDate(due.getDate() + 1);
+  due.setHours(23, 59, 59, 0);
+  const now = new Date(), today = cgvLocalYmd(now), dYmd = cgvLocalYmd(due);
+  if (now > due) {
+    const days = Math.max(1, actDaysBetween(dYmd, today));
+    return { open: true, late: true, label: `⚠️ Se pasó la promesa de llamar (${days === 1 ? 'era ayer' : 'hace ' + days + ' días'})` };
+  }
+  return { open: true, late: false, label: dYmd === today ? '⏱ Llamar hoy' : `⏱ Llamar el ${actFmtDate(dYmd).replace(/\/\d{4}$/, '')}` };
+}
+function cgvMove(r) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(r.mudanza || '')) return r.cuando ? { label: `Se muda: ${r.cuando}`, cls: '' } : null;
+  const n = actDaysBetween(actToday(), r.mudanza), done = ['Instalado', 'No avanzó'].includes(r.estatus);
+  const f = actFmtDate(r.mudanza).replace(/\/\d{4}$/, '');
+  const label = n < 0 ? `Se mudó el ${f} (hace ${-n} día${n === -1 ? '' : 's'})` : n === 0 ? `Se muda hoy (${f})` : n === 1 ? `Se muda mañana (${f})` : `Se muda el ${f} · en ${n} días`;
+  return { label, n, cls: done ? '' : n <= 2 ? 'red' : n <= 7 ? 'yel' : '' };
+}
+function cgvStepIdx(st) { const i = CGV_STEPS.indexOf(st); return i < 0 ? -1 : i; }
+function cgvStBadge(st) {
+  const c = { 'Nuevo': 'pros-b-new', 'Contactado': 'pros-b-fu', 'Servicios elegidos': 'pros-b-rev', 'Instalado': 'pros-b-sold', 'No avanzó': 'pros-b-lost',
+    'Reunión': 'pros-b-rev', 'Dado de alta': 'pros-b-sold' }[st] || 'pros-b-exp';
+  return `<span class="pros-badge ${c}">${escHtml(st)}</span>`;
+}
+function cgvFind(id) { return cgvData && (cgvData.clientes.find(r => r.id === id) || cgvData.socios.find(r => r.id === id)); }
+function cgvDirOf(r) {
+  const k = String(r.socio || '').trim() || (r.tipo === 'cliente' ? String(r.pagina || '').trim() : '');
+  if (!k) return null;
+  const n = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return (cgvData.dir || []).find(d => n(d.clave) === n(k)) || { clave: k, nombre: k.split(' · ')[0], missing: true };
+}
+function cgvSrc(r) {
+  if (r.tipo === 'familia') return 'Familia · connectrgv.com';
+  const d = cgvDirOf(r);
+  return d ? `vía ${d.nombre || d.clave}` : 'Cliente de socio';
+}
+function cgvSvcText(arr) {
+  return (arr || []).map(s => `${s.s}${s.comp || s.plan ? ' (' + [CGV_COMP_LABEL[s.comp] || s.comp, s.plan].filter(Boolean).join(' ') + ')' : ''}`).join(', ');
+}
+function cgvSaludo() { const h = new Date().getHours(); return h < 12 ? 'buenos días' : h < 19 ? 'buenas tardes' : 'buenas noches'; }
+// Mensaje para el cliente (en la voz de quien atiende, sin tono de vendedor)
+function cgvWaClient(r) {
+  const first = String(r.nombre || '').trim().split(/\s+/)[0] || '';
+  const me = currentUser || 'Joel';
+  let t;
+  if (r.tipo === 'socio') t = `Hola ${first}, ${cgvSaludo()}. Le escribe ${me} de ConnectRGV. Vi que se registró en connectrgv.com para trabajar con nosotros. ¿No le quito mucho tiempo si le llamo para platicarle cómo funciona?`;
+  else if (r.tipo === 'cliente') {
+    const d = cgvDirOf(r), s = d ? String(d.nombre || '').split(' ')[0] : '';
+    t = `Hola ${first}, ${cgvSaludo()}. Le escribe ${me} de ConnectRGV. ${s ? s + ' me pasó sus datos' : 'Recibí sus datos'} para ayudarle con los servicios de su casa nueva. ¿No le quito mucho tiempo si le llamo ahorita?`;
+  } else t = `Hola ${first}, ${cgvSaludo()}. Le escribe ${me} de ConnectRGV. Recibí su solicitud en connectrgv.com para los servicios de su casa nueva. ¿No le quito mucho tiempo si le llamo ahorita?`;
+  return t;
+}
+function cgvPhoneBtns(r, big) {
+  const ph = phoneDigits(r.telefono);
+  if (ph.length !== 10) return `<span class="pros-badge pros-b-lost" title="Revisa el teléfono en la hoja">☎ teléfono no válido: ${escHtml(r.telefono || '—')}</span>`;
+  const sz = big ? '' : ' btn-sm';
+  return `<a class="btn btn-primary${sz}" href="tel:+1${ph}" onclick="event.stopPropagation()">📞 ${big ? 'Llamar ' : ''}${fmtPhone(ph)}</a>
+    <a class="btn btn-ghost${sz}" href="https://wa.me/1${ph}?text=${encodeURIComponent(cgvWaClient(r))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🟢 WhatsApp</a>`;
+}
+
+// ── Página ──
+function cgvPaint() {
+  const D = cgvData, el = document.getElementById('content');
+  if (!D || currentPage !== 'concierge') return;
+  const C = D.clientes, S = D.socios;
+  const porLlamar = C.filter(r => cgvSla(r).open), tarde = porLlamar.filter(r => cgvSla(r).late).length;
+  const proceso = C.filter(r => ['Contactado', 'Servicios elegidos'].includes(r.estatus));
+  const mes = actToday().slice(0, 7);
+  const instMes = r => { const h = (r.historial || []).filter(h => h.a === 'Instalado').pop(); return cgvLocalYmd(new Date(h ? h.f : r.actualizado || r.recibido)).slice(0, 7) === mes; };
+  const inst = C.filter(r => r.estatus === 'Instalado' && instMes(r)).length;
+  const pronto = C.filter(r => { const m = cgvMove(r); return m && m.n !== undefined && m.n >= 0 && m.n <= 7 && !['Instalado', 'No avanzó'].includes(r.estatus); }).length;
+  const sociosNuevos = S.filter(r => r.estatus === 'Nuevo').length;
+  const tabs = [['mudanzas', `🏡 Mudanzas (${C.filter(r => !['Instalado', 'No avanzó'].includes(r.estatus)).length})`],
+    ['socios', `🤝 Socios nuevos${sociosNuevos ? ' (' + sociosNuevos + ')' : ''}`], ['dir', '📇 Directorio de socios']];
+  el.innerHTML = `
+    <div class="page-title">🏡 Concierge</div>
+    <div class="page-subtitle">Solicitudes de connectrgv.com · promesa: llamar el mismo día hábil · actualizado ${escHtml(cgvAgo(new Date(cgvLoadedAt).toISOString()))}</div>
+    <div class="report-grid pros-stats">
+      <div class="stat-card ${tarde ? 'red' : 'blue'}" style="cursor:pointer" onclick="cgvTab='mudanzas';cgvF.st='Nuevo';cgvPaint()"><div class="stat-label">Por llamar</div><div class="stat-value">${porLlamar.length}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">${tarde ? `<span style="color:var(--red)">${tarde} ya se pasó${tarde > 1 ? 'ron' : ''} de la promesa</span>` : porLlamar.length ? 'dentro de la promesa' : 'todo atendido'}</div></div>
+      <div class="stat-card cyan" style="cursor:pointer" onclick="cgvTab='mudanzas';cgvF.st='activas';cgvPaint()"><div class="stat-label">En proceso</div><div class="stat-value">${proceso.length}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">contactados o eligiendo servicios</div></div>
+      <div class="stat-card yellow"><div class="stat-label">Se mudan en 7 días</div><div class="stat-value">${pronto}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">sin instalar todavía</div></div>
+      <div class="stat-card green" style="cursor:pointer" onclick="cgvTab='mudanzas';cgvF.st='Instalado';cgvPaint()"><div class="stat-label">Instalados este mes</div><div class="stat-value">${inst}</div></div>
+    </div>
+    ${cgvAlerts()}
+    <div class="action-row" style="flex-wrap:wrap;gap:8px">
+      <div class="pros-chips">${tabs.map(([k, l]) => `<span class="chip ${cgvTab === k ? 'on' : ''}" onclick="cgvTab='${k}';cgvPaint()">${l}</span>`).join('')}</div>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn btn-ghost" href="${escHtml(D.sheetUrl || '#')}" target="_blank" rel="noopener">📄 Hoja</a>
+        <button class="btn btn-ghost" onclick="renderConcierge()">↻</button>
+      </div>
+    </div>
+    <div id="cgv-body">${cgvTab === 'socios' ? cgvSociosTab() : cgvTab === 'dir' ? cgvDirTab() : cgvMovesTab()}</div>`;
+}
+function cgvAlerts() {
+  const D = cgvData;
+  // Socios con clientes en proceso a los que les falta el correo (no se les puede avisar solo) o la liga con 🤝 Socios (no sale su comisión sola)
+  return (D.dir || []).map(d => {
+    const mine = D.clientes.filter(r => r.tipo === 'cliente' && (cgvDirOf(r) || {}).clave === d.clave);
+    if (!mine.length) return '';
+    const noMail = !d.correo && d.avisos && mine.some(r => !['Instalado', 'No avanzó'].includes(r.estatus));
+    const noLink = D.socOn && !d.socioId;
+    if (!noMail && !noLink) return '';
+    const what = [noMail ? 'su correo para avisarle solo cómo van sus clientes' : '', noLink ? 'ligarlo a 🤝 Socios para que su comisión salga sola' : ''].filter(Boolean).join(' y ');
+    return `<div class="act-hint cgv-alert"><span>${noMail ? '✉️' : '🔗'} A <b>${escHtml(d.nombre || d.clave)}</b> le falta ${what}.</span>
+      <button class="btn btn-sm btn-primary" onclick="cgvDirOpen(${escHtml(JSON.stringify(d.clave))})">Completar</button></div>`;
+  }).join('');
+}
+
+// ── Mudanzas ──
+const CGV_MOVE_STS = [['activas', 'Activas'], ['Nuevo', 'Nuevo'], ['Contactado', 'Contactado'], ['Servicios elegidos', 'Servicios elegidos'], ['Instalado', 'Instalado'], ['No avanzó', 'No avanzó'], ['todas', 'Todas']];
+function cgvPassSt(r, k) { return k === 'todas' || (k === 'activas' ? !['Instalado', 'No avanzó'].includes(r.estatus) : r.estatus === k); }
+function cgvMoveRows() {
+  const q = cgvF.q.trim().toLowerCase(), qd = q.replace(/\D/g, '');
+  let rows = cgvData.clientes.filter(r => cgvPassSt(r, cgvF.st));
+  if (q) rows = rows.filter(r => [r.nombre, r.telefono, r.direccion, r.socio, r.correo, r.zip].join(' ').toLowerCase().includes(q) || (qd.length >= 3 && phoneDigits(r.telefono).includes(qd)));
+  // Primero lo que hay que llamar (lo vencido arriba), luego por fecha de mudanza más cercana
+  const key = r => { const s = cgvSla(r), m = cgvMove(r); return [s.open ? (s.late ? 0 : 1) : 2, m && m.n !== undefined ? m.n : 999]; };
+  return rows.sort((a, b) => { const x = key(a), y = key(b); return x[0] - y[0] || x[1] - y[1] || String(b.recibido).localeCompare(String(a.recibido)); });
+}
+function cgvMovesTab() {
+  return `
+    <div class="action-row" style="gap:8px;margin-bottom:12px">
+      <div class="pros-chips">${CGV_MOVE_STS.map(([k, l]) => `<span class="chip ${cgvF.st === k ? 'on' : ''}" onclick="cgvF.st='${k}';cgvPaint()">${l} <span style="opacity:.6">${cgvData.clientes.filter(r => cgvPassSt(r, k)).length}</span></span>`).join('')}</div>
+      <input class="search-input" style="flex:1;min-width:200px" placeholder="🔍 Nombre, teléfono, dirección, socio…" value="${escHtml(cgvF.q)}"
+        oninput="cgvF.q=this.value;clearTimeout(window._cgvQ);window._cgvQ=setTimeout(()=>{document.getElementById('cgv-list').innerHTML=cgvMoveCardsFrom(cgvMoveRows());},200)">
+    </div>
+    <div id="cgv-list">${cgvMoveCardsFrom(cgvMoveRows())}</div>`;
+}
+function cgvMoveCardsFrom(rows) {
+  if (!rows.length) return `<div class="empty-state"><div class="icon">🏡</div><p>${cgvData.clientes.length ? 'Nada con este filtro.' : 'Todavía no llega ninguna solicitud de connectrgv.com.'}</p></div>`;
+  return `<div class="cgv-list">${rows.map(r => {
+    const s = cgvSla(r), m = cgvMove(r), idx = cgvStepIdx(r.estatus), lost = r.estatus === 'No avanzó';
+    return `<div class="cgv-card ${s.late ? 'late' : ''}" onclick="cgvOpen('${r.id}')">
+      <div class="cgv-card-main">
+        <div class="cgv-card-top"><b class="cgv-name">${escHtml(r.nombre || '—')}</b> ${cgvStBadge(r.estatus)}
+          ${r.tipo === 'familia' ? '<span class="pros-badge pros-b-exp">Familia</span>' : ''}</div>
+        <div class="cgv-sub">${escHtml(cgvSrc(r))} · llegó ${escHtml(cgvAgo(r.recibido))}${r.intentos ? ` · ${r.intentos} intento${r.intentos > 1 ? 's' : ''} de llamada` : ''}</div>
+        ${r.direccion ? `<div class="cgv-sub">📍 ${escHtml(r.direccion)}${r.zip && !String(r.direccion).includes(r.zip) ? ' ' + escHtml(r.zip) : ''}</div>` : ''}
+        <div class="cgv-tags">
+          ${s.open ? `<span class="cgv-tag ${s.late ? 'red' : 'blue'}">${escHtml(s.label)}</span>` : ''}
+          ${m ? `<span class="cgv-tag ${m.cls}">🚚 ${escHtml(m.label)}</span>` : ''}
+          ${(r.elegidos || []).length ? `<span class="cgv-tag">${escHtml(cgvSvcText(r.elegidos))}</span>` : r.servicios ? `<span class="cgv-tag muted">Pidió: ${escHtml(r.servicios)}</span>` : ''}
+        </div>
+      </div>
+      <div class="cgv-card-side">
+        <div class="cgv-dots" title="${escHtml(r.estatus)}">${CGV_STEPS.map((st, i) => `<span class="${lost ? 'x' : i <= idx ? 'on' : ''}"></span>`).join('')}</div>
+        <div class="cgv-btns">${cgvPhoneBtns(r)}</div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── Detalle de una mudanza ──
+function cgvOpen(id) {
+  const r = cgvFind(id); if (!r) return;
+  cgvOpenId = id;
+  cgvDraft = JSON.parse(JSON.stringify(r.elegidos || []));
+  if (r.tipo === 'socio') { cgvSocOpen(id); return; }
+  cgvModal();
+}
+function cgvModal() {
+  const r = cgvFind(cgvOpenId); if (!r) { closeModal(); return; }
+  const idx = cgvStepIdx(r.estatus), lost = r.estatus === 'No avanzó', d = r.tipo === 'cliente' ? cgvDirOf(r) : null;
+  const m = cgvMove(r), s = cgvSla(r);
+  const canWarn = d && !d.missing && d.correo && d.avisos;
+  const info = [
+    ['Teléfono', phoneDigits(r.telefono).length === 10 ? fmtPhone(phoneDigits(r.telefono)) : r.telefono],
+    ['Correo', r.correo], ['Dirección', [r.direccion, r.zip && !String(r.direccion).includes(r.zip) ? r.zip : ''].filter(Boolean).join(' ')],
+    ['Mudanza', m ? m.label : ''], ['Pidió', r.servicios], ['Socio', r.tipo === 'cliente' ? (d ? d.clave : r.socio) : 'Familia (llegó directo al sitio)'],
+    ['Página', r.pagina], ['Llegó', `${cgvFmtWhen(r.recibido)} · ${cgvAgo(r.recibido)}`],
+    ['Primer contacto', r.primerContacto ? `${cgvFmtWhen(r.primerContacto)} · ${cgvAgo(r.primerContacto)}` : '']
+  ].filter(x => x[1]);
+  const next = { 'Nuevo': 'Contactado', 'Contactado': 'Servicios elegidos', 'Servicios elegidos': 'Instalado' }[r.estatus];
+  const nextLbl = { 'Contactado': '✅ Ya hablé con él/ella → Contactado', 'Servicios elegidos': '🧾 Ya eligió → Servicios elegidos', 'Instalado': '🎉 Ya quedó → Instalado' }[next];
+  openModal(`
+    <div class="modal-title">🏡 ${escHtml(r.nombre || '—')} ${cgvStBadge(r.estatus)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="cgv-stepper">${CGV_STEPS.map((st, i) => `<div class="cgv-step ${lost ? 'x' : i < idx ? 'done' : i === idx ? 'cur' : ''}"><span>${!lost && i < idx ? '✓' : i + 1}</span>${st === 'Nuevo' ? 'Recibido' : st}</div>`).join('')}</div>
+    ${s.open ? `<div class="cgv-tag ${s.late ? 'red' : 'blue'}" style="display:inline-block;margin:0 0 10px">${escHtml(s.label)}</div>` : ''}
+    <div class="cgv-info">${info.map(([k, v]) => `<div><span>${k}</span><b>${escHtml(v)}</b></div>`).join('')}</div>
+    <div class="cgv-actions">
+      ${cgvPhoneBtns(r, true)}
+      ${r.direccion ? `<button class="btn btn-ghost" onclick="segCopy(${escHtml(JSON.stringify([r.direccion, r.zip && !String(r.direccion).includes(r.zip) ? r.zip : ''].filter(Boolean).join(' ')))})">📋 Copiar dirección</button>` : ''}
+      ${!['Instalado', 'No avanzó'].includes(r.estatus) ? `<button class="btn btn-ghost" onclick="cgvAttempt()">📵 No contestó</button>` : ''}
+    </div>
+
+    <div class="cgv-sec-h">Servicios que eligió</div>
+    <div id="cgv-serv">${cgvServEditor(r)}</div>
+
+    <div class="cgv-sec-h">Nota</div>
+    <textarea id="cgv-nota" class="form-input" rows="2" placeholder="Ej. quiere instalación en la mañana · ya tiene Spectrum en su casa de ahorita"></textarea>
+
+    ${r.tipo === 'cliente' ? `<div class="cgv-warn">${d && !d.missing ? (canWarn
+      ? `<label><input type="checkbox" id="cgv-avisar" checked> ✉️ Avisarle a <b>${escHtml(d.nombre || d.clave)}</b> (${escHtml(d.correo)}) cuando cambie el paso</label> <a href="#" onclick="cgvPreview();return false">ver aviso</a>`
+      : `✉️ ${d.correo ? `Los avisos a ${escHtml(d.nombre)} están apagados.` : `No tengo el correo de ${escHtml(d.nombre || d.clave)} para avisarle solo.`} <a href="#" onclick="cgvDirOpen(${escHtml(JSON.stringify(d.clave))});return false">${d.correo ? 'Cambiar' : 'Agregar correo'}</a>`)
+      + (d.telefono && phoneDigits(d.telefono).length === 10 ? ` · <a href="#" onclick="cgvWaPartner();return false">🟢 avisarle por WhatsApp</a>` : '') : 'Sin socio.'}
+      <div id="cgv-prev"></div></div>` : ''}
+
+    <div class="cgv-foot">
+      ${next ? `<button class="btn btn-primary" onclick="cgvSave('${next}')">${nextLbl}</button>` : ''}
+      ${r.estatus === 'Nuevo' ? `<button class="btn btn-ghost" onclick="cgvSave('Servicios elegidos')" title="Si en la misma llamada ya eligió">🧾 Ya eligió servicios</button>` : ''}
+      <button class="btn btn-ghost" onclick="cgvSave('')">💾 Guardar</button>
+      ${['Instalado', 'No avanzó'].includes(r.estatus) ? `<button class="btn btn-ghost" onclick="cgvSave('Contactado', {reabrir:true})">↩ Reabrir</button>`
+        : `<button class="btn btn-ghost" style="color:var(--red)" onclick="cgvLost()">✕ No avanzó</button>`}
+    </div>
+
+    <div class="cgv-sec-h">Historial</div>
+    ${cgvTimeline(r)}`, true);
+}
+function cgvServEditor(r) {
+  return `<div class="cgv-serv">${CGV_SERV.map(def => {
+    const cur = cgvDraft.find(x => x.s === def.s), on = !!cur;
+    const compOpts = def.comps.length
+      ? `<select class="form-input form-select" onchange="cgvSvcSet('${def.s}','comp',this.value)" ${on ? '' : 'disabled'}>
+          <option value="">Compañía…</option>${def.comps.map(([v, l]) => `<option value="${escHtml(v)}" ${cur && cur.comp === v ? 'selected' : ''}>${escHtml(l)}</option>`).join('')}
+          ${cur && cur.comp && !def.comps.some(([v]) => v === cur.comp) ? `<option selected>${escHtml(cur.comp)}</option>` : ''}</select>`
+      : `<input class="form-input" placeholder="Compañía (ej. TXU, Reliant)" value="${escHtml(cur ? cur.comp : '')}" oninput="cgvSvcSet('${def.s}','comp',this.value)" ${on ? '' : 'disabled'}>`;
+    return `<div class="cgv-srow ${on ? 'on' : ''}">
+      <label class="cgv-schk"><input type="checkbox" ${on ? 'checked' : ''} onchange="cgvSvcToggle('${def.s}',this.checked)"> ${def.ic} ${def.s}</label>
+      ${compOpts}
+      <input class="form-input" placeholder="${def.s === 'Internet' ? 'Plan (ej. 500 Mbps)' : def.s === 'Celular' ? 'Líneas / plan' : 'Plan'}" value="${escHtml(cur ? cur.plan : '')}" oninput="cgvSvcSet('${def.s}','plan',this.value)" ${on ? '' : 'disabled'}>
+      <input class="form-input" type="date" title="Fecha de instalación" value="${escHtml(cur ? cur.fecha : '')}" onchange="cgvSvcSet('${def.s}','fecha',this.value)" ${on ? '' : 'disabled'}>
+      <label class="cgv-schk sm" title="Ya quedó instalado"><input type="checkbox" ${cur && cur.hecho ? 'checked' : ''} onchange="cgvSvcSet('${def.s}','hecho',this.checked)" ${on ? '' : 'disabled'}> ✓ instalado</label>
+    </div>`;
+  }).join('')}</div>
+  ${cgvData.socOn && r.tipo === 'cliente' ? `<div class="cgv-hint">Si eliges internet de Spectrum, AT&T, Viasat o Tracfone, el referido entra solo a 🤝 Socios${r.refId ? ' (ya está ligado ✓)' : ''}.</div>` : ''}
+`;
+}
+function cgvSvcToggle(s, on) {
+  if (on && !cgvDraft.some(x => x.s === s)) cgvDraft.push({ s, comp: '', plan: '', fecha: '', hecho: false });
+  if (!on) cgvDraft = cgvDraft.filter(x => x.s !== s);
+  cgvDraft.sort((a, b) => CGV_SERV.findIndex(d => d.s === a.s) - CGV_SERV.findIndex(d => d.s === b.s));
+  document.getElementById('cgv-serv').innerHTML = cgvServEditor(cgvFind(cgvOpenId));
+}
+function cgvSvcSet(s, k, v) { const x = cgvDraft.find(x => x.s === s); if (x) x[k] = v; }
+function cgvTimeline(r) {
+  const h = (r.historial || []).slice().reverse();
+  if (!h.length) return `<div class="cgv-hint">Todavía no hay movimientos. Llegó ${escHtml(cgvFmtWhen(r.recibido))}.</div>`;
+  const ic = { estatus: '➡️', intento: '📵', servicios: '🧾', nota: '📝', aviso: '✉️', socios: '🤝' };
+  return `<div class="cgv-tl">${h.map(e => `<div class="cgv-tl-row"><span class="i">${ic[e.t] || '•'}</span><div style="flex:1;min-width:0">
+      <div>${e.t === 'estatus' ? `${escHtml(e.de || '')} → <b>${escHtml(e.a)}</b>${e.x ? ' · ' + escHtml(e.x) : ''}` : e.t === 'intento' ? `Intento de llamada: ${escHtml(e.x)}` : escHtml(e.x || '')}</div>
+      <div class="s">${escHtml(cgvFmtWhen(e.f))} · ${escHtml(e.por || '')}</div></div></div>`).join('')}
+    <div class="cgv-tl-row"><span class="i">📥</span><div><div>Llegó desde ${escHtml(r.pagina || 'connectrgv.com')}</div><div class="s">${escHtml(cgvFmtWhen(r.recibido))}</div></div></div></div>`;
+}
+function cgvCleanDraft() { return cgvDraft.filter(x => x.s).map(x => ({ s: x.s, comp: x.comp || '', plan: (x.plan || '').trim(), fecha: x.fecha || '', hecho: !!x.hecho })); }
+let cgvBusy = false;
+async function cgvSave(estatus, opt) {
+  if (cgvBusy) return;
+  const r = cgvFind(cgvOpenId); if (!r) return;
+  const el = cgvCleanDraft(), nota = (document.getElementById('cgv-nota') || {}).value || '';
+  if (estatus === 'Servicios elegidos' && !el.length) { toast('Marca primero qué servicios eligió.', 'error'); return; }
+  if (estatus === 'Servicios elegidos' && el.some(x => CGV_SERV.find(d => d.s === x.s).comps.length && !x.comp)) { toast('Falta escoger la compañía.', 'error'); return; }
+  const avisar = !!(document.getElementById('cgv-avisar') || {}).checked && !(opt && opt.reabrir);
+  const data = { tipo: r.tipo, id: r.id, elegidos: el };
+  if (estatus) data.estatus = estatus;
+  if (nota.trim()) data.nota = nota.trim();
+  if (opt && opt.motivo) data.motivo = opt.motivo;
+  if (avisar) data.avisar = true;
+  await cgvSend(data, estatus);
+}
+async function cgvSend(data, estatus) {
+  cgvBusy = true;
+  document.querySelectorAll('.cgv-foot .btn, .cgv-actions .btn').forEach(b => b.disabled = true);
+  try {
+    const res = await apiGet({ action: 'cgvSave', data: JSON.stringify(data) });
+    const i = cgvData.clientes.findIndex(x => x.id === data.id), j = cgvData.socios.findIndex(x => x.id === data.id);
+    if (i >= 0) cgvData.clientes[i] = Object.assign({}, cgvData.clientes[i], res.item);
+    if (j >= 0) cgvData.socios[j] = Object.assign({}, cgvData.socios[j], res.item);
+    const msg = [estatus ? `Quedó en <b>${escHtml(estatus)}</b>` : 'Guardado'];
+    if (res.aviso && res.aviso.sent) msg.push(`✉️ le avisé a ${escHtml(String(res.aviso.nombre || '').split(' ')[0] || res.aviso.to)}`);
+    else if (res.aviso && res.aviso.reason) msg.push(`✉️ sin aviso: ${escHtml(res.aviso.reason)}`);
+    if (res.socios && res.socios.changed) msg.push(res.socios.status === 'pending' ? '🤝 pasó a venta en Socios' : '🤝 quedó como lead en Socios');
+    if (res.socios && res.socios.error) msg.push(`🤝 ${escHtml(res.socios.error)}`);
+    toast(msg.join(' · '), res.socios && res.socios.error ? 'info' : 'success', 4500);
+    cgvBadge();
+    const r = cgvFind(data.id);
+    cgvDraft = JSON.parse(JSON.stringify((r && r.elegidos) || []));
+    if (currentPage === 'concierge') cgvPaint();
+    if (r && r.tipo === 'socio') cgvSocOpen(r.id); else cgvModal();
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+  finally { cgvBusy = false; document.querySelectorAll('.cgv-foot .btn, .cgv-actions .btn').forEach(b => b.disabled = false); }
+}
+function cgvAttempt() {
+  const r = cgvFind(cgvOpenId); if (!r) return;
+  const nota = (document.getElementById('cgv-nota') || {}).value || '';
+  openModalStack(`<div class="modal-title">📵 Intento de llamada</div>
+    <div class="pros-chips" id="cgv-int">${['No contestó', 'Le dejé mensaje', 'Le mandé WhatsApp', 'Número equivocado'].map((t, i) => `<span class="chip ${i ? '' : 'on'}" data-v="${t}" onclick="document.querySelectorAll('#cgv-int .chip').forEach(c=>c.classList.remove('on'));this.classList.add('on')">${t}</span>`).join('')}</div>
+    <div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-primary" onclick="cgvAttemptGo(${escHtml(JSON.stringify(nota))})">Guardar</button><button class="btn btn-ghost" onclick="cgvModal()">Cancelar</button></div>`);
+}
+function cgvAttemptGo(nota) {
+  const r = cgvFind(cgvOpenId), v = document.querySelector('#cgv-int .chip.on')?.dataset.v || 'No contestó';
+  const data = { tipo: r.tipo, id: r.id, intento: v };
+  if (nota && nota.trim()) data.nota = nota.trim();
+  cgvSend(data, '');
+}
+function cgvLost() {
+  const r = cgvFind(cgvOpenId); if (!r) return;
+  openModalStack(`<div class="modal-title">✕ No avanzó</div>
+    <div class="form-label">¿Por qué?</div>
+    <div class="pros-chips" id="cgv-mot">${['No contesta', 'Ya contrató por su cuenta', 'Se queda con lo que tiene', 'No hay servicio en su dirección', 'Ya no se muda', 'Otro'].map((t, i) => `<span class="chip ${i ? '' : 'on'}" data-v="${t}" onclick="document.querySelectorAll('#cgv-mot .chip').forEach(c=>c.classList.remove('on'));this.classList.add('on')">${t}</span>`).join('')}</div>
+    <input class="form-input" id="cgv-mot-x" style="margin-top:10px" placeholder="Detalle (opcional)">
+    <div class="cgv-hint">Al socio no se le manda aviso por esto.</div>
+    <div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-primary" style="background:var(--red)" onclick="cgvLostGo()">Marcar No avanzó</button><button class="btn btn-ghost" onclick="cgvModal()">Cancelar</button></div>`);
+}
+function cgvLostGo() {
+  const r = cgvFind(cgvOpenId), m = document.querySelector('#cgv-mot .chip.on')?.dataset.v || 'Otro', x = document.getElementById('cgv-mot-x').value.trim();
+  cgvSend({ tipo: r.tipo, id: r.id, estatus: 'No avanzó', motivo: x ? `${m}: ${x}` : m, elegidos: cgvCleanDraft() }, 'No avanzó');
+}
+// El modal del Hub es uno solo: los diálogos chicos reemplazan el contenido y "Cancelar" regresa al detalle
+function openModalStack(html) { openModal(html, false); }
+// Lo que le llegaría al socio con el siguiente paso
+function cgvNextFor(r) { return { 'Nuevo': 'Contactado', 'Contactado': 'Servicios elegidos', 'Servicios elegidos': 'Instalado' }[r.estatus] || r.estatus; }
+async function cgvPreview() {
+  const r = cgvFind(cgvOpenId), box = document.getElementById('cgv-prev'); if (!r || !box) return;
+  box.innerHTML = '<div class="cgv-hint">Armando el aviso…</div>';
+  try {
+    const p = await apiGet({ action: 'cgvAvisoGet', data: JSON.stringify({ tipo: r.tipo, id: r.id, estatus: cgvNextFor(r), elegidos: cgvCleanDraft() }) });
+    box.innerHTML = p.can ? `<div class="cgv-prev"><div class="s">Al pasar a <b>${escHtml(cgvNextFor(r))}</b> le llega a ${escHtml(p.to || p.nombre)}:</div><b>${escHtml(p.subject)}</b><pre>${escHtml(p.text)}</pre></div>`
+      : `<div class="cgv-hint">Ese paso no se le avisa al socio.</div>`;
+  } catch (e) { box.innerHTML = `<div class="cgv-hint" style="color:var(--red)">${escHtml(e.message)}</div>`; }
+}
+async function cgvWaPartner() {
+  const r = cgvFind(cgvOpenId), d = r && cgvDirOf(r); if (!d) return;
+  try {
+    const p = await apiGet({ action: 'cgvAvisoGet', data: JSON.stringify({ tipo: r.tipo, id: r.id, estatus: ['Nuevo'].includes(r.estatus) ? 'Contactado' : r.estatus, elegidos: cgvCleanDraft() }) });
+    if (!p.can) { toast('Ese paso no se le avisa al socio.', 'info'); return; }
+    waOpen(`https://wa.me/1${phoneDigits(d.telefono)}?text=${encodeURIComponent(p.wa)}`);
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+
+// ── Socios nuevos (se registraron en connectrgv.com/socios) ──
+function cgvSociosTab() {
+  const S = cgvData.socios;
+  const f = [['abiertos', 'Por atender'], ['Dado de alta', 'Dados de alta'], ['No avanzó', 'No avanzó'], ['todos', 'Todos']];
+  const pass = r => cgvSocF === 'todos' || (cgvSocF === 'abiertos' ? !['Dado de alta', 'No avanzó'].includes(r.estatus) : r.estatus === cgvSocF);
+  const rows = S.filter(pass).sort((a, b) => (cgvSla(b).late - cgvSla(a).late) || String(b.recibido).localeCompare(String(a.recibido)));
+  return `<div class="action-row" style="gap:8px;margin-bottom:12px"><div class="pros-chips">${f.map(([k, l]) => `<span class="chip ${cgvSocF === k ? 'on' : ''}" onclick="cgvSocF='${k}';cgvPaint()">${l} <span style="opacity:.6">${S.filter(r => k === 'todos' || (k === 'abiertos' ? !['Dado de alta', 'No avanzó'].includes(r.estatus) : r.estatus === k)).length}</span></span>`).join('')}</div></div>
+  ${rows.length ? `<div class="cgv-list">${rows.map(r => {
+    const s = cgvSla(r);
+    return `<div class="cgv-card ${s.late ? 'late' : ''}" onclick="cgvOpen('${r.id}')">
+      <div class="cgv-card-main">
+        <div class="cgv-card-top"><b class="cgv-name">${escHtml(r.nombre || '—')}</b> ${cgvStBadge(r.estatus)}</div>
+        <div class="cgv-sub">${escHtml([r.empresa, r.tipoSocio].filter(Boolean).join(' · ') || 'Socio')}${r.volumen ? ` · ${escHtml(r.volumen)} mudanzas al mes` : ''}</div>
+        <div class="cgv-sub">${r.correo ? '✉️ ' + escHtml(r.correo) + ' · ' : ''}se registró ${escHtml(cgvAgo(r.recibido))}</div>
+        ${s.open ? `<div class="cgv-tags"><span class="cgv-tag ${s.late ? 'red' : 'blue'}">${escHtml(s.label)}</span></div>` : ''}
+      </div>
+      <div class="cgv-card-side"><div class="cgv-btns">${cgvPhoneBtns(r)}</div></div>
+    </div>`;
+  }).join('')}</div>` : `<div class="empty-state"><div class="icon">🤝</div><p>${S.length ? 'Nada con este filtro.' : 'Nadie se ha registrado todavía en connectrgv.com/socios.'}</p></div>`}`;
+}
+function cgvSocOpen(id) {
+  const r = cgvFind(id); if (!r) return;
+  cgvOpenId = id;
+  const yaSocio = (cgvData.partners || []).find(p => cgvSameName(p.name, r.nombre));
+  openModal(`
+    <div class="modal-title">🤝 ${escHtml(r.nombre || '—')} ${cgvStBadge(r.estatus)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="cgv-info">${[['Empresa', r.empresa], ['Tipo', r.tipoSocio], ['Mudanzas al mes', r.volumen], ['Teléfono', phoneDigits(r.telefono).length === 10 ? fmtPhone(phoneDigits(r.telefono)) : r.telefono],
+      ['Correo', r.correo], ['Se registró', `${cgvFmtWhen(r.recibido)} · ${cgvAgo(r.recibido)}`]].filter(x => x[1]).map(([k, v]) => `<div><span>${k}</span><b>${escHtml(v)}</b></div>`).join('')}</div>
+    <div class="cgv-actions">${cgvPhoneBtns(r, true)}${r.correo ? `<a class="btn btn-ghost" href="mailto:${escHtml(r.correo)}">✉️ Correo</a>` : ''}</div>
+    <div class="cgv-sec-h">Nota</div>
+    <textarea id="cgv-nota" class="form-input" rows="2" placeholder="Ej. quedamos de vernos el jueves en su oficina"></textarea>
+    <div class="cgv-foot">
+      ${r.estatus !== 'Dado de alta' ? `<button class="btn btn-primary" onclick="cgvSocAlta()">✅ Dar de alta como socio</button>` : ''}
+      ${r.estatus === 'Nuevo' ? `<button class="btn btn-ghost" onclick="cgvSocSet('Contactado')">Ya hablé → Contactado</button>` : ''}
+      ${['Nuevo', 'Contactado'].includes(r.estatus) ? `<button class="btn btn-ghost" onclick="cgvSocSet('Reunión')">📅 Reunión</button>` : ''}
+      ${r.estatus === 'Nuevo' ? `<button class="btn btn-ghost" onclick="cgvSend({tipo:'socio',id:'${r.id}',intento:'No contestó',nota:(document.getElementById('cgv-nota')||{}).value||''},'')">📵 No contestó</button>` : ''}
+      <button class="btn btn-ghost" onclick="cgvSocSet('')">💾 Guardar nota</button>
+      ${!['Dado de alta', 'No avanzó'].includes(r.estatus) ? `<button class="btn btn-ghost" style="color:var(--red)" onclick="cgvSocSet('No avanzó')">✕ No avanzó</button>` : r.estatus === 'No avanzó' ? `<button class="btn btn-ghost" onclick="cgvSocSet('Contactado')">↩ Reabrir</button>` : ''}
+    </div>
+    ${r.estatus === 'Dado de alta' ? cgvSocNext(r) : yaSocio ? `<div class="cgv-hint">Ya existe <b>${escHtml(yaSocio.name)}</b> en 🤝 Socios: al darlo de alta se liga con ese, no se duplica.</div>` : ''}
+    <div class="cgv-sec-h">Historial</div>
+    ${cgvTimeline(r)}`, true);
+}
+function cgvSameName(a, b) {
+  const t = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]+/g, ' ').split(' ').filter(x => x.length > 1);
+  const x = t(a), y = t(b); if (x.length < 2 || y.length < 2) return false;
+  const [sh, lo] = x.length <= y.length ? [x, y] : [y, x]; return sh.every(w => lo.includes(w));
+}
+function cgvSocSet(st) {
+  const r = cgvFind(cgvOpenId), nota = ((document.getElementById('cgv-nota') || {}).value || '').trim();
+  if (!st && !nota) { toast('Escribe la nota primero.', 'info'); return; }
+  const data = { tipo: 'socio', id: r.id };
+  if (st) data.estatus = st; if (nota) data.nota = nota;
+  cgvSend(data, st);
+}
+function cgvSocAlta() {
+  const r = cgvFind(cgvOpenId); if (!r) return;
+  const slug = String(r.empresa || r.nombre || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 16);
+  openModalStack(`<div class="modal-title">✅ Dar de alta a ${escHtml(r.nombre)}</div>
+    <div class="form-group"><label class="form-label">Comisión</label>
+      <div class="pros-chips" id="cgv-plan"><span class="chip on" data-v="tiered" onclick="cgvPlanPick(this)">Escalonado (reglas de 🤝 Socios)</span><span class="chip" data-v="flat" onclick="cgvPlanPick(this)">Fijo</span></div>
+      <input class="form-input" id="cgv-flat" type="number" min="0" step="5" placeholder="$ por venta de Spectrum" style="display:none;margin-top:8px;width:200px"></div>
+    <div class="form-group"><label class="form-label">Su página (cuando la armes)</label>
+      <input class="form-input" id="cgv-pag" value="/${escHtml(slug)}/" placeholder="/nombre-corto/"></div>
+    <div class="cgv-hint">Se crea en 🤝 Socios y en el Directorio con su correo para los avisos. La comisión la puedes cambiar después en 🤝 Socios.</div>
+    <div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-primary" onclick="cgvSocAltaGo()">Dar de alta</button><button class="btn btn-ghost" onclick="cgvSocOpen('${r.id}')">Cancelar</button></div>`);
+}
+function cgvPlanPick(c) {
+  document.querySelectorAll('#cgv-plan .chip').forEach(x => x.classList.remove('on')); c.classList.add('on');
+  document.getElementById('cgv-flat').style.display = c.dataset.v === 'flat' ? '' : 'none';
+}
+async function cgvSocAltaGo() {
+  const r = cgvFind(cgvOpenId), plan = document.querySelector('#cgv-plan .chip.on')?.dataset.v || 'tiered';
+  const flat = +document.getElementById('cgv-flat').value || '', pag = document.getElementById('cgv-pag').value.trim();
+  if (plan === 'flat' && !flat) { toast('Escribe cuánto es el pago fijo.', 'error'); return; }
+  try {
+    const res = await apiGet({ action: 'cgvPartnerCreate', data: JSON.stringify({ id: r.id, rateType: plan, flatRate: flat, pagina: pag }) });
+    toast(res.existed ? `${escHtml(r.nombre)} ya estaba en 🤝 Socios: quedó ligado.` : `✅ ${escHtml(r.nombre)} ya está en 🤝 Socios.`, 'success', 4000);
+    if (typeof socData !== 'undefined') socData = null;
+    await cgvLoad();
+    cgvSocOpen(r.id); cgvPaint();
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+function cgvSocNext(r) {
+  const d = (cgvData.dir || []).find(x => x.socioId && x.socioId === r.socioId);
+  const pag = (d && d.pagina) || '/nombre-corto/';
+  return `<div class="cgv-prev"><div class="s">Siguientes pasos para ${escHtml(String(r.nombre).split(' ')[0])}</div>
+    <ol style="margin:6px 0 0 18px;line-height:1.7;font-size:13px">
+      <li>Armar su página <b>connectrgv.com${escHtml(pag)}</b>: copiar /ejemplo/, poner su nombre y agencia, y en <code>data-socio</code> poner exactamente <b>${escHtml(d ? d.clave : r.nombre)}</b> (así sus clientes llegan ligados).</li>
+      <li>Sacar su QR y sus tarjetas de bienvenida.</li>
+      <li>Firmar el acuerdo de socio.</li></ol></div>`;
+}
+
+// ── Directorio de socios ──
+function cgvDirTab() {
+  const D = cgvData, dir = (D.dir || []).slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+  if (!dir.length) return `<div class="empty-state"><div class="icon">📇</div><p>Cuando un socio te mande su primer cliente (o des de alta a uno) aparece aquí.</p></div>`;
+  const pName = id => ((D.partners || []).find(p => p.id === id) || {}).name;
+  return `<div class="cgv-hint" style="margin-bottom:10px">De aquí sale el correo para los avisos automáticos. "Clave" es como llegan marcados sus clientes desde su página.</div>
+  <div class="table-wrap"><div style="overflow-x:auto"><table><thead><tr><th>Socio</th><th>Avisos</th><th>Clientes</th><th>🤝 Socios</th></tr></thead><tbody>
+  ${dir.map(d => {
+    const mine = D.clientes.filter(r => r.tipo === 'cliente' && cgvDirOf(r) && cgvDirOf(r).clave === d.clave);
+    const act = mine.filter(r => !['Instalado', 'No avanzó'].includes(r.estatus)).length, ins = mine.filter(r => r.estatus === 'Instalado').length;
+    return `<tr onclick="cgvDirOpen(${escHtml(JSON.stringify(d.clave))})">
+      <td><b>${escHtml(d.nombre || d.clave)}</b><div style="font-size:11px;color:var(--muted)">${escHtml(d.empresa || '')}${d.pagina ? ' · ' + escHtml(d.pagina) : ''}</div></td>
+      <td>${d.correo ? (d.avisos ? `✉️ ${escHtml(d.correo)} <span class="pros-badge pros-b-exp">${d.idioma}</span>` : `<span style="color:var(--muted)">apagados</span>`) : '<span style="color:var(--yellow)">falta correo</span>'}</td>
+      <td>${mine.length} <span style="color:var(--muted);font-size:11px">${act ? act + ' en proceso · ' : ''}${ins} instalado${ins === 1 ? '' : 's'}</span></td>
+      <td>${d.socioId ? (pName(d.socioId) ? '✓ ' + escHtml(pName(d.socioId)) : '<span style="color:var(--red)">ya no existe</span>') : '<span style="color:var(--yellow)">sin ligar</span>'}</td></tr>`;
+  }).join('')}</tbody></table></div></div>`;
+}
+function cgvDirOpen(clave) {
+  const d = (cgvData.dir || []).find(x => x.clave === clave) || { clave, nombre: String(clave).split(' · ')[0], avisos: true, idioma: 'ES' };
+  const P = (cgvData.partners || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  openModal(`<div class="modal-title">📇 ${escHtml(d.nombre || d.clave)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <input type="hidden" id="cd-orig" value="${escHtml(d.clave)}">
+    <div class="form-group"><label class="form-label">Clave (como llegan marcados sus clientes)</label><input class="form-input" id="cd-clave" value="${escHtml(d.clave)}"></div>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="cd-nombre" value="${escHtml(d.nombre || '')}"></div>
+      <div class="form-group"><label class="form-label">Empresa</label><input class="form-input" id="cd-empresa" value="${escHtml(d.empresa || '')}"></div>
+      <div class="form-group"><label class="form-label">Correo para avisos</label><input class="form-input" id="cd-correo" type="email" value="${escHtml(d.correo || '')}" placeholder="nombre@correo.com"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="cd-tel" type="tel" value="${escHtml(d.telefono || '')}"></div>
+      <div class="form-group"><label class="form-label">Idioma de los avisos</label><select class="form-input form-select" id="cd-idioma"><option value="ES" ${d.idioma !== 'EN' ? 'selected' : ''}>Español</option><option value="EN" ${d.idioma === 'EN' ? 'selected' : ''}>English</option></select></div>
+      <div class="form-group"><label class="form-label">Su página</label><input class="form-input" id="cd-pag" value="${escHtml(d.pagina || '')}" placeholder="/missionpm/"></div>
+    </div>
+    <div class="form-group"><label><input type="checkbox" id="cd-avisos" ${d.avisos !== false ? 'checked' : ''}> Mandarle avisos automáticos (contactado, servicios elegidos, instalado)</label></div>
+    ${cgvData.socOn ? `<div class="form-group"><label class="form-label">Socio en 🤝 Socios (para su comisión)</label><select class="form-input form-select" id="cd-soc">
+      <option value="">— sin ligar —</option>${P.map(p => `<option value="${escHtml(p.id)}" ${p.id === d.socioId ? 'selected' : ''}>${escHtml(p.name)}${p.property ? ' · ' + escHtml(p.property) : ''}${p.active ? '' : ' (inactivo)'}</option>`).join('')}</select></div>` : ''}
+    <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="cgvDirSave()">Guardar</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button></div>`);
+}
+async function cgvDirSave() {
+  const v = id => (document.getElementById(id) || {}).value || '';
+  const data = { claveOriginal: v('cd-orig'), clave: v('cd-clave').trim(), nombre: v('cd-nombre').trim(), empresa: v('cd-empresa').trim(), correo: v('cd-correo').trim(),
+    telefono: v('cd-tel'), idioma: v('cd-idioma'), pagina: v('cd-pag').trim(), avisos: document.getElementById('cd-avisos').checked,
+    socioId: document.getElementById('cd-soc') ? v('cd-soc') : ((cgvData.dir || []).find(x => x.clave === v('cd-orig')) || {}).socioId || '' };
+  try {
+    const res = await apiGet({ action: 'cgvDirSave', data: JSON.stringify(data) });
+    cgvData.dir = res.dir || cgvData.dir;
+    toast('Guardado.', 'success');
+    closeModal(); cgvPaint();
+  } catch (e) { toast(escHtml(e.message), 'error'); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
