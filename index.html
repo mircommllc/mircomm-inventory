@@ -713,6 +713,27 @@
     .cgv-srow { grid-template-columns:1fr 1fr; }
     .cgv-srow .cgv-schk:first-child { grid-column:1 / -1; }
   }
+
+  /* ── 🧰 KIT DEL SOCIO ── */
+  .kit-grid { display:grid; grid-template-columns: 1.25fr 1fr; gap:22px; }
+  .kit-url { display:flex; align-items:center; gap:0; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding-left:10px; }
+  .kit-url span { color:var(--muted); font-size:13px; white-space:nowrap; }
+  .kit-url .form-input { border:0; background:transparent; padding-left:2px; }
+  .kit-logo { display:flex; gap:12px; align-items:center; }
+  .kit-logo-box { width:170px; height:70px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; padding:8px; overflow:hidden; }
+  .kit-logo-box img { max-width:100%; max-height:100%; object-fit:contain; }
+  .kit-logo-box span { color:#111312; font-size:12px; font-weight:600; text-align:center; line-height:1.2; }
+  .kit-side { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .kit-side.off { opacity:.75; }
+  .kit-qr { width:170px; height:170px; background:#fff; border-radius:10px; padding:10px; margin:0 auto; }
+  .kit-qr svg { width:100%; height:100%; display:block; }
+  .kit-link { text-align:center; font-weight:700; margin:8px 0 12px; word-break:break-all; }
+  .kit-btns { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .kit-picks { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; max-height:50vh; overflow:auto; }
+  .kit-pick { text-align:left; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--text); cursor:pointer; font:inherit; }
+  .kit-pick:hover { border-color:var(--blue); }
+  .kit-pick b { display:block; font-size:14px; } .kit-pick span { font-size:11px; color:var(--muted); }
+  @media (max-width: 700px) { .kit-grid { grid-template-columns:1fr; } .kit-btns { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -1032,8 +1053,10 @@ function completeLogin() {
   nomCheckRepAccess();
   posPending = []; posRecentSales = null; posLastReceipt = null; posRefreshPending(true);
 
-  // Default page: el manager arranca en ☀ Hoy (Mi Escritorio)
-  currentPage = isManager ? 'desk' : 'pos';
+  // Default page: el manager arranca en ☀ Hoy (Mi Escritorio). Con el acceso directo #kit, en 🤝 Socios con el kit abierto.
+  const kitBoot = isManager && location.hash === '#kit';
+  currentPage = kitBoot ? 'socios' : isManager ? 'desk' : 'pos';
+  if (kitBoot) socTab = 'socios';
   deskData = null; aiMsgs = [];
   document.body.classList.toggle('has-ai', isManager);
   const aiMicBtn = document.getElementById('ai-mic');
@@ -1044,6 +1067,7 @@ function completeLogin() {
 
   if (isManager) cgvStartBadge(); else cgvStop();
   loadCurrentPage();
+  if (kitBoot) setTimeout(kitPicker, 400);
 }
 
 function logout(msg) {
@@ -7400,13 +7424,9 @@ async function cgvSocAltaGo() {
   } catch (e) { toast(escHtml(e.message), 'error'); }
 }
 function cgvSocNext(r) {
-  const d = (cgvData.dir || []).find(x => x.socioId && x.socioId === r.socioId);
-  const pag = (d && d.pagina) || '/nombre-corto/';
-  return `<div class="cgv-prev"><div class="s">Siguientes pasos para ${escHtml(String(r.nombre).split(' ')[0])}</div>
-    <ol style="margin:6px 0 0 18px;line-height:1.7;font-size:13px">
-      <li>Armar su página <b>connectrgv.com${escHtml(pag)}</b>: copiar /ejemplo/, poner su nombre y agencia, y en <code>data-socio</code> poner exactamente <b>${escHtml(d ? d.clave : r.nombre)}</b> (así sus clientes llegan ligados).</li>
-      <li>Sacar su QR y sus tarjetas de bienvenida.</li>
-      <li>Firmar el acuerdo de socio.</li></ol></div>`;
+  return `<div class="cgv-prev"><div class="s">Siguiente paso</div>
+    <div style="font-size:13px;margin:4px 0 8px">Armar su página de connectrgv.com, su QR y sus tarjetas, y mandárselo.</div>
+    <button class="btn btn-primary btn-sm" onclick="kitOpen({socioId:'${r.socioId}'})">🧰 Página y kit</button></div>`;
 }
 
 // ── Directorio de socios ──
@@ -7444,7 +7464,9 @@ function cgvDirOpen(clave) {
     <div class="form-group"><label><input type="checkbox" id="cd-avisos" ${d.avisos !== false ? 'checked' : ''}> Mandarle avisos automáticos (contactado, servicios elegidos, instalado)</label></div>
     ${cgvData.socOn ? `<div class="form-group"><label class="form-label">Socio en 🤝 Socios (para su comisión)</label><select class="form-input form-select" id="cd-soc">
       <option value="">— sin ligar —</option>${P.map(p => `<option value="${escHtml(p.id)}" ${p.id === d.socioId ? 'selected' : ''}>${escHtml(p.name)}${p.property ? ' · ' + escHtml(p.property) : ''}${p.active ? '' : ' (inactivo)'}</option>`).join('')}</select></div>` : ''}
-    <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="cgvDirSave()">Guardar</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button></div>`);
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn btn-primary" onclick="cgvDirSave()">Guardar</button>
+      <button class="btn btn-ghost" onclick="kitOpen(${escHtml(JSON.stringify({ clave: d.clave, socioId: d.socioId || '' }))})">🧰 Página y kit</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button></div>`);
 }
 async function cgvDirSave() {
   const v = id => (document.getElementById(id) || {}).value || '';
@@ -7459,6 +7481,243 @@ async function cgvDirSave() {
     toast('Guardado.', 'success');
     closeModal(); cgvPaint();
   } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 🧰 PÁGINA Y KIT DEL SOCIO — connectrgv.com/<nombre>, su QR, sus tarjetas y el mensaje para mandárselo
+// La página se publica sola: connectrgv.com/socio/ lee los datos del Directorio (Concierge.gs → cgvPageSave).
+// Acceso directo del escritorio: https://mircommllc.github.io/mircomm-inventory/#kit
+// ═══════════════════════════════════════════════════════════════════════
+const KIT_SITE = 'connectrgv.com';
+const KIT_STATIC = ['missionpm'];   // páginas que se armaron a mano (carpeta propia en SiteGround)
+const KIT_QR_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+let kitP = null, kitAfterNew = false;
+
+function kitSlug(v) {
+  return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/^https?:\/\/[^\/]+/, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+}
+function kitUrl(p) { return `https://${KIT_SITE}/${(p || kitP).pagina}`; }
+let kitQrP = null;
+function kitQrLib() {
+  if (window.qrcode) return Promise.resolve();
+  if (!kitQrP) kitQrP = new Promise((ok, bad) => {
+    const s = document.createElement('script'); s.src = KIT_QR_LIB; s.onload = ok; s.onerror = () => { kitQrP = null; bad(new Error('No se pudo cargar el generador de QR. Revisa el internet.')); };
+    document.head.appendChild(s);
+  });
+  return kitQrP;
+}
+function kitQr(text) { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q; }
+// QR como SVG (para imprimir nítido) o como PNG (para mandar)
+function kitQrSvg(text) {
+  const q = kitQr(text), n = q.getModuleCount(); let d = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"><path d="${d}" fill="#111312"/></svg>`;
+}
+function kitQrPng(text, size) {
+  const q = kitQr(text), n = q.getModuleCount(), quiet = 4, cell = Math.floor((size || 1024) / (n + quiet * 2)), px = cell * (n + quiet * 2);
+  const cv = document.createElement('canvas'); cv.width = cv.height = px;
+  const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, px, px); g.fillStyle = '#111312';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) g.fillRect((c + quiet) * cell, (r + quiet) * cell, cell, cell);
+  return cv.toDataURL('image/png');
+}
+
+// ── Abrir ──
+async function kitOpen(ref) {
+  openModal(`<div class="modal-title">🧰 Página y kit <button class="modal-close" onclick="closeModal()">✕</button></div><div class="loading"><div class="spinner"></div></div>`, true);
+  try {
+    const [r] = await Promise.all([apiGet({ action: 'cgvPageGet', data: JSON.stringify(ref) }), kitQrLib().catch(() => {})]);
+    kitP = Object.assign(r.page, { ref, fotoNueva: undefined, paginaOrig: r.page.existe ? r.page.pagina : '' });
+    if (!kitP.pagina) kitP.pagina = kitSlug(kitP.empresa || kitP.nombre);
+    kitPaint();
+  } catch (e) {
+    openModal(`<div class="modal-title">🧰 Página y kit <button class="modal-close" onclick="closeModal()">✕</button></div>
+      <div class="act-hint" style="color:var(--red)">${/cgvPageGet|unknown|desconocida/i.test(e.message) ? 'Falta actualizar <b>Concierge.gs</b> en Apps Script (Deploy → New version).' : escHtml(e.message)}</div>`);
+  }
+}
+function kitSlugState(v) {
+  const s = kitSlug(v);
+  if (s.length < 3) return { ok: false, msg: 'Mínimo 3 letras' };
+  if ((kitP.reservadas || []).includes(s)) return { ok: false, msg: 'Esa la usa el sitio' };
+  if ((kitP.usadas || []).includes(s) || (KIT_STATIC.includes(s) && kitSlug(kitP.paginaOrig) !== s)) return { ok: false, msg: 'Ya es de otro socio' };
+  return { ok: true, msg: 'Disponible', s };
+}
+function kitPaint() {
+  const p = kitP, saved = p.existe && p.pagina, live = saved && p.publicada;
+  const foto = p.fotoNueva !== undefined ? p.fotoNueva : p.foto;
+  const st = kitSlugState(p.pagina);
+  openModal(`
+    <div class="modal-title">🧰 ${escHtml(p.nombre || 'Socio')} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="kit-grid">
+      <div>
+        <div class="cgv-sec-h" style="margin-top:0">1 · Su página</div>
+        <label class="form-label">Dirección</label>
+        <div class="kit-url"><span>${KIT_SITE}/</span><input class="form-input" id="kit-slug" value="${escHtml(p.pagina || '')}" oninput="kitSlugHint(this.value)" autocomplete="off"></div>
+        <div class="cgv-hint" id="kit-slug-h" style="margin-top:4px;color:${st.ok ? 'var(--green)' : 'var(--red)'}">${st.ok ? '✓ ' : '✗ '}${escHtml(st.msg)}</div>
+        <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+          <div class="form-group"><label class="form-label">Nombre (como sale en su página)</label><input class="form-input" id="kit-nombre" value="${escHtml(p.nombre || '')}"></div>
+          <div class="form-group"><label class="form-label">Empresa o agencia</label><input class="form-input" id="kit-empresa" value="${escHtml(p.empresa || '')}" placeholder="Si aplica"></div>
+        </div>
+        <label class="form-label">Logo (opcional)</label>
+        <div class="kit-logo">
+          <div class="kit-logo-box">${foto ? `<img src="${foto}" alt="">` : `<span>${escHtml(p.empresa || p.nombre || 'Sin logo')}</span>`}</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label class="btn btn-ghost btn-sm" style="cursor:pointer">📷 ${foto ? 'Cambiar' : 'Subir'} logo<input type="file" accept="image/*" hidden onchange="kitLogo(this.files[0])"></label>
+            ${foto ? `<button class="btn btn-ghost btn-sm" onclick="kitP.fotoNueva='';kitKeep();kitPaint()">Quitar</button>` : ''}
+          </div>
+        </div>
+        <div class="cgv-hint">Sin logo, arriba sale el nombre de su empresa en letras.</div>
+        <label style="display:flex;gap:8px;align-items:center;margin:12px 0 4px;font-size:13px"><input type="checkbox" id="kit-pub" ${p.publicada || !p.existe ? 'checked' : ''}> Página activa</label>
+        ${KIT_STATIC.includes(kitSlug(p.pagina)) ? `<div class="cgv-hint">ℹ️ connectrgv.com/${escHtml(kitSlug(p.pagina))} es la página que armamos a mano. Sigue funcionando igual; para que use lo de aquí, borra su carpeta <b>${escHtml(kitSlug(p.pagina))}</b> en SiteGround.</div>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button class="btn btn-primary" id="kit-save" onclick="kitSave()">💾 ${p.existe ? 'Guardar cambios' : 'Crear su página'}</button>
+          ${live ? `<a class="btn btn-ghost" href="${kitUrl()}" target="_blank" rel="noopener">👁 Ver página</a>` : ''}
+        </div>
+      </div>
+      <div class="kit-side ${live ? '' : 'off'}">
+        <div class="cgv-sec-h" style="margin-top:0">2 · Lo que se le entrega</div>
+        ${live ? `
+          <div class="kit-qr">${window.qrcode ? kitQrSvg(kitUrl()) : '<div class="cgv-hint">Sin generador de QR</div>'}</div>
+          <div class="kit-link">${escHtml(KIT_SITE + '/' + p.pagina)}</div>
+          <div class="kit-btns">
+            <button class="btn btn-ghost btn-sm" onclick="kitDlQr()">⬇ QR (imagen)</button>
+            <button class="btn btn-ghost btn-sm" onclick="kitCards()">🖨 Tarjetas de bienvenida</button>
+            <button class="btn btn-ghost btn-sm" onclick="segCopy(${escHtml(JSON.stringify(kitUrl()))})">📋 Copiar enlace</button>
+            ${phoneDigits(p.telefono).length === 10 ? `<button class="btn btn-ghost btn-sm" onclick="kitWa()">🟢 Mandárselo por WhatsApp</button>` : ''}
+          </div>
+          ${p.correo ? `<button class="btn btn-primary btn-full" style="margin-top:10px" onclick="kitMail(this)">✉️ Mandarle su kit a ${escHtml(p.correo)}</button>
+            <div class="cgv-hint">Le llega su enlace y el QR adjunto, a nombre de ConnectRGV.</div>`
+            : `<div class="cgv-hint" style="margin-top:10px">✉️ Para mandárselo por correo, ponle su correo en 🤝 Socios → ✏️ Editar.</div>`}
+        ` : `<div class="cgv-hint">${p.existe && !p.publicada ? 'La página está apagada. Actívala y guarda para sacar su QR y sus tarjetas.' : 'Crea su página primero. Luego aquí sale su QR, sus tarjetas para imprimir y el mensaje para mandárselo.'}</div>`}
+      </div>
+    </div>`, true);
+}
+function kitSlugHint(v) {
+  const st = kitSlugState(v), h = document.getElementById('kit-slug-h');
+  h.style.color = st.ok ? 'var(--green)' : 'var(--red)';
+  h.textContent = (st.ok ? '✓ ' : '✗ ') + st.msg + (st.ok && st.s !== v ? ` · quedará: ${KIT_SITE}/${st.s}` : '');
+}
+// Guarda lo escrito antes de repintar (al subir o quitar el logo)
+function kitKeep() {
+  const v = id => document.getElementById(id);
+  if (!v('kit-slug')) return;
+  kitP.pagina = v('kit-slug').value; kitP.nombre = v('kit-nombre').value; kitP.empresa = v('kit-empresa').value; kitP.publicada = v('kit-pub').checked;
+}
+// Logo: se achica en el navegador para que quepa en la hoja (máx. ~45 KB)
+function kitLogo(file) {
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { toast('Escoge una imagen.', 'error'); return; }
+  const rd = new FileReader();
+  rd.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height, out = '';
+      for (const [mw, mh, q] of [[480, 180, .9], [400, 150, .85], [320, 120, .8], [260, 100, .75], [200, 80, .7]]) {
+        const k = Math.min(1, mw / w, mh / h), cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(w * k)); cv.height = Math.max(1, Math.round(h * k));
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        out = cv.toDataURL('image/webp', q);
+        if (!/^data:image\/webp/.test(out)) out = cv.toDataURL('image/png');
+        if (out.length < 45000) break;
+      }
+      if (out.length >= 45000) { toast('Esa imagen es muy pesada aun achicada. Prueba con otra.', 'error'); return; }
+      kitKeep(); kitP.fotoNueva = out; kitPaint();
+    };
+    img.onerror = () => toast('No pude abrir esa imagen.', 'error');
+    img.src = rd.result;
+  };
+  rd.readAsDataURL(file);
+}
+async function kitSave() {
+  kitKeep();
+  const st = kitSlugState(kitP.pagina);
+  if (!st.ok) { toast(escHtml(st.msg), 'error'); return; }
+  if (!kitP.nombre.trim()) { toast('Escribe el nombre.', 'error'); return; }
+  const btn = document.getElementById('kit-save'); if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  const data = { clave: kitP.clave || '', socioId: kitP.socioId || (kitP.ref && kitP.ref.socioId) || '', pagina: st.s, nombre: kitP.nombre.trim(), empresa: kitP.empresa.trim(), publicada: kitP.publicada };
+  if (kitP.fotoNueva !== undefined) data.foto = kitP.fotoNueva;
+  try {
+    const r = await apiPost({ action: 'cgvPageSave', data: JSON.stringify(data) });
+    const ref = kitP.ref;
+    kitP = Object.assign(r.page, { ref, fotoNueva: undefined, paginaOrig: r.page.pagina });
+    if (cgvData) cgvLoad(true).catch(() => {});
+    toast(kitP.publicada ? `✅ Lista: ${KIT_SITE}/${escHtml(kitP.pagina)}` : 'Guardado (página apagada).', 'success', 4000);
+    kitPaint();
+  } catch (e) { toast(escHtml(e.message), 'error', 5000); if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar'; } }
+}
+function kitDlQr() {
+  const a = document.createElement('a');
+  a.href = kitQrPng(kitUrl(), 1200); a.download = `QR-${kitP.pagina}.png`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function kitWaText() {
+  const first = String(kitP.nombre || '').trim().split(/\s+/)[0] || '';
+  return `Hola ${first}, ${cgvSaludo()}. Ya quedó lista su página: ${KIT_SITE}/${kitP.pagina}\n\nCuando le entregue una casa a alguien, nada más compártale ese enlace. Sus clientes llenan sus datos ahí, a mí me llegan marcados como suyos y yo le voy avisando cómo va cada uno.\n\n¿No le molesta si le llevo unas tarjetas impresas con su código QR para que las deje en las casas?`;
+}
+function kitWa() { waOpen(`https://wa.me/1${phoneDigits(kitP.telefono)}?text=${encodeURIComponent(kitWaText())}`); }
+async function kitMail(btn) {
+  if (!confirm(`¿Mandarle su enlace y su QR a ${kitP.correo}?`)) return;
+  btn.disabled = true; btn.textContent = 'Mandando…';
+  try {
+    const qr = kitQrPng(kitUrl(), 900).replace(/^data:image\/png;base64,/, '');
+    await apiPost({ action: 'cgvKitMail', data: JSON.stringify({ clave: kitP.clave, socioId: kitP.socioId, qr }) });
+    toast(`✉️ Le mandé su kit a ${escHtml(kitP.correo)}.`, 'success', 4000);
+    btn.textContent = '✓ Enviado';
+  } catch (e) { toast(escHtml(e.message), 'error', 5000); btn.disabled = false; btn.textContent = '✉️ Mandar otra vez'; }
+}
+// Tarjetas de bienvenida: 2 por hoja carta, listas para imprimir o "Guardar como PDF"
+function kitCards() {
+  const p = kitP, url = kitUrl(), qr = kitQrSvg(url), quien = p.empresa || p.nombre, foto = p.foto;
+  const esc = escHtml;
+  const card = `<section class="card">
+    <div class="top">${foto ? `<img class="plogo" src="${foto}" alt="">` : `<p class="pname">${esc(quien)}</p>`}<span class="bar"></span>
+      <img class="clogo" src="https://${KIT_SITE}/assets/connectrgv-logo.svg" alt="ConnectRGV"></div>
+    <p class="eyebrow">Un regalo de ${esc(p.nombre)}</p>
+    <h1>Bienvenido a tu nueva casa.</h1>
+    <p class="lead">Te dejamos internet, luz y celular listos para el día de tu mudanza. Una persona te atiende de principio a fin, y a ti no te cuesta nada.</p>
+    <div class="row"><div class="qr">${qr}</div>
+      <div class="info"><p class="eyebrow">Escanea o llama</p><p class="tel">(956) 467-6695</p><p class="url">${esc(KIT_SITE + '/' + p.pagina)}</p>
+        <p class="en">Welcome home. Scan or call and we'll set up your internet, electricity and phone, at no cost to you.</p></div></div>
+    <p class="disc">${esc(quien)} puede recibir una compensación por recomendar este servicio. Internet a través de MirComm, retailer autorizado.</p>
+  </section>`;
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Tarjetas · ${esc(quien)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+@page{size:letter;margin:0}*{box-sizing:border-box}body{margin:0;font-family:'Inter Tight',Arial,sans-serif;color:#111312;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:8.5in;height:11in;display:flex;flex-direction:column}
+.card{height:5.5in;padding:.5in .6in .35in;display:flex;flex-direction:column;position:relative}
+.card+.card{border-top:1px dashed #B9B5AC}
+.top{display:flex;align-items:center;gap:12px}.pname{margin:0;max-width:1.6in;font-size:10pt;line-height:1.2;font-weight:600}
+.plogo{max-height:.42in;max-width:1.7in;object-fit:contain}.bar{width:1px;height:.3in;background:#D9D5CD}.clogo{height:.3in}
+.eyebrow{margin:.22in 0 0;font-size:7.5pt;letter-spacing:.18em;text-transform:uppercase;color:#5B615E}
+h1{margin:.06in 0 0;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28pt;line-height:1}
+.lead{margin:.1in 0 0;max-width:5.6in;font-size:9.5pt;line-height:1.45;color:#3A403D}
+.row{display:flex;align-items:center;gap:.3in;margin-top:.18in}
+.qr{width:1.75in;height:1.75in;padding:.12in;border:1px solid #DCD8CF;border-radius:10px;background:#fff}.qr svg{width:100%;height:100%;display:block}
+.info .eyebrow{margin:0}.tel{margin:.04in 0 0;font-family:'Instrument Serif',Georgia,serif;font-size:22pt;line-height:1.1}
+.url{margin:.04in 0 0;font-size:9.5pt;font-weight:600}.en{margin:.1in 0 0;max-width:3.4in;font-size:8pt;line-height:1.4;color:#4A504D}
+.disc{margin:auto 0 0;font-size:6.5pt;color:#6B706C}
+.tip{font:13px Arial;padding:12px;background:#FFF7E0;border-bottom:1px solid #E8D9A8;text-align:center}@media print{.tip{display:none}}
+</style></head><body><div class="tip">Se abre la ventana para imprimir. Para guardarlo, escoge "Guardar como PDF". Corta por la línea punteada.</div>
+<div class="page">${card}${card}</div>
+<script>Promise.all([document.fonts.ready].concat([].map.call(document.images,function(i){return i.complete?0:new Promise(function(r){i.onload=i.onerror=r;})}))).then(function(){setTimeout(function(){window.print();},300);});<\/script>
+</body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { toast('El navegador bloqueó la ventana. Permite ventanas emergentes para el Hub.', 'error', 5000); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
+// ── Escoger socio (botón en 🤝 Socios y acceso directo #kit) ──
+async function kitPicker() {
+  openModal(`<div class="modal-title">🧰 Página y kit de socio <button class="modal-close" onclick="closeModal()">✕</button></div><div class="loading"><div class="spinner"></div></div>`);
+  try { if (!socData) socData = await apiGet({ action: 'socGet' }); }
+  catch (e) { openModal(`<div class="modal-title">🧰 Página y kit <button class="modal-close" onclick="closeModal()">✕</button></div><div class="act-hint" style="color:var(--red)">${escHtml(e.message)}</div>`); return; }
+  const P = socData.partners.filter(p => p.active !== 'no').sort((a, b) => a.name.localeCompare(b.name));
+  openModal(`<div class="modal-title">🧰 Página y kit de socio <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="cgv-hint" style="margin:0 0 10px">Escoge al socio para armar o cambiar su página de ${KIT_SITE} y sacar su QR y sus tarjetas.</div>
+    <input class="search-input" style="width:100%;margin-bottom:10px" placeholder="🔍 Buscar socio…" oninput="document.querySelectorAll('.kit-pick').forEach(b=>b.style.display=b.dataset.n.includes(this.value.toLowerCase())?'':'none')">
+    <div class="kit-picks">${P.map(p => `<button class="kit-pick" data-n="${escHtml((p.name + ' ' + (p.property || '')).toLowerCase())}" onclick="kitOpen({socioId:'${p.id}'})"><b>${escHtml(p.name)}</b><span>${escHtml(p.property || '')}</span></button>`).join('') || '<div class="cgv-hint">Todavía no hay socios.</div>'}</div>
+    <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="kitAfterNew=true;socOpenPartner('')">＋ Socio nuevo</button>`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -7669,6 +7928,7 @@ function renderSociosBody() {
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="socOpenRef('')">＋ Referido</button>
         <button class="btn btn-ghost" onclick="socOpenPartner('')">＋ Socio</button>
+        <button class="btn btn-ghost" onclick="kitPicker()">🧰 Página y kit</button>
         <button class="btn btn-ghost" onclick="socOpenConfig()">⚙ Reglas</button>
         <button class="btn btn-ghost" onclick="renderSocios()">↻</button>
       </div>
@@ -7980,6 +8240,7 @@ function socPartnersTab() {
       <div class="total-row"><span>Pagado (total)</span><span>${fmtMoney(s.paid)}</span></div>
       ${+p.pendingDebt ? `<div class="total-row"><span>Saldo por descontar</span><span style="color:var(--red)">−${fmtMoney(+p.pendingDebt)}</span></div>` : ''}
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="socOpenPartner('${p.id}')">✏️ Editar</button>
+        <button class="btn btn-ghost btn-sm" onclick="kitOpen({socioId:'${p.id}'})">🧰 Página y kit</button>
         <button class="btn btn-ghost btn-sm" onclick="socTab='referidos';socFilter={partner:'${p.id}',status:'all',carrier:'',q:''};renderSociosBody()">Ver referidos</button>
         <button class="btn btn-ghost btn-sm" onclick="socOpenRef('',{partnerId:'${p.id}'})">＋ Referido</button></div></div>`; };
   const act = D.partners.filter(p => p.active !== 'no').sort((a, b) => stats(b).year - stats(a).year || a.name.localeCompare(b.name));
@@ -8039,6 +8300,8 @@ async function socSavePartner(id) {
       toast(/cgvPartnerEmail|unknown|desconocida/i.test(e.message) ? 'Socio guardado, pero el correo no: falta actualizar Concierge.gs en Apps Script.' : 'Socio guardado, pero el correo no: ' + escHtml(e.message), 'error', 6000);
     }
   }
+  if (kitAfterNew && !id && r.id) { kitAfterNew = false; if (currentPage === 'socios') renderSociosBody(); kitOpen({ socioId: r.id }); return; }
+  kitAfterNew = false;
   closeModal(); renderSociosBody();
 }
 async function socDeletePartner(id) {
