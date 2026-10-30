@@ -7194,6 +7194,7 @@ function cgvModal() {
       ${cgvPhoneBtns(r, true)}
       ${r.direccion ? `<button class="btn btn-ghost" onclick="segCopy(${escHtml(JSON.stringify([r.direccion, r.zip && !String(r.direccion).includes(r.zip) ? r.zip : ''].filter(Boolean).join(' ')))})">📋 Copiar dirección</button>` : ''}
       ${!['Instalado', 'No avanzó'].includes(r.estatus) ? `<button class="btn btn-ghost" onclick="cgvAttempt()">📵 No contestó</button>` : ''}
+      <button class="btn btn-ghost" onclick="cgvGuia()">📘 Mandar guía${(r.historial || []).some(h => /gu[ií]a de mudanza/i.test(h.x || '')) ? ' ✓' : ''}</button>
     </div>
 
     <div class="cgv-sec-h">Servicios que eligió</div>
@@ -7317,6 +7318,57 @@ function cgvLost() {
 function cgvLostGo() {
   const r = cgvFind(cgvOpenId), m = document.querySelector('#cgv-mot .chip.on')?.dataset.v || 'Otro', x = document.getElementById('cgv-mot-x').value.trim();
   cgvSend({ tipo: r.tipo, id: r.id, estatus: 'No avanzó', motivo: x ? `${m}: ${x}` : m, elegidos: cgvCleanDraft() }, 'No avanzó');
+}
+// ── 📘 Guía gratis de mudanza (connectrgv.com/guia): agua y basura de su ciudad, homestead y cambio de domicilio ──
+const CGV_CITIES = { 'mcallen': 'McAllen', 'mission': 'Mission', 'edinburg': 'Edinburg', 'pharr': 'Pharr', 'san-juan': 'San Juan', 'alamo': 'Alamo',
+  'donna': 'Donna', 'weslaco': 'Weslaco', 'mercedes': 'Mercedes', 'hidalgo': 'Hidalgo', 'palmhurst': 'Palmhurst', 'palmview': 'Palmview', 'alton': 'Alton',
+  'la-joya': 'La Joya', 'elsa': 'Elsa', 'edcouch': 'Edcouch', 'brownsville': 'Brownsville', 'harlingen': 'Harlingen', 'san-benito': 'San Benito',
+  'los-fresnos': 'Los Fresnos', 'la-feria': 'La Feria', 'port-isabel': 'Port Isabel', 'raymondville': 'Raymondville', 'rio-grande-city': 'Rio Grande City', 'roma': 'Roma' };
+function cgvCityOf(r) {
+  const t = String(r.direccion || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  let best = '';
+  Object.entries(CGV_CITIES).forEach(([k, n]) => { const i = t.lastIndexOf(n.toLowerCase()); if (i >= 0 && (!best || i > best.i)) best = { k, i }; });
+  return best ? best.k : '';
+}
+function cgvGuiaUrl(r, city) {
+  const first = String(r.nombre || '').trim().split(/\s+/)[0] || '';
+  const q = new URLSearchParams(); if (city) q.set('c', city); if (first) q.set('n', first);
+  return `https://connectrgv.com/guia/${q.toString() ? '?' + q : ''}`;
+}
+function cgvGuiaMsg(r, city) {
+  const first = String(r.nombre || '').trim().split(/\s+/)[0] || '';
+  return `Hola ${first}, ${cgvSaludo()}. Le comparto una guía gratis para su mudanza${city ? ' a ' + CGV_CITIES[city] : ''}: a quién hablarle para el agua y la basura, cómo pedir la exención homestead si compró, y una lista para el cambio de domicilio.\n\n${cgvGuiaUrl(r, city)}\n\nCualquier cosa, aquí estoy.`;
+}
+function cgvGuia() {
+  const r = cgvFind(cgvOpenId); if (!r) return;
+  const city = cgvCityOf(r), ph = phoneDigits(r.telefono);
+  openModalStack(`<div class="modal-title">📘 Guía de mudanza</div>
+    <div class="form-group"><label class="form-label">Su ciudad</label>
+      <select class="form-input form-select" id="cgv-gc" onchange="cgvGuiaPrev()"><option value="">— la escoge él/ella —</option>${Object.entries(CGV_CITIES).sort((a, b) => a[1].localeCompare(b[1])).map(([k, n]) => `<option value="${k}" ${k === city ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      ${city ? '' : '<div class="cgv-hint">No la encontré en su dirección; escógela si la sabes.</div>'}</div>
+    <div class="cgv-prev"><div class="s">Mensaje</div><pre id="cgv-gmsg"></pre></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+      ${ph.length === 10 ? `<button class="btn btn-primary" onclick="cgvGuiaSend('wa')">🟢 Mandar por WhatsApp</button>` : ''}
+      ${r.correo ? `<button class="btn btn-ghost" onclick="cgvGuiaSend('mail')">✉️ Por correo</button>` : ''}
+      <button class="btn btn-ghost" onclick="cgvGuiaSend('copy')">📋 Copiar mensaje</button>
+      <a class="btn btn-ghost" id="cgv-gview" href="#" target="_blank" rel="noopener">👁 Ver guía</a>
+      <button class="btn btn-ghost" onclick="cgvModal()">Regresar</button>
+    </div>`);
+  cgvGuiaPrev();
+}
+function cgvGuiaPrev() {
+  const r = cgvFind(cgvOpenId), c = document.getElementById('cgv-gc').value;
+  document.getElementById('cgv-gmsg').textContent = cgvGuiaMsg(r, c);
+  document.getElementById('cgv-gview').href = cgvGuiaUrl(r, c);
+}
+async function cgvGuiaSend(how) {
+  const r = cgvFind(cgvOpenId), c = document.getElementById('cgv-gc').value, msg = cgvGuiaMsg(r, c);
+  if (how === 'wa') waOpen(`https://wa.me/1${phoneDigits(r.telefono)}?text=${encodeURIComponent(msg)}`);
+  else if (how === 'mail') location.href = `mailto:${encodeURIComponent(r.correo)}?subject=${encodeURIComponent('Guía de mudanza · ConnectRGV')}&body=${encodeURIComponent(msg)}`;
+  else { try { await navigator.clipboard.writeText(msg); toast('Mensaje copiado.', 'success'); } catch (e) { toast('No se pudo copiar.', 'error'); } }
+  // Queda en su historial para el seguimiento
+  const via = { wa: 'WhatsApp', mail: 'correo', copy: 'mensaje copiado' }[how];
+  await cgvSend({ tipo: r.tipo, id: r.id, nota: `📘 Guía de mudanza${c ? ' (' + CGV_CITIES[c] + ')' : ''} por ${via}` }, '');
 }
 // El modal del Hub es uno solo: los diálogos chicos reemplazan el contenido y "Cancelar" regresa al detalle
 function openModalStack(html) { openModal(html, false); }
@@ -7672,9 +7724,9 @@ function kitCards() {
   // Arriba en inglés, abajo en español
   const T = {
     en: { gift: 'A gift from', h: 'Welcome to your new home.', lead: 'We’ll have your internet, electricity and phone ready for moving day. One person helps you from start to finish, at no cost to you.',
-      scan: 'Scan or call', other: '¿Prefieres español? Llámanos, hablamos español.', disc: `${quien} may receive compensation for referring this service. Internet through MirComm, authorized retailer.` },
+      scan: 'Scan or call', guide: 'Free moving guide:', other: '¿Prefieres español? Llámanos, hablamos español.', disc: `${quien} may receive compensation for referring this service. Internet through MirComm, authorized retailer.` },
     es: { gift: 'Un regalo de', h: 'Bienvenido a tu nueva casa.', lead: 'Te dejamos internet, luz y celular listos para el día de tu mudanza. Una persona te atiende de principio a fin, y a ti no te cuesta nada.',
-      scan: 'Escanea o llama', other: 'We speak English too. Scan or call us.', disc: `${quien} puede recibir una compensación por recomendar este servicio. Internet a través de MirComm, retailer autorizado.` }
+      scan: 'Escanea o llama', guide: 'Guía gratis de mudanza:', other: 'We speak English too. Scan or call us.', disc: `${quien} puede recibir una compensación por recomendar este servicio. Internet a través de MirComm, retailer autorizado.` }
   };
   const card = L => `<section class="card" lang="${L}">
     <div class="top">${foto ? `<img class="plogo" src="${foto}" alt="">` : `<p class="pname">${esc(quien)}</p>`}<span class="bar"></span>
@@ -7684,6 +7736,7 @@ function kitCards() {
     <p class="lead">${T[L].lead}</p>
     <div class="row"><div class="qr">${qr}</div>
       <div class="info"><p class="eyebrow">${T[L].scan}</p><p class="tel">(956) 467-6695</p><p class="url">${esc(KIT_SITE + '/' + p.pagina)}</p>
+        <p class="guia">${T[L].guide} <b>${KIT_SITE}/guia</b></p>
         <p class="en">${T[L].other}</p></div></div>
     <p class="disc">${esc(T[L].disc)}</p>
   </section>`;
@@ -7702,7 +7755,7 @@ h1{margin:.06in 0 0;font-family:'Instrument Serif',Georgia,serif;font-weight:400
 .row{display:flex;align-items:center;gap:.3in;margin-top:.18in}
 .qr{width:1.75in;height:1.75in;padding:.12in;border:1px solid #DCD8CF;border-radius:10px;background:#fff}.qr svg{width:100%;height:100%;display:block}
 .info .eyebrow{margin:0}.tel{margin:.04in 0 0;font-family:'Instrument Serif',Georgia,serif;font-size:22pt;line-height:1.1}
-.url{margin:.04in 0 0;font-size:9.5pt;font-weight:600}.en{margin:.1in 0 0;max-width:3.4in;font-size:8pt;line-height:1.4;color:#4A504D}
+.url{margin:.04in 0 0;font-size:9.5pt;font-weight:600}.guia{margin:.06in 0 0;font-size:8.5pt;color:#1E3A32}.en{margin:.1in 0 0;max-width:3.4in;font-size:8pt;line-height:1.4;color:#4A504D}
 .disc{margin:auto 0 0;font-size:6.5pt;color:#6B706C}
 .tip{font:13px Arial;padding:12px;background:#FFF7E0;border-bottom:1px solid #E8D9A8;text-align:center}@media print{.tip{display:none}}
 </style></head><body><div class="tip">Se abre la ventana para imprimir. Para guardarlo, escoge "Guardar como PDF". Arriba va en inglés y abajo en español; corta por la línea punteada.</div>
