@@ -71,9 +71,22 @@ footer{background:#111312;color:#B7BBB7;font-size:15px}
 footer .wrap{padding-top:40px;padding-bottom:36px;display:flex;flex-wrap:wrap;gap:20px 48px;justify-content:space-between;align-items:center}
 footer a{color:#F3F1EC}
 .small{font-size:13px;color:#9A9F9B}
+dialog.ll{border:0;border-radius:22px;padding:0;width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 32px);color:#111312}
+dialog.ll::backdrop{background:rgba(17,19,18,.55)}
+.ll form,.ll .ok{padding:26px 24px 24px}
+.ll h2{font-size:34px}
+.ll p.s{margin:8px 0 0;color:#4A504D;font-size:15px}
+.ll label{display:block;margin-top:16px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#5B615E}
+.ll input{width:100%;min-height:48px;margin-top:6px;padding:0 12px;border:1px solid #A9ABA7;border-radius:12px;background:#fff;font:inherit;font-size:17px;color:#111312}
+.ll input:focus{outline:2px solid #1E3A32;outline-offset:1px}
+.ll .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ll .x{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:20px;border:0;background:#F4F2EE;font-size:20px;cursor:pointer}
+.ll .err{margin:12px 0 0;color:#A3261B;font-size:14px}
+.ll button.btn{border:0;cursor:pointer;font:inherit;font-size:16px;font-weight:500}
+@media (max-width:480px){.ll .row2{grid-template-columns:1fr}}
 [hidden]{display:none!important}
 @media (max-width:600px){.rows li{flex-direction:column;gap:2px}.rows .k{flex:none}.pick select{min-width:0;width:100%}.pick>div{width:100%}}
-@media print{header .pill,.lang,.pick,.toc,.cta,footer .small{display:none!important}section.blk{padding:24px 0}body{font-size:14px}}
+@media print{dialog,header .pill,.lang,.pick,.toc,.cta,footer .small{display:none!important}section.blk{padding:24px 0}body{font-size:14px}}
 </style>
 </head>
 <body>
@@ -129,10 +142,33 @@ footer a{color:#F3F1EC}
 <section class="blk"><div class="wrap">
   <div class="cta">
     <div><h2 data-t="ctaH"></h2><p data-t="ctaP"></p></div>
-    <div class="btns" style="margin:0"><a class="btn" href="tel:+19564676695" data-t="ctaCall"></a><a class="btn ghost" style="border-color:#F4F2EE;color:#F4F2EE" href="/#empezar" data-t="ctaWeb"></a></div>
+    <div class="btns" style="margin:0"><a class="btn" href="tel:+19564676695" data-t="ctaCall"></a><a class="btn ghost" style="border-color:#F4F2EE;color:#F4F2EE" href="#llamar" data-t="ctaWeb"></a></div>
   </div>
 </div></section>
 </main>
+
+<dialog class="ll" id="llamar" aria-labelledby="ll-h">
+  <button type="button" class="x" data-close aria-label="Cerrar">×</button>
+  <form id="ll-form" novalidate>
+    <h2 id="ll-h" data-t="llH"></h2>
+    <p class="s" data-t="llP"></p>
+    <label for="ll-n" data-t="llName"></label><input id="ll-n" name="nombre" autocomplete="name" required maxlength="80">
+    <label for="ll-t" data-t="llTel"></label><input id="ll-t" name="telefono" type="tel" autocomplete="tel" inputmode="tel" required maxlength="20">
+    <div class="row2">
+      <div><label for="ll-c" data-t="llCity"></label><input id="ll-c" name="ciudad" autocomplete="address-level2" maxlength="40"></div>
+      <div><label for="ll-f" data-t="llDate"></label><input id="ll-f" name="fecha" type="date"></div>
+    </div>
+    <label for="ll-d" data-t="llAddr"></label><input id="ll-d" name="direccion" autocomplete="street-address" maxlength="160">
+    <p class="err" id="ll-err" hidden></p>
+    <div class="btns" style="margin-top:20px"><button type="submit" class="btn" id="ll-go" data-t="llSend"></button></div>
+    <p class="s" style="font-size:13px" data-t="llFine"></p>
+  </form>
+  <div class="ok" id="ll-ok" hidden>
+    <h2 data-t="llOkH"></h2>
+    <p class="s" data-t="llOkP"></p>
+    <div class="btns" style="margin-top:20px"><button type="button" class="btn" data-close data-t="llBack"></button></div>
+  </div>
+</dialog>
 
 <footer><div class="wrap">
   <img src="/assets/connectrgv-logo-white.svg" alt="ConnectRGV" width="152" height="36" style="display:block">
@@ -203,13 +239,18 @@ footer a{color:#F3F1EC}
         ['Guarda la confirmación', 'Revisa en tu siguiente aviso de avalúo que la exención aparezca.']],
       cadH: 'Tu distrito de avalúo', cadOnline: 'Pedirla en línea', homeNote: 'Las reglas y montos los fija el estado y pueden cambiar; confirma con tu distrito. No es asesoría legal.',
       addrH: 'Cambio de domicilio', addrLead: 'Una lista para que no se te pase nada. Ve marcando lo que ya hiciste; se queda guardado en tu teléfono.',
-      addr: [['Internet, luz y celular', 'Esto lo hacemos por ti, gratis: un solo contacto para todo, y queda listo para el día que llegues. Pide que te llamemos o márcanos al (956) 467-6695.', '/#empezar', 'net'],
+      addr: [['Internet, luz y celular', 'Esto lo hacemos por ti, gratis: un solo contacto para todo, y queda listo para el día que llegues. Pide que te llamemos o márcanos al (956) 467-6695.', '#llamar', 'net'],
         ['Correo (USPS)', 'En usps.com/move. Cobra $1.10 para verificar tu identidad; no pagues en otras páginas que cobran más.', 'https://www.usps.com/move', 'usps'],
         ['Licencia de manejar o ID (DPS)', 'Tienes 30 días después de mudarte. Lo más rápido es en línea en Texas.gov.', 'https://www.texas.gov/texas-by-texas/', 'dps'],
         ['Registro de tu carro', 'Cambia la dirección del registro con TxDMV o en la oficina de impuestos (Tax Office) de tu condado.', 'https://www.txdmv.gov/', 'car'],
         ['Registro de votante', 'Actualízalo en VoteTexas.gov. Si te cambiaste a otro condado, tienes que llenar una solicitud nueva.', 'https://www.votetexas.gov/', 'vote'],
         ['Banco, tarjetas y seguro del carro', 'Tu seguro puede cambiar de precio con la dirección nueva.', '', 'bank'],
         ['Escuela, trabajo, doctores y farmacia', '', '', 'other']],
+      llH: 'Te llamamos', llP: 'Déjanos tu nombre y teléfono. Te llamamos el mismo día hábil para dejar listos internet, luz y celular en tu casa nueva.',
+      llName: 'Tu nombre', llTel: 'Teléfono', llCity: 'Ciudad', llDate: 'Fecha de mudanza', llAddr: 'Dirección nueva (si ya la tienes)',
+      llSend: 'Que me llamen', llSending: 'Enviando…', llFine: 'Es gratis. Solo usamos tus datos para ayudarte con tu mudanza.',
+      llNeed: 'Escribe tu nombre y un teléfono de 10 dígitos.', llFail: 'No se pudo enviar. Llámanos al (956) 467-6695.',
+      llOkH: '¡Listo!', llOkP: 'Recibimos tus datos. Te llamamos el mismo día hábil. Si te urge, márcanos al (956) 467-6695.', llBack: 'Volver a la guía',
       ctaH: 'Internet, luz y celular: de eso nos encargamos.', ctaP: 'Una persona te atiende de principio a fin y te deja todo listo para el día que llegas. A ti no te cuesta nada.',
       ctaCall: 'Llamar al (956) 467-6695', ctaWeb: 'Que me llamen', foot: 'Guía informativa de ConnectRGV. Revisada el {r}. Los requisitos los pone cada ciudad o dependencia y pueden cambiar.'
     },
@@ -239,13 +280,18 @@ footer a{color:#F3F1EC}
         ['Keep the confirmation', 'Check that the exemption shows on your next appraisal notice.']],
       cadH: 'Your appraisal district', cadOnline: 'File online', homeNote: 'Rules and amounts are set by the state and can change; confirm with your district. Not legal advice.',
       addrH: 'Change of address', addrLead: 'A checklist so nothing slips. Check off what you have done; it stays saved on your phone.',
-      addr: [['Internet, electricity and phone', 'We do this for you, free: one contact for everything, ready for move-in day. Request a call or call us at (956) 467-6695.', '/#empezar', 'net'],
+      addr: [['Internet, electricity and phone', 'We do this for you, free: one contact for everything, ready for move-in day. Request a call or call us at (956) 467-6695.', '#llamar', 'net'],
         ['Mail (USPS)', 'At usps.com/move. It costs $1.10 to verify your identity; do not pay other sites that charge more.', 'https://www.usps.com/move', 'usps'],
         ['Driver license or ID (DPS)', 'You have 30 days after moving. Fastest is online at Texas.gov.', 'https://www.texas.gov/texas-by-texas/', 'dps'],
         ['Vehicle registration', 'Update the address with TxDMV or at your county Tax Office.', 'https://www.txdmv.gov/', 'car'],
         ['Voter registration', 'Update it at VoteTexas.gov. If you moved to another county, you need a new application.', 'https://www.votetexas.gov/', 'vote'],
         ['Bank, cards and car insurance', 'Your insurance price may change with the new address.', '', 'bank'],
         ['School, work, doctors and pharmacy', '', '', 'other']],
+      llH: 'We’ll call you', llP: 'Leave your name and phone number. We’ll call you the same business day to get internet, electricity and phone ready at your new home.',
+      llName: 'Your name', llTel: 'Phone', llCity: 'City', llDate: 'Move-in date', llAddr: 'New address (if you have it)',
+      llSend: 'Request a call', llSending: 'Sending…', llFine: 'It’s free. We only use your information to help with your move.',
+      llNeed: 'Enter your name and a 10-digit phone number.', llFail: 'It didn’t go through. Call us at (956) 467-6695.',
+      llOkH: 'All set!', llOkP: 'We got your information and will call you the same business day. If it’s urgent, call (956) 467-6695.', llBack: 'Back to the guide',
       ctaH: 'Internet, electricity and phone: we handle it.', ctaP: 'One person helps you from start to finish and has everything ready for move-in day, at no cost to you.',
       ctaCall: 'Call (956) 467-6695', ctaWeb: 'Request a call', foot: 'Informational guide by ConnectRGV. Checked on {r}. Requirements are set by each city or agency and may change.'
     }
@@ -342,6 +388,46 @@ footer a{color:#F3F1EC}
   document.querySelectorAll('.lang button').forEach(function (b) {
     b.addEventListener('click', function () { L = b.getAttribute('data-lang'); try { localStorage.setItem('cgv_guia_l', L); } catch (x) {} render(); });
   });
+  // Que me llamen: la solicitud cae en la hoja de ConnectRGV (Familias) y en el Concierge del Hub
+  var ENDPOINT = 'https://script.google.com/macros/s/AKfycbxqbu5EMlw3wmq6zEywKCEPJ3_yejlNfKrsMqcuGcU0P2RCHjjPFKhEOzK3f8Ivqw_JNQ/exec';
+  var dlg = document.getElementById('llamar'), lf = document.getElementById('ll-form');
+  function abrirLlamar() {
+    var t = T[L];
+    lf.hidden = false; document.getElementById('ll-ok').hidden = true; document.getElementById('ll-err').hidden = true;
+    if (name && !lf.nombre.value) lf.nombre.value = name;
+    if (C[city] && !lf.ciudad.value) lf.ciudad.value = C[city].n;
+    dlg.querySelector('.x').setAttribute('aria-label', L === 'en' ? 'Close' : 'Cerrar');
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    setTimeout(function () { (lf.nombre.value ? lf.telefono : lf.nombre).focus(); }, 30);
+  }
+  function cerrarLlamar() { if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href="#llamar"]');
+    if (a) { e.preventDefault(); abrirLlamar(); return; }
+    if (e.target.closest && e.target.closest('[data-close]')) cerrarLlamar();
+    else if (e.target === dlg) cerrarLlamar();
+  });
+  lf.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var t = T[L], err = document.getElementById('ll-err'), go = document.getElementById('ll-go');
+    var nom = lf.nombre.value.trim(), tl = lf.telefono.value.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+    if (!nom || tl.length !== 10) { err.textContent = t.llNeed; err.hidden = false; (nom ? lf.telefono : lf.nombre).focus(); return; }
+    err.hidden = true; go.disabled = true; go.textContent = t.llSending;
+    var cd = lf.ciudad.value.trim(), dir = lf.direccion.value.trim();
+    var data = {
+      tipo: 'familia', nombre: nom, telefono: tl.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3'),
+      fecha: lf.fecha.value, direccion: dir ? dir + (cd && dir.toLowerCase().indexOf(cd.toLowerCase()) < 0 ? ', ' + cd : '') : cd,
+      servicios: 'Internet, luz y celular' + (L === 'en' ? ' (habla inglés)' : ''),
+      pagina: '/guia/' + (C[city] ? '?c=' + city : '') + (L === 'en' ? (C[city] ? '&' : '?') + 'l=en' : '')
+    };
+    fetch(ENDPOINT, { method: 'POST', mode: 'no-cors', body: new URLSearchParams(data) }).then(function () {
+      lf.hidden = true; document.getElementById('ll-ok').hidden = false;
+      try { var dn = JSON.parse(localStorage.getItem('cgv_guia_done2') || '{}') || {}; dn.net = true; localStorage.setItem('cgv_guia_done2', JSON.stringify(dn)); } catch (x) {}
+      render();
+    }).catch(function () { err.textContent = t.llFail; err.hidden = false; }).then(function () { go.disabled = false; go.textContent = T[L].llSend; });
+  });
+  lf.addEventListener('input', function () { document.getElementById('ll-err').hidden = true; });
+  if (location.hash === '#llamar') setTimeout(abrirLlamar, 50);
   render();
 })();
 </script>
