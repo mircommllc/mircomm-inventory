@@ -193,16 +193,21 @@ dialog.ll::backdrop{background:rgba(17,19,18,.55)}
     alamo: { n: 'Alamo', co: 'hidalgo', v: 1, w: [{ who: 'City of Alamo', tel: '956-787-0006', opt: 3, docs: ['id', 'lease'], trash: 1, askDeposit: 1, web: 'https://alamotexas.org/government/departments/utilities/' }], also: ['nawsc'] },
     weslaco: { n: 'Weslaco', co: 'hidalgo', v: 1, w: [{ who: 'City of Weslaco · Utility Billing', tel: '956-968-3181', dir: 'City Hall, 255 S. Kansas Ave.', hrs: 'L–V 8–5', how: 'inperson_or_email', mail: 'UBClerk@weslacotx.gov', after3: 1, docs: ['app', 'id', 'lease'], dep: [100, 149], trash: 1, web: 'https://weslacotx.gov/departments/finance/utility_billing.php' }] },
     mercedes: { n: 'Mercedes', co: 'hidalgo', v: 1, w: [{ who: 'City of Mercedes · Utility Billing', tel: '956-565-3114', dir: 'City Hall, 400 S. Ohio Ave.', how: 'inperson', after3: 1, docs: ['idEach', 'idmx', 'lease'], dep: [100, 250], fee: 10, trash: 1, web: 'https://www.cityofmercedes.com/living-in-mercedes/water-and-wastewater/utility-connections/' }] },
-    donna: { n: 'Donna', co: 'hidalgo' }, hidalgo: { n: 'Hidalgo', co: 'hidalgo' },
+    // ask = la ciudad no publica en línea documentos ni depósito: se piden al llamar.
+    donna: { n: 'Donna', co: 'hidalgo', v: 1, w: [{ who: 'City of Donna · Utility Billing', tel: '956-464-3314', dir: 'City Hall, 307 S. 12th St.', ask: 1, web: 'https://cityofdonna.org/146/Pay' }], also: ['nawsc'] },
+    hidalgo: { n: 'Hidalgo', co: 'hidalgo', v: 1, w: [{ who: 'City of Hidalgo · Utility Billing', tel: '956-843-2286', dir: '704 E. Ramon Ayala Dr.', hrs: 'L–V 8–5', email: 'utilities@cityofhidalgo.net', docs: ['app'], ask: 1, web: 'https://cityofhidalgo.net/public-works' }] },
     palmhurst: { n: 'Palmhurst', co: 'hidalgo', zone: ['sharyland', 'agua'] }, palmview: { n: 'Palmview', co: 'hidalgo', zone: ['agua', 'sharyland'] },
     alton: { n: 'Alton', co: 'hidalgo', zone: ['sharyland', 'agua'] }, 'la-joya': { n: 'La Joya', co: 'hidalgo', zone: ['agua'] },
     elsa: { n: 'Elsa', co: 'hidalgo', zone: ['nawsc'] }, edcouch: { n: 'Edcouch', co: 'hidalgo', zone: ['nawsc'] },
     brownsville: { n: 'Brownsville', co: 'cameron', v: 1, w: [{ who: 'Brownsville Public Utilities Board (BPUB)', tel: '956-983-6121', dir: '1425 Robinhood St.', hrs: 'L–V 8–5', how: 'online', docs: ['app', 'idAdults', 'leaseOrLetter'], days: '1–2', bpub: 1, web: 'https://www.bpub.com/account-services/start-stop-service' }] },
     harlingen: { n: 'Harlingen', co: 'cameron', v: 1, w: [{ who: 'Harlingen Waterworks System', tel: '956-430-6100', tel2: '956-406-8001', how: 'phone', docs: ['id', 'ss', 'leaseBuy'], depFrom: 150, hwws: 1, web: 'https://www.hwws.com/customer-services/apply-for-new-service/' }] },
-    'san-benito': { n: 'San Benito', co: 'cameron' }, 'los-fresnos': { n: 'Los Fresnos', co: 'cameron' }, 'la-feria': { n: 'La Feria', co: 'cameron' }, 'port-isabel': { n: 'Port Isabel', co: 'cameron' },
-    raymondville: { n: 'Raymondville', co: 'willacy' },
+    'san-benito': { n: 'San Benito', co: 'cameron', v: 1, w: [{ who: 'City of San Benito · Utility Billing', tel: '956-361-3800', dir: 'City Hall, 485 N. Sam Houston Blvd.', hrs: 'L–V 8–5', how: 'inperson_fax_email', fax: '956-361-3813', docs: ['app', 'idEach', 'idmx', 'lease'], askDeposit: 1, trashSame: 1, after3: 1, valve: 1, web: 'https://cityofsanbenito.com/387/Utility-Billing' }] },
+    'los-fresnos': { n: 'Los Fresnos', co: 'cameron', v: 1, w: [{ who: 'City of Los Fresnos · Utility Billing', tel: '956-233-5768', dir: 'City Hall, 520 E. Ocean Blvd.', ask: 1, web: 'https://losfresnostx.municipalonlinepayments.com/losfresnostx/contact' }] },
+    'la-feria': { n: 'La Feria', co: 'cameron', v: 1, w: [{ who: 'City of La Feria · Utility Billing', tel: '956-797-2261', dir: 'City Hall, 115 E. Commercial Ave.', ask: 1, web: 'https://laferiatx.municipalonlinepayments.com/laferiatx/contact' }] },
+    'port-isabel': { n: 'Port Isabel', co: 'cameron', v: 1, w: [{ who: 'Laguna Madre Water District (LMWD)', tel: '956-943-2626', dir: '105 Port Rd., Port Isabel', hrs: 'L–V 8–5', email: 'customerservice@lmwd.org', ask: 1, lmwd: 1, web: 'https://www.lmwd.org/contact' }] },
+    raymondville: { n: 'Raymondville', co: 'willacy', v: 1, w: [{ who: 'City of Raymondville · Utility Billing', tel: '956-689-2443', dir: 'City Hall, 142 S. 7th St.', email: 'utilities@raymondvilletx.us', ask: 1, web: 'https://raymondvilletx.municipalonlinepayments.com/raymondvilletx/contact' }] },
     'rio-grande-city': { n: 'Rio Grande City', co: 'starr', v: 1, w: [{ who: 'Rio Grande City · Public Utilities', tel: '956-487-0672', dir: 'City Hall, 5332 E. Highway 83', docs: ['id', 'lease'], askDeposit: 1, web: 'https://www.cityofrgc.com/departments/public_utilities_department/index.php' }] },
-    roma: { n: 'Roma', co: 'starr' }
+    roma: { n: 'Roma', co: 'starr', v: 1, w: [{ who: 'City of Roma · Collections Department', tel: '956-849-1411', dir: '201 W. Convent Blvd.', ask: 1, cardFee: 1, web: 'https://www.cityofroma.net/residents/billing' }] }
   };
   var WSC = {
     nawsc: { who: 'North Alamo Water Supply Corp.', tel: '956-383-1618', tel2: '800-734-0620', dir: '420 S. Doolittle Rd., Edinburg', hrs: 'L–V 8–4', web: 'https://www.nawsc.com/customer-service/english-application-for-water-service/' },
@@ -223,13 +228,13 @@ dialog.ll::backdrop{background:rgba(17,19,18,.55)}
       tocWater: '01 · Agua y basura', tocHome: '02 · Homestead', tocAddr: '03 · Cambio de domicilio',
       waterH: 'Agua y basura', waterLead: 'El agua la da la ciudad o una corporación de agua, según la zona. En la mayoría, la basura viene en el mismo recibo del agua. Llama antes de ir: los requisitos pueden cambiar.',
       waterPick: 'Escoge tu ciudad arriba y te decimos a quién le toca.',
-      k: { tel: 'Teléfono', dir: 'Dónde', hrs: 'Horario', how: 'Cómo pedirla', docs: 'Qué llevar', dep: 'Depósito', trash: 'Basura', ojo: 'Ojo' },
-      how: { inperson: 'En persona en la oficina.', inperson_or_email: 'En persona, o por correo a {mail} con la solicitud y copia de tu ID.', inperson_mail_fax: 'En persona, por correo o por fax, con la solicitud llena.', online: 'Con la solicitud en línea de su página.', phone: 'Llamando a servicio al cliente; la solicitud también se puede mandar por correo o dejar en la oficina.' },
+      k: { tel: 'Teléfono', email: 'Correo', dir: 'Dónde', hrs: 'Horario', how: 'Cómo pedirla', docs: 'Qué llevar', dep: 'Depósito', trash: 'Basura', ojo: 'Ojo' },
+      how: { inperson: 'En persona en la oficina.', inperson_or_email: 'En persona, o por correo a {mail} con la solicitud y copia de tu ID.', inperson_mail_fax: 'En persona, por correo o por fax, con la solicitud llena.', online: 'Con la solicitud en línea de su página.', inperson_fax_email: 'En persona. Si no puedes ir, manda a alguien con una carta firmada por ti, o envía los papeles por fax al {fax} o por correo electrónico.', phone: 'Llamando a servicio al cliente; la solicitud también se puede mandar por correo o dejar en la oficina.' },
       docs: { app: 'La solicitud de servicio llena', id: 'Identificación con foto vigente', idEach: 'Identificación vigente de cada persona en la cuenta', idmx: 'Sirven pasaporte, visa o matrícula consular', idAdults: 'Identificación de todos los adultos (inquilinos o los que aparecen en la escritura)', lease: 'Contrato de renta si rentas, o escritura/papeles de cierre si compraste', leaseOrLetter: 'Si rentas: contrato de renta o carta del dueño. Si compraste: escritura (deed of trust)', leaseBuy: 'Contrato de renta o de compra firmado, con los nombres', ss: 'Tarjeta de Seguro Social, pasaporte o acta de nacimiento con el mismo nombre de tu ID', deed: 'Escritura (warranty deed)' },
-      dep: '${a} si eres dueño · ${b} si rentas', depFrom: 'Desde ${a}, más el cargo de conexión ($15 al día siguiente, $25 el mismo día)', fee: ' · más ${a} de cargo de servicio', askDep: 'Pregunta el depósito al llamar.',
-      trashYes: 'Viene en el mismo recibo del agua.', trashApp: 'La ciudad tiene su propia solicitud de servicio de basura; pídela al abrir tu cuenta.',
+      dep: '${a} si eres dueño · ${b} si rentas', depFrom: 'Desde ${a}, más el cargo de conexión ($15 al día siguiente, $25 el mismo día)', fee: ' · más ${a} de cargo de servicio', askDep: 'Pregunta el depósito al llamar.', askDocs: 'No los publican en línea: pregúntalos al llamar. Casi siempre piden identificación con foto y contrato de renta o escritura.',
+      trashYes: 'Viene en el mismo recibo del agua.', trashApp: 'La ciudad tiene su propia solicitud de servicio de basura; pídela al abrir tu cuenta.', trashSame: 'La pides en la misma solicitud del agua; la ciudad cobra agua, drenaje y basura.', trashAsk: 'Pregunta si la basura viene en el mismo recibo.',
       after3: 'Lo que llega después de las 3 pm se procesa al siguiente día hábil.', opt: 'Marca la opción {o}.', days: 'Lo procesan en {d} días hábiles.',
-      bpub: 'En Brownsville, BPUB también da la luz: se abre todo en la misma cuenta.', hwws: 'Las conexiones se hacen de 1 a 8 pm.',
+      bpub: 'En Brownsville, BPUB también da la luz: se abre todo en la misma cuenta.', hwws: 'Las conexiones se hacen de 1 a 8 pm.', valve: 'Tiene que haber una llave de paso visible y todas las llaves de agua cerradas; si no, no te conectan.', lmwd: 'En Port Isabel el agua no la da la ciudad sino el distrito de agua Laguna Madre.', cardFee: 'Pagar con tarjeta tiene un cargo de 3.5%; con cuenta de banco (ACH) no.',
       callWho: 'Llamar', site: 'Ver su página',
       alsoH: 'Si tu casa está fuera de la ciudad, el agua puede ser de:', zoneH: 'En {c} el agua la puede dar, según tu calle:',
       unknown: 'En {c} todavía no tenemos los datos verificados. Llámanos y te decimos a quién le toca tu dirección.',
@@ -264,13 +269,13 @@ dialog.ll::backdrop{background:rgba(17,19,18,.55)}
       tocWater: '01 · Water & trash', tocHome: '02 · Homestead', tocAddr: '03 · Change of address',
       waterH: 'Water & trash', waterLead: 'Water comes from the city or a water supply corporation, depending on the area. In most cities trash is on the same bill. Call before you go: requirements can change.',
       waterPick: 'Pick your city above and we will tell you who to call.',
-      k: { tel: 'Phone', dir: 'Where', hrs: 'Hours', how: 'How to apply', docs: 'Bring', dep: 'Deposit', trash: 'Trash', ojo: 'Note' },
-      how: { inperson: 'In person at the office.', inperson_or_email: 'In person, or email the application and a copy of your ID to {mail}.', inperson_mail_fax: 'In person, by mail or by fax, with the completed application.', online: 'With the online application on their website.', phone: 'Call customer service; applications can also be emailed or dropped off at the office.' },
+      k: { tel: 'Phone', email: 'Email', dir: 'Where', hrs: 'Hours', how: 'How to apply', docs: 'Bring', dep: 'Deposit', trash: 'Trash', ojo: 'Note' },
+      how: { inperson: 'In person at the office.', inperson_or_email: 'In person, or email the application and a copy of your ID to {mail}.', inperson_mail_fax: 'In person, by mail or by fax, with the completed application.', online: 'With the online application on their website.', inperson_fax_email: 'In person. If you cannot go, send someone with a letter you signed, or send the papers by fax to {fax} or by email.', phone: 'Call customer service; applications can also be emailed or dropped off at the office.' },
       docs: { app: 'Completed service application', id: 'Valid photo ID', idEach: 'Valid ID for each person on the account', idmx: 'Passport, visa or consular ID (matrícula) are accepted', idAdults: 'ID for every adult (tenants, or everyone on the deed)', lease: 'Lease if renting, or deed/closing documents if you bought', leaseOrLetter: 'Renting: lease or a letter from the landlord. Owner: deed of trust', leaseBuy: 'Signed lease or purchase agreement with the names', ss: 'Social Security card, passport or birth certificate matching your ID', deed: 'Warranty deed' },
-      dep: '${a} for owners · ${b} for renters', depFrom: 'From ${a}, plus a connection fee ($15 next day, $25 same day)', fee: ' · plus a ${a} service fee', askDep: 'Ask about the deposit when you call.',
-      trashYes: 'It is on the same water bill.', trashApp: 'The city has its own garbage service application; ask for it when you open your account.',
+      dep: '${a} for owners · ${b} for renters', depFrom: 'From ${a}, plus a connection fee ($15 next day, $25 same day)', fee: ' · plus a ${a} service fee', askDep: 'Ask about the deposit when you call.', askDocs: 'They are not posted online: ask when you call. They almost always ask for a photo ID and a lease or deed.',
+      trashYes: 'It is on the same water bill.', trashApp: 'The city has its own garbage service application; ask for it when you open your account.', trashSame: 'Request it on the same application as water; the city bills water, sewer and trash.', trashAsk: 'Ask whether trash comes on the same bill.',
       after3: 'Requests after 3 pm are processed the next business day.', opt: 'Press option {o}.', days: 'Processing takes {d} business days.',
-      bpub: 'In Brownsville, BPUB also provides electricity: it is all one account.', hwws: 'Connections are made from 1 to 8 pm.',
+      bpub: 'In Brownsville, BPUB also provides electricity: it is all one account.', hwws: 'Connections are made from 1 to 8 pm.', valve: 'There must be a visible shut-off valve and every faucet turned off, or they will not connect.', lmwd: 'In Port Isabel water comes from the Laguna Madre Water District, not the city.', cardFee: 'Card payments carry a 3.5% fee; bank draft (ACH) does not.',
       callWho: 'Call', site: 'Website',
       alsoH: 'If your home is outside city limits, water may come from:', zoneH: 'In {c}, water may come from one of these, depending on your street:',
       unknown: 'We have not verified the details for {c} yet. Call us and we will tell you who serves your address.',
@@ -313,20 +318,26 @@ dialog.ll::backdrop{background:rgba(17,19,18,.55)}
   function card(w, t) {
     var r = [];
     if (w.tel) r.push([t.k.tel, tel(w.tel) + (w.tel2 ? ' · ' + tel(w.tel2) : '') + (w.opt ? ' · ' + esc(fill(t.opt, { o: w.opt })) : '')]);
+    if (w.email) r.push([t.k.email, '<a href="mailto:' + esc(w.email) + '">' + esc(w.email) + '</a>']);
     if (w.dir) r.push([t.k.dir, esc(w.dir)]);
     if (w.hrs) r.push([t.k.hrs, esc(L === 'en' ? w.hrs.replace('L–V', 'Mon–Fri') : w.hrs)]);
-    if (w.how) r.push([t.k.how, esc(fill(t.how[w.how], { mail: w.mail || '' }))]);
-    if (w.docs) r.push([t.k.docs, w.docs.map(function (d) { return '• ' + esc(t.docs[d]); }).join('<br>')]);
+    if (w.how) r.push([t.k.how, esc(fill(t.how[w.how], { mail: w.mail || '', fax: w.fax || '' }))]);
+    if (w.docs || w.ask) r.push([t.k.docs, (w.docs || []).map(function (d) { return '• ' + esc(t.docs[d]); }).concat(w.ask ? [esc(t.askDocs)] : []).join('<br>')]);
     if (w.dep) r.push([t.k.dep, esc(money(t.dep, w.dep[0], w.dep[1]) + (w.fee ? t.fee.replace('${a}', '$' + w.fee) : ''))]);
     else if (w.depFrom) r.push([t.k.dep, esc(t.depFrom.replace('${a}', '$' + w.depFrom))]);
-    else if (w.askDeposit) r.push([t.k.dep, esc(t.askDep)]);
+    else if (w.askDeposit || w.ask) r.push([t.k.dep, esc(t.askDep)]);
     if (w.trash) r.push([t.k.trash, esc(t.trashYes)]);
     if (w.trashApp) r.push([t.k.trash, esc(t.trashApp)]);
+    if (w.trashSame) r.push([t.k.trash, esc(t.trashSame)]);
+    if (w.ask && !w.trash && !w.trashApp && !w.trashSame) r.push([t.k.trash, esc(t.trashAsk)]);
     var ojo = [];
     if (w.after3) ojo.push(t.after3);
     if (w.days) ojo.push(fill(t.days, { d: w.days }));
     if (w.bpub) ojo.push(t.bpub);
     if (w.hwws) ojo.push(t.hwws);
+    if (w.valve) ojo.push(t.valve);
+    if (w.lmwd) ojo.push(t.lmwd);
+    if (w.cardFee) ojo.push(t.cardFee);
     if (ojo.length) r.push([t.k.ojo, esc(ojo.join(' '))]);
     return '<div class="card"><p class="who">' + esc(w.who) + '</p>' +
       '<ul class="rows">' + r.map(function (x) { return '<li><span class="k">' + x[0] + '</span><span>' + x[1] + '</span></li>'; }).join('') + '</ul>' +
