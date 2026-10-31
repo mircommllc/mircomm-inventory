@@ -29,6 +29,11 @@ input,button{font:inherit}
 input:focus{outline:2px solid #1E3A32;outline-offset:2px}
 .phone-icon{display:none}
 @media (max-width: 700px){.phone-pill{display:none!important}.phone-icon{display:inline-flex!important}}
+.lang-sw{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid #D4D1CA;border-radius:999px;background:#FFFFFF}
+.lang-sw button{min-height:38px;padding:0 14px;display:inline-flex;align-items:center;border:0;border-radius:999px;background:transparent;font-size:14px;font-weight:500;line-height:1;color:#111312;cursor:pointer;white-space:nowrap}
+.lang-sw button[aria-pressed="true"]{background:#111312;color:#FFFFFF}
+.lang-sw .lg-s{display:none}
+@media (max-width: 560px){.lang-sw button{padding:0 10px}.lang-sw .lg-l{display:none}.lang-sw .lg-s{display:inline}header > div{gap:8px!important}header > div > div:first-child{gap:10px!important}header img[src*="connectrgv-logo"]{width:96px;height:auto}.socio-logo{max-width:96px;max-height:36px}.phone-icon{min-width:42px!important;min-height:42px!important}}
 input:invalid:not(:placeholder-shown){border-bottom-color:#B3261E!important}
 [hidden]{display:none!important}
 button:disabled{opacity:.6;cursor:default}
@@ -49,7 +54,7 @@ button:disabled{opacity:.6;cursor:default}
 <span data-solo-socio="" aria-hidden="true" style="width: 1px; height: 28px; background: #D9D5CD"></span>
 <a href="/" aria-label="ConnectRGV"><img src="/assets/connectrgv-logo.svg" alt="ConnectRGV" width="128" height="30" style="display: block"></a>
 </div>
-<button type="button" class="lang-btn" data-lang-toggle="" style="min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid #D4D1CA; background: #FFFFFF; color: #111312; font-size: 14px; cursor: pointer; margin-left: auto">English</button>
+<div class="lang-sw" role="group" aria-label="Idioma / Language" style="margin-left: auto"><button type="button" data-set-lang="es" lang="es" aria-pressed="true"><span class="lg-l">Español</span><span class="lg-s" aria-hidden="true">ES</span></button><button type="button" data-set-lang="en" lang="en" aria-pressed="false"><span class="lg-l">English</span><span class="lg-s" aria-hidden="true">EN</span></button></div>
 <a class="phone-icon" href="tel:+19564676695" aria-label="Llamar al (956) 467-6695" style="min-height: 44px; min-width: 44px; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid #111312"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111312" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg></a>
 <a class="phone-pill" href="tel:+19564676695" style="min-height: 44px; display: inline-flex; align-items: center; padding: 0 20px; border-radius: 999px; border: 1px solid #111312; color: #111312; text-decoration: none; font-size: 15px; font-weight: 500">(956) 467-6695</a>
 </div>
@@ -211,7 +216,7 @@ button:disabled{opacity:.6;cursor:default}
     Object.keys(T.ph).forEach(function (n) { var el = document.querySelector('[name="' + n + '"]'); if (el) el.setAttribute('placeholder', T.ph[n]); });
     var fig = document.querySelector('figure img'); if (fig) fig.alt = T.alt;
     var g = document.querySelector('[data-guia]'); if (g) g.href = '/guia/' + (lang() === 'en' ? '?l=en' : '');
-    document.querySelectorAll('[data-lang-toggle]').forEach(function (b) { b.textContent = T.otro; b.setAttribute('lang', lang() === 'en' ? 'es' : 'en'); });
+    document.querySelectorAll('[data-set-lang]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-set-lang') === lang() ? 'true' : 'false'); });
     var pv = document.querySelector('[data-addr-preview]');
     if (pv && (pv.textContent === TXT.es.preview || pv.textContent === TXT.en.preview)) pv.textContent = T.preview;
   }
@@ -251,9 +256,9 @@ button:disabled{opacity:.6;cursor:default}
     listo();
   }
   function repintar() { textos(); if (datos) pintar(datos); else if (done) generica(); }
-  // Botón English / Español
-  document.querySelectorAll('[data-lang-toggle]').forEach(function (b) {
-    b.addEventListener('click', function () { L = lang() === 'en' ? 'es' : 'en'; try { localStorage.setItem('cgv_lang', L); } catch (e) {} repintar(); });
+  // Botón Español / English (siempre visible)
+  document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+    b.addEventListener('click', function () { L = b.getAttribute('data-set-lang'); try { localStorage.setItem('cgv_lang', L); localStorage.setItem('cgv_guia_l', L); } catch (e) {} repintar(); });
   });
   // Mensajes del formulario en el idioma de la página (site.js los pone en español)
   document.addEventListener('DOMContentLoaded', function () {

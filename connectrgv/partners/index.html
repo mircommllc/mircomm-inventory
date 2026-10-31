@@ -17,6 +17,7 @@
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#1E3A32">
+<script>try{if(localStorage.getItem('cgv_lang')==='es'&&!/[?&]l=/.test(location.search))location.replace('/socios/'+location.hash)}catch(e){}</script>
 <link rel="icon" href="/assets/connectrgv-symbol.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -30,6 +31,12 @@ a{color:#111312}a:hover{color:#1E3A32}
 summary{list-style:none}summary::-webkit-details-marker{display:none}
 details[open] .faq-plus{transform:rotate(45deg)}
 .menu-btn,.phone-icon{display:none}
+.lang-sw{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid rgba(243,241,236,.4);border-radius:999px}
+.lang-sw a{min-height:38px;padding:0 14px;display:inline-flex;align-items:center;border-radius:999px;font-size:14px;font-weight:500;line-height:1;color:#F3F1EC;text-decoration:none;white-space:nowrap}
+.lang-sw a[aria-current]{background:#F3F1EC;color:#1E3A32}
+.lang-sw .lg-s{display:none}
+@media (max-width: 560px){.lang-sw a{padding:0 11px}.lang-sw .lg-l{display:none}.lang-sw .lg-s{display:inline}}
+@media (max-width: 560px){header > div{column-gap:12px!important}header div:has(> .lang-sw){gap:6px!important}header img[src*="connectrgv-logo"]{width:128px;height:auto}.menu-btn{min-width:40px!important}}
 @media (max-width: 900px){.nav-links,.phone-pill{display:none!important}.menu-btn,.phone-icon{display:inline-flex!important}}
 .cmp-label{display:none}
 @media (max-width: 900px){.cmp-head{display:none!important}.cmp-label{display:block}}
@@ -52,15 +59,15 @@ button:disabled{opacity:.6;cursor:default}
 
 <header style="background: #1E3A32; position: relative; --nav-bg: #1E3A32">
 <div style="max-width: 1360px; margin: 0 auto; padding: 22px clamp(20px, 4vw, 48px); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px">
-<a href="/" aria-label="ConnectRGV, home" style="display: inline-flex"><img src="/assets/connectrgv-logo-white.svg" alt="ConnectRGV" width="152" height="36" style="display: block"></a>
+<a href="/en/" aria-label="ConnectRGV, home" style="display: inline-flex"><img src="/assets/connectrgv-logo-white.svg" alt="ConnectRGV" width="152" height="36" style="display: block"></a>
 <nav class="nav-links" aria-label="Main" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 32px; font-size: 15px">
 <a href="#como" style="color: #F3F1EC; text-decoration: none">How it works</a>
 <a href="#compensacion" style="color: #F3F1EC; text-decoration: none">Compensation</a>
 <a href="#preguntas" style="color: #F3F1EC; text-decoration: none">FAQ</a>
-<a href="/" style="color: #B5C4BD; text-decoration: none">For families</a>
-<a href="/socios/" lang="es" hreflang="es" style="color: #B5C4BD; text-decoration: none">Español</a>
+<a href="/en/" style="color: #B5C4BD; text-decoration: none">For families</a>
 </nav>
 <div style="display: flex; align-items: center; gap: 12px 20px">
+<div class="lang-sw" role="group" aria-label="Idioma / Language"><a href="/socios/" lang="es" hreflang="es" data-lang="es"><span class="lg-l">Español</span><span class="lg-s" aria-hidden="true">ES</span></a><a href="/partners/" lang="en" hreflang="en" data-lang="en" aria-current="page"><span class="lg-l">English</span><span class="lg-s" aria-hidden="true">EN</span></a></div>
 <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" style="min-height: 44px; min-width: 44px; align-items: center; justify-content: center; border: 0; background: transparent; cursor: pointer; padding: 0"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F3F1EC" stroke-width="1.5" stroke-linecap="round"><path d="M4 8h16M4 16h16"></path></svg></button>
 <a class="phone-pill" href="#registro" style="min-height: 44px; display: inline-flex; align-items: center; padding: 0 22px; border-radius: 999px; background: #F3F1EC; color: #1E3A32; text-decoration: none; font-size: 15px; font-weight: 500">Become a partner</a>
 </div>
