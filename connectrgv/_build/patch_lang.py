@@ -11,7 +11,7 @@ def sw(cur, es, en):
         % (href, code, code, code, ' aria-current="page"' if cur == code else '', long, short))
     return '<div class="lang-sw" role="group" aria-label="Idioma / Language">' + a('es', es, 'Español', 'ES') + a('en', en, 'English', 'EN') + '</div>\n'
 def redirect(to_lang, to_path):
-    return "<script>try{if(localStorage.getItem('cgv_lang')==='%s'&&!/[?&]l=/.test(location.search))location.replace('%s'+location.hash)}catch(e){}</script>" % (to_lang, to_path)
+    return "<script>try{var r=document.referrer;if(!(r&&r.indexOf(location.origin+'/')===0)&&localStorage.getItem('cgv_lang')==='%s'&&!/[?&]l=/.test(location.search))location.replace('%s'+location.hash);else localStorage.setItem('cgv_lang','%s')}catch(e){}</script>" % (to_lang, to_path, 'es' if to_lang == 'en' else 'en')
 
 for path, cur in [('socios/index.html', 'es'), ('partners/index.html', 'en')]:
     s = open(path, encoding='utf-8').read()

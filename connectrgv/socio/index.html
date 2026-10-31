@@ -216,6 +216,7 @@ button:disabled{opacity:.6;cursor:default}
     Object.keys(T.ph).forEach(function (n) { var el = document.querySelector('[name="' + n + '"]'); if (el) el.setAttribute('placeholder', T.ph[n]); });
     var fig = document.querySelector('figure img'); if (fig) fig.alt = T.alt;
     var g = document.querySelector('[data-guia]'); if (g) g.href = '/guia/' + (lang() === 'en' ? '?l=en' : '');
+    document.querySelectorAll('header a[href="/"], header a[href="/en/"]').forEach(function (h) { h.setAttribute('href', lang() === 'en' ? '/en/' : '/'); });
     document.querySelectorAll('[data-set-lang]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-set-lang') === lang() ? 'true' : 'false'); });
     var pv = document.querySelector('[data-addr-preview]');
     if (pv && (pv.textContent === TXT.es.preview || pv.textContent === TXT.en.preview)) pv.textContent = T.preview;

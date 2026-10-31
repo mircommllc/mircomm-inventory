@@ -18,8 +18,8 @@ def switch(cur):
 
 def redirect(to_lang, to_path):
     # Si el cliente ya escogió el otro idioma antes, lo lleva directo a su versión (se puede cambiar con el botón).
-    return ("<script>try{if(localStorage.getItem('cgv_lang')==='%s'&&!/[?&]l=/.test(location.search))location.replace('%s'+location.hash)}catch(e){}</script>\n"
-            % (to_lang, to_path))
+    return ("<script>try{var r=document.referrer;if(!(r&&r.indexOf(location.origin+'/')===0)&&localStorage.getItem('cgv_lang')==='%s'&&!/[?&]l=/.test(location.search))location.replace('%s'+location.hash);else localStorage.setItem('cgv_lang','%s')}catch(e){}</script>\n"
+            % (to_lang, to_path, 'es' if to_lang == 'en' else 'en'))
 
 def common(s, lang):
     rep(s, '<html lang="es">', '<html lang="%s" translate="no">' % lang)
