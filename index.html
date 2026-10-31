@@ -4489,6 +4489,7 @@ function openActDetail(id) {
       ${ms.disputeLeft !== null && ['missing','partial'].includes(ms.code) ? `<div style="margin-top:6px;color:${ms.disputeLeft<=7?'var(--red)':'var(--yellow)'}">Quedan aprox. ${Math.max(ms.disputeLeft,0)} día(s) para disputar (30 días).</div>` : ''}
     </div>` : ''}
     ${credDetailBox(a)}
+    <div class="act-reco-box" id="act-soc-box"><span style="color:var(--muted)">🤝 Revisando si lo refirió un socio…</span></div>
     <div class="act-reco-box">
       <div style="font-weight:600;margin-bottom:6px">Comisión estimada: ${fmtMoney(x.total)}</div>
       ${x.lines.map(l => `<div style="display:flex;justify-content:space-between;font-size:12px"><span>${escHtml(l.label)}</span><span class="mono">${fmtMoney(l.amt)}</span></div>`).join('')}
@@ -4506,6 +4507,7 @@ function openActDetail(id) {
       <button class="btn btn-ghost" onclick="openActForm('${escHtml(a.ID)}')">✏️ Editar</button>
       <button class="btn btn-ghost" style="color:var(--red)" onclick="actDelete('${escHtml(a.ID)}')">🗑 Borrar</button>
     </div>`, true);
+  socPaintActBox(a.ID);
 }
 async function actSaveNotes(id) {
   try {
@@ -8432,6 +8434,54 @@ async function socFillActSelect(actId) {
     <select class="form-input form-select" id="af-socio" data-cur="${escHtml(cur)}" ${paid ? 'disabled' : ''}><option value="">— Nadie —</option>
       ${L.partners.filter(p => p.active || p.id === cur).sort((a, b) => a.name.localeCompare(b.name)).map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${escHtml(p.name)}</option>`).join('')}</select>
     <div style="font-size:11px;color:var(--muted);margin-top:4px">${paid ? 'Ya se le pagó al socio por esta venta.' : 'Se crea o se completa el referido en 🤝 Socios. Solo se le paga el internet, no las líneas.'}</div></div>`;
+}
+// Cuadro "🤝 Socio que lo refirió" en el detalle de la activación: acreditar la venta a un socio sin abrir ✏️ Editar
+const SOC_ST_LABEL = { pending: ['Pendiente de pagarle', 'pros-b-rev'], paid: ['Ya se le pagó', 'pros-b-sold'], chargedback: ['Chargeback', 'pros-b-lost'], lead: ['Lead', 'pros-b-new'] };
+async function socPaintActBox(actId, editing) {
+  const box = document.getElementById('act-soc-box'); if (!box) return;
+  const L = await socLoadLinks();
+  const b2 = document.getElementById('act-soc-box'); if (!b2) return;
+  if (L.off) { b2.innerHTML = `<span style="color:var(--muted)">🤝 Para acreditar a un socio falta Socios.gs en Apps Script.</span>`; return; }
+  const link = L.links[actId], p = link && L.partners.find(x => x.id === link.partnerId);
+  const locked = link && ['paid', 'chargedback'].includes(link.status);
+  if (link && !editing) {
+    const st = SOC_ST_LABEL[link.status] || [link.status, 'pros-b-exp'];
+    b2.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span>🤝 Referido de <b>${escHtml(p ? p.name : 'socio')}</b></span>
+      <span class="pros-badge ${st[1]}">${escHtml(st[0])}</span>
+      <span class="mono" style="margin-left:auto">${fmtMoney(+link.commission || 0)}</span></div>
+      ${+link.commission ? '' : '<div style="font-size:11px;color:var(--muted);margin-top:4px">Comisión $0: al socio solo se le paga el internet, no las líneas.</div>'}
+      ${locked ? '<div style="font-size:11px;color:var(--muted);margin-top:6px">Ya se le pagó al socio por esta venta; no se puede cambiar.</div>'
+        : `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="socPaintActBox('${escHtml(actId)}', true)">Cambiar socio</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="socActCredit('${escHtml(actId)}', '')">Quitar</button></div>`}`;
+    return;
+  }
+  const opts = L.partners.filter(x => x.active || (link && x.id === link.partnerId)).sort((a, b) => a.name.localeCompare(b.name));
+  b2.innerHTML = `<div style="font-weight:600;margin-bottom:6px">🤝 ¿Lo refirió un socio?</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select class="form-input form-select" id="act-soc-sel" style="flex:1;min-width:180px"><option value="">Escoge el socio…</option>
+        ${opts.map(x => `<option value="${escHtml(x.id)}" ${link && x.id === link.partnerId ? 'selected' : ''}>${escHtml(x.name)}</option>`).join('')}</select>
+      <button class="btn btn-primary btn-sm" onclick="socActCredit('${escHtml(actId)}', document.getElementById('act-soc-sel').value)">🤝 Acreditar</button>
+      ${editing ? `<button class="btn btn-ghost btn-sm" onclick="socPaintActBox('${escHtml(actId)}')">Cancelar</button>` : ''}
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">La venta queda como referido del socio en 🤝 Socios con su comisión, aunque no lo hayas registrado antes. ¿No aparece? Dalo de alta en 🤝 Socios.</div>`;
+}
+async function socActCredit(actId, partnerId) {
+  const L = socLinksCache || {};
+  if (partnerId === '' && !(L.links && L.links[actId])) { toast('Escoge el socio.', 'error'); return; }
+  if (partnerId === '' && !confirm('¿Quitarle esta venta al socio?')) return;
+  const box = document.getElementById('act-soc-box'); if (box) box.style.opacity = .6;
+  try {
+    const r = await apiPost({ action: 'socLink', data: { actId, partnerId } });
+    socLinksCache = r && r.links ? r : null;
+    if (typeof socData !== 'undefined') socData = null;
+    const link = socLinksCache && socLinksCache.links[actId], p = link && socLinksCache.partners.find(x => x.id === link.partnerId);
+    toast(partnerId ? `🤝 Acreditada a ${escHtml(p ? p.name : 'el socio')}${link ? ' · ' + fmtMoney(+link.commission || 0) : ''}.` : '🤝 Se le quitó al socio.', 'success', 4000);
+    if (!socLinksCache) await socLoadLinks();
+    socPaintActBox(actId);
+    if (currentPage === 'activations') renderActBody();
+  } catch (e) { toast(escHtml(e.message), 'error', 5000); }
+  finally { const b = document.getElementById('act-soc-box'); if (b) b.style.opacity = ''; }
 }
 async function socAfterActSave(saved) {
   const sel = document.getElementById('af-socio');
