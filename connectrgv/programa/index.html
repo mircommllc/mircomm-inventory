@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="es" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ConnectRGV · Programa de Socios</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="El concierge de mudanza para los clientes de realtors y administradores del Valle: internet, luz, TV, celular y una guía gratis, con su nombre por delante.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="google" content="notranslate">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ConnectRGV · Programa de Socios">
+<meta property="og:description" content="Usted entrega la llave. Nosotros dejamos la casa conectada.">
+<meta property="og:url" content="https://connectrgv.com/programa/">
+<meta property="og:image" content="https://connectrgv.com/programa/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1E3A32">
+<link rel="icon" href="/assets/connectrgv-symbol.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: a walk from the closing table to move-in day — full-bleed chapters that alternate forest green and stone, each with one thing to touch. */
+:root{
+  --green:#1E3A32; --green-2:#24463C; --green-3:#2E5548;
+  --ink:#111312; --body:#3A403D; --muted:#5B615E;
+  --stone:#F3F1EC; --stone-2:#E9E5DC; --paper:#FFFFFF;
+  --sage:#B5C4BD; --mist:#DCE4E0; --line:#D4D1CA;
+  --sun:#E2A54A; --sun-ink:#7A4E12;
+  --serif:'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --sans:'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--green)}
+img{max-width:100%;display:block}
+a{color:inherit}
+button,input,select{font:inherit}
+[hidden]{display:none!important}
+html[lang="en"] [data-l="es"], html[lang="es"] [data-l="en"]{display:none!important}
+:focus-visible{outline:2px solid var(--sun);outline-offset:3px;border-radius:4px}
+h1,h2,h3{margin:0;font-weight:400;text-wrap:balance}
+p{margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(20px, env(safe-area-inset-left,0px));padding-right:max(20px, env(safe-area-inset-right,0px))}
+.eyebrow{font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:500}
+.serif{font-family:var(--serif)}
+.h2{font-family:var(--serif);font-size:clamp(40px,5.4vw,72px);line-height:1.02;letter-spacing:-.01em}
+.h2 em{font-style:italic}
+.lead{font-size:clamp(18px,1.6vw,20px);line-height:1.55;max-width:58ch}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 26px;border-radius:999px;font-weight:500;font-size:16px;text-decoration:none;border:1px solid transparent;cursor:pointer;transition:transform .2s ease, background .2s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn-light{background:var(--stone);color:var(--green)}
+.btn-ghost{border-color:rgba(243,241,236,.45);color:var(--stone);background:transparent}
+.btn-dark{background:var(--green);color:var(--stone)}
+.btn-line{border-color:var(--line);color:var(--ink);background:var(--paper)}
+
+/* progress + header */
+.progress{position:fixed;top:env(safe-area-inset-top,0px);left:0;height:3px;width:100%;transform-origin:0 50%;transform:scaleX(0);background:var(--sun);z-index:70}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--green);color:var(--stone);border-bottom:1px solid rgba(243,241,236,.08)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:14px}
+.brand{display:inline-flex;align-items:center;text-decoration:none;color:var(--stone)}
+.wordmark{font-family:var(--serif);font-size:28px;letter-spacing:-.01em}
+.wordmark b{font-family:var(--sans);font-weight:600;font-size:16px;letter-spacing:.12em;margin-left:2px}
+.top-actions{display:flex;align-items:center;gap:12px}
+.lang{display:inline-flex;padding:3px;border:1px solid rgba(243,241,236,.35);border-radius:999px}
+.lang button{min-height:36px;min-width:44px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:var(--stone);font-size:14px;font-weight:500;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--stone);color:var(--green)}
+.top .btn{min-height:42px;padding:0 18px;font-size:15px}
+@media (max-width:640px){.top .btn{display:none}}
+
+/* hero */
+.hero{background:var(--green);color:var(--stone);overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(40px,6vw,96px);align-items:center;padding-block:clamp(48px,7vw,104px) clamp(64px,8vw,120px)}
+.for{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 16px 8px 10px;border-radius:999px;background:rgba(243,241,236,.08);border:1px solid rgba(243,241,236,.16);font-size:14px;color:var(--mist)}
+.for i{width:8px;height:8px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 4px rgba(226,165,74,.18)}
+.for b{color:var(--stone);font-weight:600}
+.hero h1{font-family:var(--serif);font-size:clamp(50px,7.2vw,108px);line-height:.96;letter-spacing:-.015em;margin-top:28px}
+.hero h1 span.l{display:block}
+.hero h1 em{font-style:italic;color:var(--sage)}
+.hero .lead{color:var(--mist);margin-top:28px}
+.hero .ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:40px;padding:0;list-style:none}
+.chips li{font-size:14px;padding:7px 14px;border-radius:999px;border:1px solid rgba(243,241,236,.22);color:var(--mist)}
+.chips li.hl{background:var(--sun);border-color:var(--sun);color:#2A1C06;font-weight:500}
+.door{position:relative;justify-self:center;width:min(100%,460px)}
+.door .sun{position:absolute;left:50%;top:-38px;width:62%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 50% 50%, rgba(226,165,74,.55), rgba(226,165,74,0) 68%);transform:translateX(-50%);animation:rise 2.4s cubic-bezier(.2,.7,.2,1) both}
+.door .frame{position:relative;aspect-ratio:4/5.4;border-radius:999px 999px 28px 28px;overflow:hidden;border:8px solid var(--green-2);box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.door .frame img{width:100%;height:100%;object-fit:cover;object-position:50% 40%}
+.gift{position:absolute;left:-28px;bottom:36px;background:var(--paper);color:var(--ink);border-radius:18px;padding:14px 18px 16px;box-shadow:0 18px 40px rgba(0,0,0,.28);max-width:250px;transform:rotate(-3deg)}
+.gift small{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.gift strong{display:block;font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.05;margin-top:4px;color:var(--green)}
+@keyframes rise{from{transform:translate(-50%,60px)}to{transform:translate(-50%,0)}}
+.hero h1 .l{animation:up .9s cubic-bezier(.2,.7,.2,1) both}
+.hero h1 .l:nth-child(2){animation-delay:.12s}
+@keyframes up{from{transform:translateY(24px)}to{transform:none}}
+@media (max-width:900px){
+  .hero .wrap{grid-template-columns:minmax(0,1fr)}
+  .door{width:min(100%,380px);margin-top:8px}
+  .gift{left:-8px}
+}
+
+/* sections */
+section{scroll-margin-top:72px}
+.band{padding-block:clamp(72px,9vw,128px)}
+.stone{background:var(--stone)}
+.dark{background:var(--green);color:var(--stone)}
+.head{display:grid;gap:18px;max-width:880px}
+.stone .eyebrow,.white .eyebrow{color:var(--muted)}
+.dark .eyebrow{color:var(--sage)}
+.dark .lead{color:var(--mist)}
+
+/* after closing */
+.after{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(32px,5vw,72px);margin-top:56px;align-items:start}
+.after figure{margin:0;position:sticky;top:96px;border-radius:24px;overflow:hidden;aspect-ratio:4/5}
+.after figure img{width:100%;height:100%;object-fit:cover}
+.after figcaption{position:absolute;left:16px;right:16px;bottom:16px;padding:14px 16px;border-radius:14px;background:rgba(17,19,18,.62);backdrop-filter:blur(6px);color:var(--stone);font-size:15px;line-height:1.4}
+.calls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:28px}
+.calls span{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--paper);border:1px solid var(--line);font-size:15px}
+.calls span i{font-style:normal;font-weight:600;font-variant-numeric:tabular-nums;color:var(--sun-ink)}
+.moments{display:grid;gap:0;border-top:1px solid var(--line)}
+.moment{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);gap:20px;padding:22px 0;border-bottom:1px solid var(--line)}
+.moment h3{font-size:15px;font-weight:600;font-family:var(--sans);color:var(--ink)}
+.moment .no{color:var(--muted);font-size:16px}
+.moment .yes{color:var(--green);font-size:16px;font-weight:500}
+.mhead{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);gap:20px;padding-bottom:12px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.mhead b{color:var(--green);font-weight:600}
+.tag{display:none}
+@media (max-width:900px){
+  .after{grid-template-columns:minmax(0,1fr)}
+  .after figure{position:relative;top:0;aspect-ratio:4/3}
+}
+@media (max-width:640px){
+  .mhead{display:none}
+  .moment{grid-template-columns:minmax(0,1fr);gap:8px}
+  .tag{display:inline-block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-right:6px}
+  .no .tag{color:var(--muted)} .yes .tag{color:var(--green)}
+}
+
+/* steps */
+.steps{list-style:none;padding:0;margin:64px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,40px);position:relative}
+.steps::before{content:"";position:absolute;left:32px;right:32px;top:32px;height:1px;background:var(--line)}
+.steps li{position:relative;display:grid;gap:14px;align-content:start}
+.num{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--paper);border:1px solid var(--line);font-family:var(--serif);font-size:32px;color:var(--green);position:relative}
+.steps li:last-child .num{background:var(--green);color:var(--stone);border-color:var(--green)}
+.steps h3{font-family:var(--serif);font-size:34px;line-height:1.05}
+.steps p{color:var(--body)}
+.steps .you{display:inline-block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--sun-ink);background:#F8EBD5;padding:3px 10px;border-radius:999px;justify-self:start}
+@media (max-width:800px){
+  .steps{grid-template-columns:minmax(0,1fr);gap:28px}
+  .steps::before{left:32px;right:auto;top:32px;bottom:32px;width:1px;height:auto}
+  .steps li{grid-template-columns:64px minmax(0,1fr);column-gap:20px}
+  .steps li > :not(.num){grid-column:2}
+  .steps .num{grid-row:span 3}
+}
+
+/* updates demo */
+.updates .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:clamp(40px,6vw,96px);align-items:center}
+.checks{list-style:none;padding:0;margin:32px 0 0;display:grid;gap:12px}
+.checks li{display:flex;gap:12px;align-items:flex-start;color:var(--mist)}
+.checks svg{flex:none;margin-top:4px}
+.phone{justify-self:center;width:min(100%,360px);border-radius:44px;padding:12px;background:#0C1714;box-shadow:0 40px 90px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06)}
+.screen{border-radius:34px;overflow:hidden;background:#ECE7DE;min-height:560px;display:flex;flex-direction:column}
+.chat-top{display:flex;align-items:center;gap:12px;padding:18px 18px 14px;background:var(--green-2);color:var(--stone)}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--stone);color:var(--green);display:grid;place-items:center;font-family:var(--serif);font-size:20px}
+.chat-top b{display:block;font-size:15px;font-weight:600;line-height:1.2}
+.chat-top small{font-size:12px;color:var(--sage)}
+.example{margin-left:auto;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:4px 8px;border-radius:6px;background:rgba(243,241,236,.12);color:var(--mist)}
+.thread{flex:1;padding:18px 14px 8px;display:flex;flex-direction:column;gap:12px}
+.msg{align-self:flex-start;max-width:88%;background:var(--paper);color:var(--ink);border-radius:4px 18px 18px 18px;padding:10px 14px 8px;font-size:15px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.06);transition:opacity .45s ease, transform .45s ease}
+.msg .st{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--green);margin-bottom:4px}
+.msg .st i{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.msg:last-child .st i{background:var(--sun)}
+.msg time{display:block;text-align:right;font-size:11px;color:var(--muted);margin-top:2px}
+.msg.wait{opacity:0;transform:translateY(10px)}
+.typing{align-self:flex-start;background:var(--paper);border-radius:18px;padding:12px 14px;display:flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
+.replay{margin:6px auto 14px;display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;color:var(--green);font-size:14px;font-weight:500;cursor:pointer;min-height:40px;padding:0 12px}
+@media (max-width:900px){.updates .wrap{grid-template-columns:minmax(0,1fr)}}
+
+/* services */
+.svc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:56px}
+.card{background:var(--paper);border-radius:22px;padding:28px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h3{font-family:var(--serif);font-size:34px;line-height:1.05}
+.card p{color:var(--body);font-size:16px}
+.card.photo{grid-row:span 2;padding:0;overflow:hidden;background:var(--green);color:var(--stone)}
+.card.photo img{width:100%;height:auto;aspect-ratio:3/2;object-fit:cover}
+.card.photo .in{padding:24px 28px 28px;display:grid;gap:12px}
+.card.photo p{color:var(--mist)}
+.opts{list-style:none;margin:6px 0 0;padding:0;display:grid}
+.opts li{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid rgba(243,241,236,.16);font-size:15px}
+.opts li span:last-child{color:var(--sage);text-align:right}
+.card.guide{background:var(--green-2);color:var(--stone)}
+.card.guide p{color:var(--mist)}
+.card.guide h3 em{font-style:italic;color:var(--sun)}
+.card.soon{background:transparent;border:1.5px dashed #B9B3A6;grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 32px}
+.card.soon h3{color:var(--sun-ink)}
+.fine{margin-top:20px;font-size:15px;color:var(--muted);display:flex;gap:10px;align-items:center}
+@media (max-width:900px){.svc{grid-template-columns:repeat(2,minmax(0,1fr))}.card.photo{grid-column:span 2;grid-row:auto}}
+@media (max-width:560px){.svc{grid-template-columns:minmax(0,1fr)}.card.photo{grid-column:auto}}
+
+/* guide */
+.guide-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin-top:56px;border-top:1px solid var(--ink)}
+.guide-grid > div{padding:28px 28px 8px 0;display:grid;gap:10px;align-content:start}
+.guide-grid > div + div{padding-left:28px;border-left:1px solid var(--line)}
+.guide-grid h3{font-family:var(--serif);font-size:32px;line-height:1.05}
+.guide-grid p{color:var(--body)}
+.cities{margin-top:48px;display:grid;gap:14px}
+.cities ul{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px}
+.cities li{font-size:14px;padding:6px 12px;border-radius:999px;background:var(--stone);color:var(--body)}
+.guide-cta{margin-top:40px;display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.guide-cta small{color:var(--muted);font-size:14px}
+@media (max-width:800px){.guide-grid{grid-template-columns:minmax(0,1fr)}.guide-grid > div{padding:24px 0 8px}.guide-grid > div + div{padding-left:0;border-left:0;border-top:1px solid var(--line)}}
+
+/* kit */
+.kit{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(40px,6vw,96px);align-items:center;margin-top:56px}
+.stage{perspective:1100px;display:grid;justify-items:center;gap:16px}
+.wcard{width:min(100%,400px);aspect-ratio:5/7;border-radius:22px;background:var(--paper);box-shadow:0 30px 70px rgba(17,19,18,.22);padding:30px 28px;display:flex;flex-direction:column;transform-style:preserve-3d;transition:transform .25s ease-out;position:relative;overflow:hidden}
+.wcard::before{content:"";position:absolute;inset:auto -30% -45% -30%;height:70%;border-radius:50%;background:radial-gradient(circle at 50% 30%, rgba(226,165,74,.28), rgba(226,165,74,0) 60%)}
+.wcard small{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.wcard .welcome{font-family:var(--serif);font-size:24px;line-height:1.1;color:var(--green);margin-top:8px}
+.wcard .from{margin-top:auto}
+.wcard .name{font-family:var(--serif);font-size:clamp(34px,4vw,42px);line-height:1;color:var(--ink);margin-top:4px;overflow-wrap:anywhere}
+.wcard .company{font-size:14px;color:var(--muted);margin-top:6px}
+.qrrow{display:flex;gap:16px;align-items:center;margin-top:22px;position:relative}
+.qr{width:96px;height:96px;flex:none;padding:6px;background:var(--paper);border-radius:10px;border:1px solid var(--line)}
+.qr svg{width:100%;height:100%;display:block}
+.qrrow p{font-size:14px;line-height:1.4;color:var(--body)}
+.wcard .foot{display:flex;justify-content:space-between;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);position:relative}
+.stage figcaption{font-size:14px;color:var(--muted)}
+.tools{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 32px}
+.tools li{display:grid;gap:6px;padding-top:18px;border-top:1px solid var(--line);min-width:0}
+.tools b{font-weight:600}
+.tools span{color:var(--body);font-size:16px}
+@media (max-width:900px){.kit{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.tools{grid-template-columns:minmax(0,1fr)}}
+
+/* commitment */
+.promise{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-top:56px;border-top:1px solid rgba(243,241,236,.2)}
+.promise > div{padding:28px 24px 0 0;display:grid;gap:10px;align-content:start}
+.promise > div + div{padding-left:24px;border-left:1px solid rgba(243,241,236,.14)}
+.roman{font-family:var(--serif);font-size:44px;line-height:1;color:var(--sun)}
+.promise b{font-weight:600;color:var(--stone)}
+.promise span{color:var(--mist);font-size:16px}
+.faq{margin-top:72px;display:grid;gap:0;max-width:880px;border-top:1px solid rgba(243,241,236,.2)}
+.faq details{border-bottom:1px solid rgba(243,241,236,.2)}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:20px;align-items:center;padding:22px 0;font-family:var(--serif);font-size:clamp(24px,2.4vw,30px);line-height:1.15}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-family:var(--sans);font-size:24px;color:var(--sage);transition:transform .2s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq details p{padding:0 0 22px;color:var(--mist);max-width:64ch}
+@media (max-width:900px){.promise{grid-template-columns:repeat(2,minmax(0,1fr))}.promise > div:nth-child(3){padding-left:0;border-left:0}.promise > div:nth-child(n+3){padding-top:28px}}
+@media (max-width:520px){.promise{grid-template-columns:minmax(0,1fr)}.promise > div,.promise > div + div{padding:24px 0 0;border-left:0}}
+
+/* signup */
+.signup .wrap{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:clamp(40px,6vw,88px);align-items:start}
+.why{position:relative;border-radius:26px;overflow:hidden;min-height:560px;display:flex;align-items:flex-end;color:var(--stone)}
+.why img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.why::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(17,19,18,0) 30%, rgba(17,19,18,.82) 100%)}
+.why ul{position:relative;z-index:1;list-style:none;margin:0;padding:28px;display:grid;gap:14px}
+.why li{display:flex;gap:12px;align-items:flex-start;font-size:17px;line-height:1.4}
+.why li svg{flex:none;margin-top:2px}
+.why li b{display:block;font-weight:600}
+.why li span{color:var(--mist);font-size:15px}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 24px;margin-top:36px}
+.field{display:grid;gap:6px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select{width:100%;min-height:50px;padding:0 2px;border:0;border-bottom:1px solid #A9ABA7;background:transparent;color:var(--ink);font-size:18px;border-radius:0}
+.field input:focus,.field select:focus{outline:none;border-bottom:2px solid var(--green)}
+.form .note{grid-column:1/-1;font-size:14px;color:var(--muted)}
+.form .btn{grid-column:1/-1;justify-self:start;min-height:56px;padding:0 34px;font-size:17px}
+.ok{margin-top:36px;padding:28px;border-radius:20px;background:var(--stone);display:grid;gap:8px}
+.ok strong{font-family:var(--serif);font-weight:400;font-size:36px;color:var(--green)}
+.talk{margin-top:36px;padding-top:28px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.talk .tnum{font-family:var(--serif);font-size:30px;color:var(--green);margin-right:8px;user-select:all}
+@media (max-width:900px){.signup .wrap{grid-template-columns:minmax(0,1fr)}.why{min-height:420px}}
+@media (max-width:520px){.form{grid-template-columns:minmax(0,1fr)}}
+
+footer{background:var(--ink);color:var(--sage)}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:24px;padding-block:48px;font-size:15px}
+footer .wordmark{color:var(--stone)}
+footer a{color:var(--stone)}
+
+/* reveal: elements are visible at rest; they only rise as they come into view */
+.rv.go{animation:up .8s cubic-bezier(.2,.7,.2,1) both}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="progress" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="ConnectRGV">
+      <img src="/assets/connectrgv-logo-white.svg" alt="ConnectRGV" width="152" height="36" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+      <span class="wordmark" hidden>Connect<b>RGV</b></span>
+    </a>
+    <div class="top-actions">
+      <div class="lang" role="group" aria-label="Idioma / Language">
+        <button type="button" data-set-lang="es" aria-pressed="true" lang="es">ES</button>
+        <button type="button" data-set-lang="en" aria-pressed="false" lang="en">EN</button>
+      </div>
+      <a class="btn btn-light" href="#registro"><span data-l="es">Quiero ser socio</span><span data-l="en">Become a partner</span></a>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- 1 · Hero -->
+<section class="hero" id="inicio">
+  <div class="wrap">
+    <div>
+      <p class="for">
+        <i aria-hidden="true"></i>
+        <span data-if-n hidden><span data-l="es">Preparado para</span><span data-l="en">Prepared for</span> <b data-n></b><span data-if-e hidden> · <span data-e></span></span></span>
+        <span data-if-no-n><span data-l="es">Programa de Socios</span><span data-l="en">Partner Program</span></span>
+      </p>
+      <h1>
+        <span data-l="es"><span class="l">Usted entrega la llave.</span><span class="l"><em>Nosotros dejamos la casa conectada.</em></span></span>
+        <span data-l="en"><span class="l">You hand over the keys.</span><span class="l"><em>We get the home connected.</em></span></span>
+      </h1>
+      <p class="lead">
+        <span data-l="es">Un concierge para la mudanza de cada cliente: internet, luz, TV, celular y una guía gratis, con su nombre por delante.</span>
+        <span data-l="en">A move-in concierge for every client: internet, electricity, TV, mobile and a free moving guide, with your name up front.</span>
+      </p>
+      <div class="ctas">
+        <a class="btn btn-light" href="#registro"><span data-l="es">Quiero ser socio</span><span data-l="en">Become a partner</span></a>
+        <a class="btn btn-ghost" href="#como"><span data-l="es">Ver cómo funciona</span><span data-l="en">See how it works</span></a>
+      </div>
+      <ul class="chips" aria-label="Servicios">
+        <li>Internet</li>
+        <li><span data-l="es">Electricidad</span><span data-l="en">Electricity</span></li>
+        <li><span data-l="es">TV por cable</span><span data-l="en">Cable TV</span></li>
+        <li><span data-l="es">Telefonía móvil</span><span data-l="en">Mobile service</span></li>
+        <li class="hl"><span data-l="es">Guía de mudanza gratis</span><span data-l="en">Free moving guide</span></li>
+      </ul>
+    </div>
+    <div class="door">
+      <div class="sun" aria-hidden="true"></div>
+      <div class="frame"><img src="img/portada.jpg" alt="Familia llegando a su nueva casa con las llaves en la mano" width="1024" height="1536" fetchpriority="high"></div>
+      <div class="gift" aria-hidden="true">
+        <small><span data-l="es">Un regalo de</span><span data-l="en">A gift from</span></small>
+        <strong><span data-n-or-you></span></strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 · After closing -->
+<section class="band stone" id="reto">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow"><span data-l="es">Después del cierre</span><span data-l="en">After closing</span></p>
+      <h2 class="h2">
+        <span data-l="es">Su cliente se muda. Le esperan cuatro compañías y una <em>lista de trámites.</em></span>
+        <span data-l="en">Your client moves in. Four companies and a <em>list of errands</em> are waiting.</span>
+      </h2>
+    </div>
+    <div class="after">
+      <figure class="rv">
+        <img src="img/reto.jpg" alt="Mujer entre cajas de mudanza haciendo llamadas y revisando papeles" width="1024" height="1536" loading="lazy">
+        <figcaption><span data-l="es">Y además: agua, basura, homestead y cambio de domicilio.</span><span data-l="en">Plus: water, trash, homestead and change of address.</span></figcaption>
+      </figure>
+      <div>
+        <div class="calls rv" aria-label="Cuatro llamadas">
+          <span><i>1</i> Internet</span>
+          <span><i>2</i> <span data-l="es">Luz</span><span data-l="en">Electricity</span></span>
+          <span><i>3</i> <span data-l="es">Televisión</span><span data-l="en">TV</span></span>
+          <span><i>4</i> <span data-l="es">Celular</span><span data-l="en">Mobile</span></span>
+        </div>
+        <div class="mhead" aria-hidden="true">
+          <span><span data-l="es">Momento</span><span data-l="en">Moment</span></span>
+          <span><span data-l="es">Sin concierge</span><span data-l="en">Without a concierge</span></span>
+          <b>Con ConnectRGV</b>
+        </div>
+        <div class="moments">
+          <div class="moment rv">
+            <h3><span data-l="es">Firmando el cierre</span><span data-l="en">At closing</span></h3>
+            <p class="no"><span class="tag"><span data-l="es">Sin concierge</span><span data-l="en">Without</span></span><span data-l="es">Su cliente le pregunta con quién pone la luz y el internet.</span><span data-l="en">Your client asks you who to call for power and internet.</span></p>
+            <p class="yes"><span class="tag">ConnectRGV</span><span data-l="es">Le da su tarjeta con código QR y queda en buenas manos.</span><span data-l="en">You hand them your QR card and they’re in good hands.</span></p>
+          </div>
+          <div class="moment rv">
+            <h3><span data-l="es">Esa misma semana</span><span data-l="en">That same week</span></h3>
+            <p class="no"><span class="tag"><span data-l="es">Sin concierge</span><span data-l="en">Without</span></span><span data-l="es">Compara planes solo y espera en línea con cuatro compañías.</span><span data-l="en">They compare plans alone and wait on hold with four companies.</span></p>
+            <p class="yes"><span class="tag">ConnectRGV</span><span data-l="es">Lo llamamos el mismo día hábil y armamos su plan de mudanza.</span><span data-l="en">We call them the same business day and build their move-in plan.</span></p>
+          </div>
+          <div class="moment rv">
+            <h3><span data-l="es">El día de la mudanza</span><span data-l="en">Move-in day</span></h3>
+            <p class="no"><span class="tag"><span data-l="es">Sin concierge</span><span data-l="en">Without</span></span><span data-l="es">Llega sin Wi-Fi y le escribe a usted para ver si conoce a alguien.</span><span data-l="en">They arrive with no Wi-Fi and text you asking if you know someone.</span></p>
+            <p class="yes"><span class="tag">ConnectRGV</span><span data-l="es">Llega con internet y luz funcionando, y la cita confirmada por escrito.</span><span data-l="en">They arrive with internet and power working, and the appointment confirmed in writing.</span></p>
+          </div>
+          <div class="moment rv">
+            <h3><span data-l="es">Un mes después</span><span data-l="en">A month later</span></h3>
+            <p class="no"><span class="tag"><span data-l="es">Sin concierge</span><span data-l="en">Without</span></span><span data-l="es">Ya no se acuerda de quién le vendió la casa.</span><span data-l="en">They no longer remember who sold them the house.</span></p>
+            <p class="yes"><span class="tag">ConnectRGV</span><span data-l="es">Recuerda que usted le resolvió todo, y lo recomienda.</span><span data-l="en">They remember you took care of everything, and they recommend you.</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · How it works -->
+<section class="band white" id="como">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow"><span data-l="es">Cómo funciona</span><span data-l="en">How it works</span></p>
+      <h2 class="h2"><span data-l="es">Tres pasos. <em>Usted solo hace el primero.</em></span><span data-l="en">Three steps. <em>You only do the first one.</em></span></h2>
+    </div>
+    <ol class="steps">
+      <li class="rv">
+        <span class="num">1</span>
+        <span class="you"><span data-l="es">Usted</span><span data-l="en">You</span></span>
+        <h3><span data-l="es">Usted refiere</span><span data-l="en">You refer</span></h3>
+        <p><span data-l="es">Comparta su página, su tarjeta de bienvenida o los datos de su cliente.</span><span data-l="en">Share your page, your welcome card or your client’s info.</span></p>
+      </li>
+      <li class="rv">
+        <span class="num">2</span>
+        <span class="you" style="background:var(--mist);color:var(--green)">ConnectRGV</span>
+        <h3><span data-l="es">Contactamos al cliente</span><span data-l="en">We contact your client</span></h3>
+        <p><span data-l="es">Le llamamos el mismo día hábil, verificamos qué llega a su dirección y le explicamos sus opciones.</span><span data-l="en">We call them the same business day, check what reaches their address and walk them through their options.</span></p>
+      </li>
+      <li class="rv">
+        <span class="num">3</span>
+        <span class="you" style="background:var(--mist);color:var(--green)">ConnectRGV</span>
+        <h3><span data-l="es">Queda conectado</span><span data-l="en">They’re connected</span></h3>
+        <p><span data-l="es">Coordinamos cada instalación, le mandamos su guía de mudanza y le damos seguimiento.</span><span data-l="en">We coordinate every installation, send their moving guide and follow up.</span></p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- 4 · Updates demo -->
+<section class="band dark updates" id="avisos">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow"><span data-l="es">Avisos en cada paso</span><span data-l="en">Updates at every step</span></p>
+      <h2 class="h2"><span data-l="es">Usted siempre sabe <em>cómo va su cliente.</em></span><span data-l="en">You always know <em>how your client is doing.</em></span></h2>
+      <p class="lead"><span data-l="es">Le avisamos por correo o WhatsApp cuando contactamos a su cliente, cuando elige sus servicios y cuando queda todo instalado.</span><span data-l="en">We let you know by email or WhatsApp when we reach your client, when they choose their services and when everything is installed.</span></p>
+      <ul class="checks">
+        <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="#E2A54A"/><path d="M5 9.3l2.6 2.5L13 6.5" fill="none" stroke="#1E3A32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-l="es">Sin tener que llamar para preguntar.</span><span data-l="en">No need to call and ask.</span></li>
+        <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="#E2A54A"/><path d="M5 9.3l2.6 2.5L13 6.5" fill="none" stroke="#1E3A32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-l="es">Siempre lo presentamos a usted como quien le regaló el servicio.</span><span data-l="en">We always present you as the one who gave them the service.</span></li>
+      </ul>
+    </div>
+    <div class="phone rv" aria-label="Ejemplo de avisos al socio">
+      <div class="screen">
+        <div class="chat-top">
+          <span class="avatar" aria-hidden="true">C</span>
+          <div><b>ConnectRGV</b><small>(956) 467-6695</small></div>
+          <span class="example"><span data-l="es">Ejemplo</span><span data-l="en">Example</span></span>
+        </div>
+        <div class="thread" id="thread">
+          <div class="msg"><span class="st"><i></i><span data-l="es">Contactado</span><span data-l="en">Contacted</span></span><br><span data-l="es">Hola<span data-first-c></span>, recibimos a su cliente, la familia Ramírez. Ya les llamamos.</span><span data-l="en">Hi<span data-first-c></span>, we got your client, the Ramírez family. We’ve already called them.</span><time>10:12 a. m.</time></div>
+          <div class="msg"><span class="st"><i></i><span data-l="es">Servicios elegidos</span><span data-l="en">Services chosen</span></span><br><span data-l="es">Eligieron internet y luz. Instalación confirmada para el jueves de 9 a 11.</span><span data-l="en">They chose internet and electricity. Installation confirmed for Thursday, 9 to 11 a.m.</span><time>4:40 p. m.</time></div>
+          <div class="msg"><span class="st"><i></i><span data-l="es">Todo instalado</span><span data-l="en">All installed</span></span><br><span data-l="es">Todo quedó instalado. Les mandamos su guía de mudanza para McAllen.</span><span data-l="en">Everything is installed. We sent them their moving guide for McAllen.</span><time>Jue. 11:05 a. m.</time></div>
+        </div>
+        <button class="replay" type="button" id="replay"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8a5 5 0 1 0 1.5-3.5M3 2.5v3h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-l="es">Ver de nuevo</span><span data-l="en">Replay</span></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · Services -->
+<section class="band stone" id="servicios">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow"><span data-l="es">Servicios</span><span data-l="en">Services</span></p>
+      <h2 class="h2"><span data-l="es">Todo lo que la casa necesita, <em>con una sola llamada.</em></span><span data-l="en">Everything the home needs, <em>with one call.</em></span></h2>
+    </div>
+    <div class="svc">
+      <article class="card photo rv">
+        <img src="img/hogar.jpg" alt="Familia en la sala viendo televisión, con el router en un estante" width="1536" height="1024" loading="lazy">
+        <div class="in">
+          <h3>Internet</h3>
+          <p><span data-l="es">Opciones para cualquier dirección del Valle.</span><span data-l="en">Options for any address in the Valley.</span></p>
+          <ul class="opts">
+            <li><span><span data-l="es">Cable y fibra</span><span data-l="en">Cable &amp; fiber</span></span><span>Spectrum · AT&amp;T</span></li>
+            <li><span><span data-l="es">Internet 5G</span><span data-l="en">5G Internet</span></span><span><span data-l="es">Tracfone, red de Verizon</span><span data-l="en">Tracfone, Verizon network</span></span></li>
+            <li><span><span data-l="es">Satélite</span><span data-l="en">Satellite</span></span><span><span data-l="es">Viasat, para ranchos y zonas rurales</span><span data-l="en">Viasat, for ranches and rural areas</span></span></li>
+          </ul>
+        </div>
+      </article>
+      <article class="card rv">
+        <h3><span data-l="es">Electricidad</span><span data-l="en">Electricity</span></h3>
+        <p><span data-l="es">Donde el cliente puede escoger su compañía de luz, comparamos planes y conectamos el que más le conviene, para la fecha de mudanza.</span><span data-l="en">Where customers can choose their provider, we compare plans and connect the best fit, timed for move-in day.</span></p>
+      </article>
+      <article class="card rv">
+        <h3><span data-l="es">TV por cable</span><span data-l="en">Cable TV</span></h3>
+        <p><span data-l="es">Paquetes de televisión que se combinan con su internet.</span><span data-l="en">TV packages that pair with their internet.</span></p>
+      </article>
+      <article class="card rv">
+        <h3><span data-l="es">Telefonía móvil</span><span data-l="en">Mobile service</span></h3>
+        <p><span data-l="es">Trabajamos con varias compañías para que el cliente elija su plan.</span><span data-l="en">We work with multiple carriers so the client picks their plan.</span></p>
+      </article>
+      <article class="card guide rv">
+        <h3><span data-l="es">Guía <em>gratis</em></span><span data-l="en">Free <em>guide</em></span></h3>
+        <p><span data-l="es">Agua, basura, homestead y cambio de domicilio, en su celular.</span><span data-l="en">Water, trash, homestead and change of address, on their phone.</span></p>
+      </article>
+      <article class="card soon rv">
+        <h3><span data-l="es">Próximamente</span><span data-l="en">Coming soon</span></h3>
+        <p><span data-l="es">Estaremos agregando más servicios en un futuro cercano.</span><span data-l="en">We’ll be adding more services in the near future.</span></p>
+      </article>
+    </div>
+    <p class="fine"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="none" stroke="#5B615E" stroke-width="1.4"/><path d="M9 8v5M9 5.2v.1" stroke="#5B615E" stroke-width="1.6" stroke-linecap="round"/></svg><span data-l="es">Su cliente paga cada servicio directo a la compañía, al mismo precio que si lo contratara solo.</span><span data-l="en">Your client pays each provider directly, at the same price as signing up on their own.</span></p>
+  </div>
+</section>
+
+<!-- 6 · Free guide -->
+<section class="band white" id="guia">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow"><span data-l="es">Guía de mudanza gratis</span><span data-l="en">Free moving guide</span></p>
+      <h2 class="h2"><span data-l="es">Orientación <em>en un solo lugar.</em></span><span data-l="en">All the guidance <em>in one place.</em></span></h2>
+      <p class="lead" style="color:var(--body)"><span data-l="es">Cada cliente recibe una guía en su celular, hecha para su ciudad y en el idioma que prefiera.</span><span data-l="en">Every client gets a guide on their phone, made for their city and in the language they prefer.</span></p>
+    </div>
+    <div class="guide-grid">
+      <div class="rv">
+        <h3><span data-l="es">Agua y basura</span><span data-l="en">Water &amp; trash</span></h3>
+        <p><span data-l="es">A quién llamar en su ciudad, dónde está la oficina y qué llevar.</span><span data-l="en">Who to call in their city, where the office is and what to bring.</span></p>
+      </div>
+      <div class="rv">
+        <h3><span data-l="es">Exención homestead</span><span data-l="en">Homestead exemption</span></h3>
+        <p><span data-l="es">Los pasos y el enlace del distrito de avalúo de su condado. El trámite lo hace el dueño.</span><span data-l="en">The steps and the link for their county appraisal district. The owner files it.</span></p>
+      </div>
+      <div class="rv">
+        <h3><span data-l="es">Cambio de domicilio</span><span data-l="en">Change of address</span></h3>
+        <p><span data-l="es">Una lista para ir marcando: correo, licencia, registro del carro, votante, banco y seguro.</span><span data-l="en">A checklist: mail, driver’s license, vehicle and voter registration, bank and insurance.</span></p>
+      </div>
+    </div>
+    <div class="cities rv">
+      <p class="eyebrow" style="color:var(--muted)"><span data-l="es">Ciudades incluidas</span><span data-l="en">Cities included</span></p>
+      <ul>
+        <li>Alamo</li><li>Alton</li><li>Brownsville</li><li>Donna</li><li>Edcouch</li><li>Edinburg</li><li>Elsa</li><li>Harlingen</li><li>Hidalgo</li><li>La Feria</li><li>La Joya</li><li>Los Fresnos</li><li>McAllen</li><li>Mercedes</li><li>Mission</li><li>Palmhurst</li><li>Palmview</li><li>Pharr</li><li>Port Isabel</li><li>Raymondville</li><li>Rio Grande City</li><li>Roma</li><li>San Benito</li><li>San Juan</li><li>Weslaco</li>
+      </ul>
+    </div>
+    <div class="guide-cta rv">
+      <a class="btn btn-dark" id="guia-link" href="https://connectrgv.com/guia/" target="_blank" rel="noopener"><span data-l="es">Ver la guía como la recibe su cliente</span><span data-l="en">See the guide as your client gets it</span> <span aria-hidden="true">↗</span></a>
+      <small>connectrgv.com/guia</small>
+    </div>
+  </div>
+</section>
+
+<!-- 7 · Partner kit -->
+<section class="band stone" id="kit">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow"><span data-l="es">Su kit de socio</span><span data-l="en">Your partner kit</span></p>
+      <h2 class="h2"><span data-l="es">Listo para compartir <em>desde el primer día.</em></span><span data-l="en">Ready to share <em>from day one.</em></span></h2>
+    </div>
+    <div class="kit">
+      <figure class="stage rv" style="margin:0">
+        <div class="wcard" id="wcard">
+          <small><span data-l="es">Bienvenido a su nuevo hogar</span><span data-l="en">Welcome to your new home</span></small>
+          <p class="welcome"><span data-l="es">Internet, luz y celular listos para su mudanza.</span><span data-l="en">Internet, power and mobile ready for your move.</span></p>
+          <div class="from">
+            <small><span data-l="es">Un regalo de</span><span data-l="en">A gift from</span></small>
+            <p class="name"><span data-n-or-you></span></p>
+            <p class="company" data-if-e hidden><span data-e></span></p>
+          </div>
+          <div class="qrrow">
+            <div class="qr" id="qr" aria-hidden="true"></div>
+            <p><span data-l="es">Escanee y le dejamos todo listo.</span><span data-l="en">Scan and we’ll get everything ready.</span></p>
+          </div>
+          <div class="foot"><span>connectrgv.com</span><span>(956) 467-6695</span></div>
+        </div>
+        <figcaption><span data-l="es">Así se vería su tarjeta de bienvenida.</span><span data-l="en">This is how your welcome card would look.</span></figcaption>
+      </figure>
+      <ul class="tools">
+        <li class="rv"><b><span data-l="es">Página personalizada</span><span data-l="en">Personalized page</span></b><span><span data-l="es">Una página de ConnectRGV con su nombre y un formulario para sus clientes.</span><span data-l="en">A ConnectRGV page with your name and a form for your clients.</span></span></li>
+        <li class="rv"><b><span data-l="es">Tarjetas de bienvenida</span><span data-l="en">Welcome cards</span></b><span><span data-l="es">Impresas con su nombre y código QR, para entregar con las llaves.</span><span data-l="en">Printed with your name and QR code, to hand over with the keys.</span></span></li>
+        <li class="rv"><b><span data-l="es">Avisos en cada paso</span><span data-l="en">Updates at every step</span></b><span><span data-l="es">Por correo o WhatsApp, de principio a fin.</span><span data-l="en">By email or WhatsApp, start to finish.</span></span></li>
+        <li class="rv"><b><span data-l="es">Línea dedicada</span><span data-l="en">Dedicated line</span></b><span><span data-l="es">(956) 467-6695, para usted y sus clientes.</span><span data-l="en">(956) 467-6695, for you and your clients.</span></span></li>
+        <li class="rv"><b><span data-l="es">Atención bilingüe</span><span data-l="en">Bilingual service</span></b><span><span data-l="es">En inglés y español, por teléfono y en la página.</span><span data-l="en">English and Spanish, by phone and online.</span></span></li>
+        <li class="rv"><b><span data-l="es">Tienda en Palmhurst</span><span data-l="en">Local store in Palmhurst</span></b><span><span data-l="es">Sus clientes pueden visitarnos en persona.</span><span data-l="en">Your clients can visit us in person.</span></span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 8 · Commitment -->
+<section class="band dark" id="compromiso">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow"><span data-l="es">Compromiso</span><span data-l="en">Our commitment</span></p>
+      <h2 class="h2"><span data-l="es">Claro, por escrito <em>y en regla.</em></span><span data-l="en">Clear, in writing <em>and by the book.</em></span></h2>
+      <p class="lead"><span data-l="es">Hay compensación por cada cliente que conectamos. Los detalles se los explicamos en una llamada o reunión, y quedan en un acuerdo sencillo antes de empezar.</span><span data-l="en">There’s compensation for every client we connect. We’ll walk you through the details on a call or in a meeting, and put them in a simple agreement before we start.</span></p>
+    </div>
+    <div class="promise">
+      <div class="rv"><span class="roman">I</span><b><span data-l="es">Su cliente, contactado hoy</span><span data-l="en">Your client, contacted today</span></b><span><span data-l="es">El mismo día hábil que llega el referido.</span><span data-l="en">The same business day the referral comes in.</span></span></div>
+      <div class="rv"><span class="roman">II</span><b><span data-l="es">Solo lo que usted autoriza</span><span data-l="en">Only what you authorize</span></b><span><span data-l="es">Nunca contactamos a su cliente para nada más.</span><span data-l="en">We never contact your client about anything else.</span></span></div>
+      <div class="rv"><span class="roman">III</span><b><span data-l="es">Si algo sale mal, lo resuelve Joel</span><span data-l="en">If something goes wrong, Joel handles it</span></b><span><span data-l="es">Directamente, sin pasarlo de departamento en departamento.</span><span data-l="en">Directly, without getting passed around.</span></span></div>
+      <div class="rv"><span class="roman">IV</span><b><span data-l="es">Divulgación lista</span><span data-l="en">Disclosure ready</span></b><span><span data-l="es">Le damos el formato para informar a su cliente, como pide la ley de Texas.</span><span data-l="en">We give you the form to inform your client, as Texas law requires.</span></span></div>
+    </div>
+    <div class="faq">
+      <details><summary><span data-l="es">¿Le cuesta algo a mi cliente?</span><span data-l="en">Does it cost my client anything?</span></summary><p><span data-l="es">No. Paga sus servicios directamente a cada compañía, al mismo precio que si los contratara solo.</span><span data-l="en">No. They pay each provider directly, at the same price as signing up on their own.</span></p></details>
+      <details><summary><span data-l="es">¿Se van a quedar con mi cliente?</span><span data-l="en">Will you take over my client?</span></summary><p><span data-l="es">No. Solo nos encargamos de los servicios del hogar y siempre lo presentamos a usted como quien le regaló el servicio.</span><span data-l="en">No. We only handle home services, and we always present you as the one who gave them the service.</span></p></details>
+      <details><summary><span data-l="es">¿Trabajan con complejos de apartamentos?</span><span data-l="en">Do you work with apartment complexes?</span></summary><p><span data-l="es">Sí, con la luz, cuando cada departamento tiene su propio medidor. El internet depende del contrato que ya tenga la propiedad.</span><span data-l="en">Yes, for electricity, when each unit has its own meter. Internet depends on the property’s existing contract.</span></p></details>
+    </div>
+  </div>
+</section>
+
+<!-- 9 · Sign up -->
+<section class="band white signup" id="registro">
+  <div class="wrap">
+    <div class="why rv">
+      <img src="img/socios.jpg" alt="Agente inmobiliaria entregando las llaves de su casa a una pareja" width="1536" height="1024" loading="lazy">
+      <ul>
+        <li><svg width="22" height="22" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="#E2A54A"/><path d="M5 9.3l2.6 2.5L13 6.5" fill="none" stroke="#1E3A32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b><span data-l="es">Más valor para sus clientes</span><span data-l="en">More value for your clients</span></b><span><span data-l="es">Servicios, trámites y dudas de la mudanza, resueltos con nosotros.</span><span data-l="en">Services, paperwork and moving questions, handled with us.</span></span></div></li>
+        <li><svg width="22" height="22" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="#E2A54A"/><path d="M5 9.3l2.6 2.5L13 6.5" fill="none" stroke="#1E3A32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b><span data-l="es">Cero trabajo extra</span><span data-l="en">Zero extra work</span></b><span><span data-l="es">Usted refiere; nosotros hacemos el resto.</span><span data-l="en">You refer; we handle the rest.</span></span></div></li>
+        <li><svg width="22" height="22" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="#E2A54A"/><path d="M5 9.3l2.6 2.5L13 6.5" fill="none" stroke="#1E3A32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b><span data-l="es">Compensación por referido</span><span data-l="en">Referral compensation</span></b><span><span data-l="es">Se la explicamos en una llamada o reunión.</span><span data-l="en">We’ll explain it on a call or in a meeting.</span></span></div></li>
+      </ul>
+    </div>
+    <div>
+      <p class="eyebrow" style="color:var(--muted)"><span data-l="es">Registro de socios</span><span data-l="en">Partner sign-up</span></p>
+      <h2 class="h2" style="margin-top:18px">
+        <span data-l="es"><span data-if-n hidden><span data-first></span>, empecemos</span><span data-if-no-n>Empecemos</span> <em>con su próximo cierre.</em></span>
+        <span data-l="en"><span data-if-n hidden><span data-first></span>, let’s start</span><span data-if-no-n>Let’s start</span> <em>with your next closing.</em></span>
+      </h2>
+      <p class="lead" style="color:var(--body);margin-top:18px"><span data-l="es">Déjenos sus datos y le llamamos para entregarle su página, su código QR y el acuerdo por escrito.</span><span data-l="en">Leave your info and we’ll call to set you up with your page, your QR code and the written agreement.</span></p>
+      <form class="form" id="signup" novalidate>
+        <div class="field"><label for="f-nombre"><span data-l="es">Nombre completo</span><span data-l="en">Full name</span></label><input id="f-nombre" name="nombre" autocomplete="name" required></div>
+        <div class="field"><label for="f-empresa"><span data-l="es">Empresa o agencia</span><span data-l="en">Company or agency</span></label><input id="f-empresa" name="empresa" autocomplete="organization"></div>
+        <div class="field"><label for="f-tipo"><span data-l="es">Soy</span><span data-l="en">I’m a</span></label>
+          <select id="f-tipo" name="tipo_socio">
+            <option value="Realtor" data-es="Realtor" data-en="Realtor">Realtor</option>
+            <option value="Administrador de propiedades" data-es="Administrador de propiedades" data-en="Property manager">Administrador de propiedades</option>
+            <option value="Constructora" data-es="Constructora" data-en="Home builder">Constructora</option>
+            <option value="Agente de seguros" data-es="Agente de seguros" data-en="Insurance agent">Agente de seguros</option>
+            <option value="Compañía de mudanza" data-es="Compañía de mudanza" data-en="Moving company">Compañía de mudanza</option>
+            <option value="Otro" data-es="Otro" data-en="Other">Otro</option>
+          </select></div>
+        <div class="field"><label for="f-volumen"><span data-l="es">Mudanzas al mes</span><span data-l="en">Moves per month</span></label>
+          <select id="f-volumen" name="volumen">
+            <option value="1 a 3" data-es="1 a 3" data-en="1 to 3">1 a 3</option>
+            <option value="4 a 10" data-es="4 a 10" data-en="4 to 10">4 a 10</option>
+            <option value="Más de 10" data-es="Más de 10" data-en="More than 10">Más de 10</option>
+          </select></div>
+        <div class="field"><label for="f-tel"><span data-l="es">Teléfono</span><span data-l="en">Phone</span></label><input id="f-tel" name="telefono" type="tel" autocomplete="tel" required></div>
+        <div class="field"><label for="f-correo"><span data-l="es">Correo</span><span data-l="en">Email</span></label><input id="f-correo" name="correo" type="email" autocomplete="email"></div>
+        <p class="note" id="form-msg"><span data-l="es">Le llamamos en horario de oficina. Sus datos solo se usan para el programa.</span><span data-l="en">We call during office hours. Your info is only used for the program.</span></p>
+        <button class="btn btn-dark" type="submit" id="f-submit"><span data-l="es">Quiero ser socio</span><span data-l="en">Become a partner</span></button>
+      </form>
+      <div class="ok" id="ok" hidden tabindex="-1" role="status">
+        <strong><span data-l="es">Recibido</span><span data-l="en">Received</span></strong>
+        <p><span data-l="es">Gracias. Le llamamos hoy mismo. Si llegó fuera de horario, le llamamos el siguiente día hábil.</span><span data-l="en">Thank you. We’ll call you today. If it arrived after hours, we’ll call the next business day.</span></p>
+      </div>
+      <div class="talk">
+        <span style="color:var(--muted);font-size:15px;width:100%"><span data-l="es">¿Prefiere hablar ya?</span><span data-l="en">Rather talk now?</span></span>
+        <span class="tnum">(956) 467-6695</span>
+        <a class="btn btn-dark" id="call" href="tel:+19564676695"><span data-l="es">Llamar</span><span data-l="en">Call</span></a>
+        <a class="btn btn-line" id="text" href="sms:+19564676695"><span data-l="es">Mandar mensaje</span><span data-l="en">Send a text</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div style="display:grid;gap:6px">
+      <span class="wordmark">Connect<b>RGV</b></span>
+      <span><span data-l="es">Tu concierge de servicios para el hogar</span><span data-l="en">Your home services concierge</span></span>
+    </div>
+    <div style="display:grid;gap:6px">
+      <span>4415 N. Conway Ave., Ste. 180, Palmhurst, TX 78573</span>
+      <span>(956) 467-6695 · <a href="/socios/">connectrgv.com/socios</a></span>
+      <span><span data-l="es">Respaldado por MirComm LLC</span><span data-l="en">Backed by MirComm LLC</span></span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+(function () {
+  var ENDPOINT = 'https://script.google.com/macros/s/AKfycbxqbu5EMlw3wmq6zEywKCEPJ3_yejlNfKrsMqcuGcU0P2RCHjjPFKhEOzK3f8Ivqw_JNQ/exec';
+  // Solo el sitio real manda datos; en vistas previas todo se simula.
+  var LIVE = /(^|\.)connectrgv\.com$/i.test(location.hostname);
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var q; try { q = new URLSearchParams(location.search); } catch (e) { q = { get: function () { return null; } }; }
+  function clean(v) { return String(v || '').replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80); }
+  function slug(v) { return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40); }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+  /* ── Personalización: ?n=Nombre&e=Empresa&s=clave&l=en ── */
+  var N = clean(q.get('n')), E = clean(q.get('e')), S = slug(q.get('s') || '');
+  if (!LIVE && !N) { N = 'Imelda Gonzalez'; E = 'Mission Property Management'; } // ejemplo en la vista previa
+  if (!S && N) S = slug(N);
+  var FIRST = N.split(' ')[0] || '';
+  function each(sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); }
+  each('[data-n]', function (el) { el.textContent = N; });
+  each('[data-e]', function (el) { el.textContent = E; });
+  each('[data-first]', function (el) { el.textContent = FIRST; });
+  each('[data-first-c]', function (el) { el.textContent = FIRST ? ' ' + FIRST : ''; });
+  each('[data-if-n]', function (el) { el.hidden = !N; });
+  each('[data-if-no-n]', function (el) { el.hidden = !!N; });
+  each('[data-if-e]', function (el) { el.hidden = !E; });
+  var fN = document.getElementById('f-nombre'), fE = document.getElementById('f-empresa');
+  if (N && fN && !fN.value) fN.value = N;
+  if (E && fE && !fE.value) fE.value = E;
+
+  /* ── Idioma ── */
+  var LANG = q.get('l') === 'en' ? 'en' : q.get('l') === 'es' ? 'es' : (ls('cgv_lang') === 'en' ? 'en' : 'es');
+  function setLang(l) {
+    LANG = l;
+    document.documentElement.lang = l;
+    each('[data-set-lang]', function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-set-lang') === l ? 'true' : 'false'); });
+    each('option[data-es]', function (o) { o.textContent = o.getAttribute('data-' + l); });
+    each('[data-n-or-you]', function (el) { el.textContent = N || (l === 'en' ? 'Your name' : 'Su nombre'); });
+    document.title = l === 'en' ? 'ConnectRGV · Partner Program' : 'ConnectRGV · Programa de Socios';
+    ls('cgv_lang', l);
+  }
+  each('[data-set-lang]', function (b) { b.addEventListener('click', function () { setLang(b.getAttribute('data-set-lang')); }); });
+  setLang(LANG);
+
+  /* ── Seguimiento (pestaña "Visitas programa") ── */
+  function track(ev) {
+    if (!LIVE) return;
+    var ref = ''; try { ref = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
+    var p = new URLSearchParams({ ev: ev, s: S, n: N, e: E, l: LANG, d: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'Celular' : 'Computadora', r: ref });
+    try { fetch(ENDPOINT + '?' + p.toString(), { mode: 'no-cors', keepalive: true }).catch(function () {}); } catch (e) {}
+  }
+  var seen = false; try { seen = sessionStorage.getItem('cgv_prog_' + S) === '1'; sessionStorage.setItem('cgv_prog_' + S, '1'); } catch (e) {}
+  if (!seen) track('abrio');
+  var once = {};
+  function trackOnce(ev) { if (once[ev]) return; once[ev] = 1; track(ev); }
+  ['call', 'text'].forEach(function (id) { var a = document.getElementById(id); if (a) a.addEventListener('click', function () { trackOnce(id === 'call' ? 'llamar' : 'texto'); }); });
+  var gl = document.getElementById('guia-link'); if (gl) gl.addEventListener('click', function () { trackOnce('guia'); });
+
+  /* ── Barra de progreso ── */
+  var bar = document.querySelector('.progress'), tick = false;
+  function prog() { var h = document.documentElement; var max = h.scrollHeight - h.clientHeight; bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, h.scrollTop / max) : 0) + ')'; tick = false; }
+  addEventListener('scroll', function () { if (!tick) { tick = true; requestAnimationFrame(prog); } }, { passive: true });
+  prog();
+
+  /* ── Aparición suave (todo es visible sin esto) ── */
+  if ('IntersectionObserver' in window && !reduce) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('go'); io.unobserve(en.target); } });
+    }, { rootMargin: '0px 0px 12% 0px' });
+    each('.rv', function (el) { var r = el.getBoundingClientRect(); if (r.top > innerHeight) io.observe(el); });
+  }
+  if ('IntersectionObserver' in window) {
+    var reg = document.getElementById('registro');
+    var io2 = new IntersectionObserver(function (en) { if (en[0].isIntersecting) { trackOnce('final'); io2.disconnect(); } }, { threshold: .25 });
+    if (reg) io2.observe(reg);
+  }
+
+  /* ── Avisos: la conversación se arma sola al verla ── */
+  var thread = document.getElementById('thread'), replay = document.getElementById('replay'), playing = false;
+  function play() {
+    if (reduce || playing || !thread) return;
+    playing = true;
+    var msgs = thread.querySelectorAll('.msg');
+    Array.prototype.forEach.call(msgs, function (m) { m.classList.add('wait'); });
+    var i = 0;
+    (function next() {
+      if (i >= msgs.length) { playing = false; return; }
+      var t = document.createElement('div'); t.className = 'typing'; t.innerHTML = '<i></i><i></i><i></i>';
+      thread.insertBefore(t, msgs[i]);
+      setTimeout(function () { t.remove(); msgs[i].classList.remove('wait'); i++; setTimeout(next, 450); }, 900);
+    })();
+  }
+  if (replay) replay.addEventListener('click', play);
+  if ('IntersectionObserver' in window && thread) {
+    var io3 = new IntersectionObserver(function (en) { if (en[0].isIntersecting) { play(); io3.disconnect(); } }, { threshold: .55 });
+    io3.observe(thread);
+  }
+
+  /* ── Tarjeta de bienvenida: QR real y movimiento al pasar el dedo ── */
+  var qrEl = document.getElementById('qr');
+  if (qrEl && !window.qrcode) qrEl.hidden = true;
+  if (qrEl && window.qrcode) {
+    try { var qr = qrcode(0, 'M'); qr.addData('https://connectrgv.com/'); qr.make(); qrEl.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) {}
+  }
+  var card = document.getElementById('wcard');
+  if (card && !reduce) {
+    card.parentNode.addEventListener('pointermove', function (e) {
+      var r = card.getBoundingClientRect(); var x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+      card.style.transform = 'rotateY(' + (x * 14).toFixed(2) + 'deg) rotateX(' + (-y * 12).toFixed(2) + 'deg)';
+    });
+    card.parentNode.addEventListener('pointerleave', function () { card.style.transform = ''; });
+  }
+
+  /* ── Registro: misma hoja y pestaña "Socios" que el sitio ── */
+  var form = document.getElementById('signup'), ok = document.getElementById('ok'), msg = document.getElementById('form-msg');
+  if (form) form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var nombre = form.nombre.value.trim(), tel = form.telefono.value.replace(/\D/g, '');
+    if (!nombre || tel.length < 10) {
+      msg.innerHTML = LANG === 'en' ? '<b style="color:#B3261E">Please enter your name and a 10-digit phone number.</b>' : '<b style="color:#B3261E">Escriba su nombre y un teléfono de 10 dígitos.</b>';
+      (!nombre ? form.nombre : form.telefono).focus();
+      return;
+    }
+    var data = { tipo: 'socio', nombre: nombre, empresa: form.empresa.value.trim(), tipo_socio: form.tipo_socio.value, volumen: form.volumen.value,
+      telefono: form.telefono.value.trim(), correo: form.correo.value.trim(), pagina: '/programa/' + (S ? '?s=' + S : ''), fecha_envio: new Date().toLocaleString('es-MX') };
+    if (LANG === 'en') data.servicios = '(habla inglés)';
+    var btn = document.getElementById('f-submit'); btn.disabled = true;
+    function done() { form.hidden = true; ok.hidden = false; ok.focus(); trackOnce('registro'); }
+    if (!LIVE) { setTimeout(done, 400); return; }
+    fetch(ENDPOINT, { method: 'POST', mode: 'no-cors', body: new URLSearchParams(data) }).then(done, done);
+  });
+})();
+</script>
+</body>
+</html>

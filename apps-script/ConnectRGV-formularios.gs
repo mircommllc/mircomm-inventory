@@ -58,6 +58,7 @@ function doPost(e) {
 // Solo salen los socios con "Publicada = Sí" en la pestaña Directorio (la llena el Hub, en 🧰 Página y kit).
 function doGet(e) {
   var p = (e && e.parameter) || {};
+  if (p.ev) return registrarVisita_(p);
   var slug = String(p.p || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40);
   var out = { ok: false };
   if (slug) {
@@ -86,6 +87,45 @@ function paginaSocio_(slug) {
     };
   }
   return { ok: false };
+}
+
+// Presentación para socios (connectrgv.com/programa): quién la abrió y qué hizo.
+// El link personalizado lleva ?n=Nombre&e=Empresa&s=clave. Avisa por correo cuando un socio la abre
+// (una vez cada 6 horas por socio, para no llenarte el correo).
+var EVENTOS_VISITA = {
+  'abrio': 'Abrió la presentación', 'final': 'Llegó al registro', 'llamar': 'Tocó Llamar',
+  'texto': 'Tocó Mandar mensaje', 'guia': 'Abrió la guía', 'registro': 'Se registró'
+};
+var COLUMNAS_VISITA = ['Fecha', 'Evento', 'Socio', 'Nombre', 'Empresa', 'Idioma', 'Dispositivo', 'Viene de'];
+
+function registrarVisita_(p) {
+  var ev = String(p.ev || '');
+  if (!EVENTOS_VISITA[ev]) return ContentService.createTextOutput('ok');
+  var libro = SpreadsheetApp.getActiveSpreadsheet();
+  var hoja = libro.getSheetByName('Visitas programa');
+  if (!hoja) {
+    hoja = libro.insertSheet('Visitas programa');
+    hoja.appendRow(COLUMNAS_VISITA);
+    hoja.setFrozenRows(1);
+    hoja.getRange(1, 1, 1, COLUMNAS_VISITA.length).setFontWeight('bold');
+  }
+  var socio = limpiar_(p.s).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40);
+  var nombre = limpiar_(p.n).slice(0, 80), empresa = limpiar_(p.e).slice(0, 80);
+  var idioma = p.l === 'en' ? 'Inglés' : 'Español';
+  hoja.appendRow([new Date(), EVENTOS_VISITA[ev], socio, nombre, empresa, idioma, limpiar_(p.d).slice(0, 20), limpiar_(p.r).slice(0, 80)]);
+
+  if (ev === 'abrio' && (socio || nombre)) {
+    var cache = CacheService.getScriptCache(), clave = 'vis_' + (socio || nombre);
+    if (!cache.get(clave)) {
+      cache.put(clave, '1', 21600);
+      MailApp.sendEmail(AVISAR_A,
+        'ConnectRGV · ' + (nombre || socio) + ' abrió la presentación',
+        [(nombre || socio) + (empresa ? ' (' + empresa + ')' : '') + ' acaba de abrir la presentación del programa.',
+         '', 'Idioma: ' + idioma, 'Dispositivo: ' + limpiar_(p.d),
+         '', 'Buen momento para darle seguimiento. Todo queda en la pestaña "Visitas programa".'].join('\n'));
+    }
+  }
+  return ContentService.createTextOutput('ok');
 }
 
 function obtenerHoja_(nombre) {
