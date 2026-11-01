@@ -761,3 +761,11 @@ function cgvPageStats_(slug, clave) {
   });
   return o;
 }
+
+// Para correr a mano desde el editor (Ejecutar → crearClavesPanel): crea la clave del panel
+// a cada página de socio que todavía no tiene. El Hub hace lo mismo solo al abrir 🏡 Concierge.
+function crearClavesPanel() {
+  var dir = cgvDirEnsure_(cgvRead_('cliente').concat(cgvRead_('familia')), cgvRead_('socio'), cgvPartners_());
+  var conPanel = dir.filter(function (d) { return d.pagina && d.pin; }).map(function (d) { return cgvSlug_(d.pagina); });
+  Logger.log('Páginas con clave de panel: ' + (conPanel.join(', ') || 'ninguna'));
+}
