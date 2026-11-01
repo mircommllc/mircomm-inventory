@@ -1,6 +1,8 @@
-# ConnectRGV · páginas de socios: connectrgv.com/<nombre> muestra /socio/ con los datos de ese socio.
+# ConnectRGV · páginas de socios: connectrgv.com/<nombre> muestra /socio/ con los datos de ese socio
+# y connectrgv.com/<nombre>/panel muestra /panel/ (el panel privado del socio, con su clave).
 # Las carpetas y archivos que ya existen (socios, missionpm, assets…) no se tocan.
 RewriteEngine On
+RewriteRule ^([a-z0-9][a-z0-9-]{1,39})/panel/?$ /panel/index.html [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^([a-z0-9][a-z0-9-]{1,39})/?$ /socio/index.html [L]

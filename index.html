@@ -729,6 +729,12 @@
   .kit-qr svg { width:100%; height:100%; display:block; }
   .kit-link { text-align:center; font-weight:700; margin:8px 0 12px; word-break:break-all; }
   .kit-btns { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .kit-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:0 0 12px; }
+  .kit-stats div { border:1px solid var(--border); border-radius:10px; padding:8px 6px; text-align:center; }
+  .kit-stats b { display:block; font-size:20px; line-height:1.1; }
+  .kit-stats span { display:block; font-size:11px; color:var(--muted); line-height:1.25; margin-top:2px; }
+  .kit-panel { margin-top:12px; padding:10px 12px; border:1px dashed var(--border); border-radius:10px; font-size:13px; }
+  .kit-panel .pin { font-size:18px; font-weight:700; letter-spacing:3px; }
   .kit-picks { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; max-height:50vh; overflow:auto; }
   .kit-pick { text-align:left; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--text); cursor:pointer; font:inherit; }
   .kit-pick:hover { border-color:var(--blue); }
@@ -7552,6 +7558,9 @@ function kitSlug(v) {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
 }
 function kitUrl(p) { return `https://${KIT_SITE}/${(p || kitP).pagina}`; }
+// El QR lleva ?qr para que la hoja cuente los escaneos aparte (la página lo quita de la barra al abrir)
+function kitQrUrl(p) { return kitUrl(p) + '?qr'; }
+function kitPanelUrl(p) { return `${KIT_SITE}/${(p || kitP).pagina}/panel`; }
 let kitQrP = null;
 function kitQrLib() {
   if (window.qrcode) return Promise.resolve();
@@ -7625,14 +7634,15 @@ function kitPaint() {
         ${KIT_STATIC.includes(kitSlug(p.pagina)) ? `<div class="cgv-hint">ℹ️ connectrgv.com/${escHtml(kitSlug(p.pagina))} es la página que armamos a mano. Sigue funcionando igual; para que use lo de aquí, borra su carpeta <b>${escHtml(kitSlug(p.pagina))}</b> en SiteGround.</div>` : ''}
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
           <button class="btn btn-primary" id="kit-save" onclick="kitSave()">💾 ${p.existe ? 'Guardar cambios' : 'Crear su página'}</button>
-          ${live ? `<a class="btn btn-ghost" href="${kitUrl()}" target="_blank" rel="noopener">👁 Ver página</a>` : ''}
+          ${live ? `<a class="btn btn-ghost" href="${kitUrl()}?prueba" target="_blank" rel="noopener" title="Esta visita no cuenta">👁 Ver página</a>` : ''}
         </div>
       </div>
       <div class="kit-side ${live ? '' : 'off'}">
         <div class="cgv-sec-h" style="margin-top:0">2 · Lo que se le entrega</div>
         ${live ? `
-          <div class="kit-qr">${window.qrcode ? kitQrSvg(kitUrl()) : '<div class="cgv-hint">Sin generador de QR</div>'}</div>
+          <div class="kit-qr">${window.qrcode ? kitQrSvg(kitQrUrl()) : '<div class="cgv-hint">Sin generador de QR</div>'}</div>
           <div class="kit-link">${escHtml(KIT_SITE + '/' + p.pagina)}</div>
+          ${kitStatsHtml(p.stats)}
           <div class="kit-btns">
             <button class="btn btn-ghost btn-sm" onclick="kitDlQr()">⬇ QR (imagen)</button>
             <button class="btn btn-ghost btn-sm" onclick="kitCards()">🖨 Tarjetas de bienvenida</button>
@@ -7640,11 +7650,52 @@ function kitPaint() {
             ${phoneDigits(p.telefono).length === 10 ? `<button class="btn btn-ghost btn-sm" onclick="kitWa()">🟢 Mandárselo por WhatsApp</button>` : ''}
           </div>
           ${p.correo ? `<button class="btn btn-primary btn-full" style="margin-top:10px" onclick="kitMail(this)">✉️ Mandarle su kit a ${escHtml(p.correo)}</button>
-            <div class="cgv-hint">Le llega su enlace y el QR adjunto, a nombre de ConnectRGV.</div>`
+            <div class="cgv-hint">Le llega su enlace, el QR adjunto${p.pin ? ' y el acceso a su panel' : ''}, a nombre de ConnectRGV.</div>`
             : `<div class="cgv-hint" style="margin-top:10px">✉️ Para mandárselo por correo, ponle su correo en 🤝 Socios → ✏️ Editar.</div>`}
+          ${kitPanelHtml(p)}
         ` : `<div class="cgv-hint">${p.existe && !p.publicada ? 'La página está apagada. Actívala y guarda para sacar su QR y sus tarjetas.' : 'Crea su página primero. Luego aquí sale su QR, sus tarjetas para imprimir y el mensaje para mandárselo.'}</div>`}
       </div>
     </div>`, true);
+}
+// Visitas a su página (la hoja las cuenta: 🔳 QR = escaneos) y registros que llegaron por ella
+function kitStatsHtml(st) {
+  if (!st) return '';
+  const ult = st.ultima ? new Date(st.ultima).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : '';
+  return `<div class="kit-stats" title="Últimos 30 días · total desde que se empezó a contar">
+      <div><b>${st.mes}</b><span>visitas · 30 días<br>${st.visitas} en total</span></div>
+      <div><b>${st.mesQr}</b><span>por QR · 30 días<br>${st.qr} en total</span></div>
+      <div><b>${st.registros}</b><span>se registraron<br>${st.instalados} instalados</span></div>
+    </div>${ult ? `<div class="cgv-hint" style="margin:-6px 0 10px;text-align:center">Última visita: ${escHtml(ult)}</div>` : ''}`;
+}
+// Panel privado del socio: connectrgv.com/<nombre>/panel con su clave (solo avance de clientes, sin comisión)
+function kitPanelHtml(p) {
+  if (!p.pin) return `<div class="kit-panel">🔐 <b>Panel del socio</b><div class="cgv-hint" style="margin-top:4px">Guarda su página para crearle su clave.</div></div>`;
+  return `<div class="kit-panel">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+        <div>🔐 <b>Su panel</b> · <a href="https://${escHtml(kitPanelUrl())}" target="_blank" rel="noopener">${escHtml(kitPanelUrl())}</a></div>
+        <div>Clave: <span class="pin">${escHtml(p.pin)}</span></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn btn-ghost btn-sm" onclick="segCopy(kitPanelText())">📋 Copiar acceso</button>
+        <button class="btn btn-ghost btn-sm" onclick="kitNewPin(this)">🔄 Clave nueva</button>
+      </div>
+      <div class="cgv-hint" style="margin-top:6px">Ve en qué paso va cada cliente que refirió y cuántas visitas tiene su página. No ve teléfonos, direcciones ni comisiones.</div>
+    </div>`;
+}
+function kitPanelText() {
+  return `Para ver cómo va cada uno de sus clientes: ${kitPanelUrl()}\nSu clave: ${kitP.pin}`;
+}
+async function kitNewPin(btn) {
+  if (!confirm(`¿Darle una clave nueva a ${kitP.nombre}? La clave de ahora deja de servir y hay que mandarle la nueva.`)) return;
+  btn.disabled = true;
+  try {
+    const r = await apiPost({ action: 'cgvPanelPin', data: JSON.stringify({ clave: kitP.clave, socioId: kitP.socioId }) });
+    kitP.pin = r.pin; kitKeep(); kitPaint();
+    toast(`🔐 Clave nueva: ${escHtml(r.pin)}. Mándasela al socio.`, 'success', 5000);
+  } catch (e) {
+    btn.disabled = false;
+    toast(/cgvPanelPin|unknown|desconocida/i.test(e.message) ? 'Falta actualizar Concierge.gs (Deploy → New version).' : escHtml(e.message), 'error', 5000);
+  }
 }
 function kitSlugHint(v) {
   const st = kitSlugState(v), h = document.getElementById('kit-slug-h');
@@ -7701,19 +7752,20 @@ async function kitSave() {
 }
 function kitDlQr() {
   const a = document.createElement('a');
-  a.href = kitQrPng(kitUrl(), 1200); a.download = `QR-${kitP.pagina}.png`;
+  a.href = kitQrPng(kitQrUrl(), 1200); a.download = `QR-${kitP.pagina}.png`;
   document.body.appendChild(a); a.click(); a.remove();
 }
 function kitWaText() {
   const first = String(kitP.nombre || '').trim().split(/\s+/)[0] || '';
-  return `Hola ${first}, ${cgvSaludo()}. Ya quedó lista su página: ${KIT_SITE}/${kitP.pagina}\n\nCuando le entregue una casa a alguien, nada más compártale ese enlace. Sus clientes llenan sus datos ahí, a mí me llegan marcados como suyos y yo le voy avisando cómo va cada uno.\n\n¿No le molesta si le llevo unas tarjetas impresas con su código QR para que las deje en las casas?`;
+  const panel = kitP.pin ? `\n\nY para ver cómo va cada uno cuando usted quiera: ${kitPanelUrl()}\nSu clave: ${kitP.pin}` : '';
+  return `Hola ${first}, ${cgvSaludo()}. Ya quedó lista su página: ${KIT_SITE}/${kitP.pagina}\n\nCuando le entregue una casa a alguien, nada más compártale ese enlace. Sus clientes llenan sus datos ahí, a mí me llegan marcados como suyos y yo le voy avisando cómo va cada uno.${panel}\n\n¿No le molesta si le llevo unas tarjetas impresas con su código QR para que las deje en las casas?`;
 }
 function kitWa() { waOpen(`https://wa.me/1${phoneDigits(kitP.telefono)}?text=${encodeURIComponent(kitWaText())}`); }
 async function kitMail(btn) {
   if (!confirm(`¿Mandarle su enlace y su QR a ${kitP.correo}?`)) return;
   btn.disabled = true; btn.textContent = 'Mandando…';
   try {
-    const qr = kitQrPng(kitUrl(), 900).replace(/^data:image\/png;base64,/, '');
+    const qr = kitQrPng(kitQrUrl(), 900).replace(/^data:image\/png;base64,/, '');
     await apiPost({ action: 'cgvKitMail', data: JSON.stringify({ clave: kitP.clave, socioId: kitP.socioId, qr }) });
     toast(`✉️ Le mandé su kit a ${escHtml(kitP.correo)}.`, 'success', 4000);
     btn.textContent = '✓ Enviado';
@@ -7721,7 +7773,7 @@ async function kitMail(btn) {
 }
 // Tarjetas de bienvenida: 2 por hoja carta, listas para imprimir o "Guardar como PDF"
 function kitCards() {
-  const p = kitP, url = kitUrl(), qr = kitQrSvg(url), quien = p.empresa || p.nombre, foto = p.foto;
+  const p = kitP, url = kitUrl(), qr = kitQrSvg(kitQrUrl()), quien = p.empresa || p.nombre, foto = p.foto;
   const esc = escHtml;
   // Arriba en inglés, abajo en español
   const T = {

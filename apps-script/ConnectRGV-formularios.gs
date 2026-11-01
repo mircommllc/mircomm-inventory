@@ -1,6 +1,8 @@
 /**
  * ConnectRGV — recibe los formularios del sitio, los guarda en esta hoja y avisa por correo.
- * También le da a cada página de socio (connectrgv.com/<nombre>) los datos de su socio.
+ * También le da a cada página de socio (connectrgv.com/<nombre>) los datos de su socio,
+ * cuenta las visitas y escaneos de esas páginas (pestaña "Visitas páginas")
+ * y le da al panel privado de cada socio (connectrgv.com/<nombre>/panel) el avance de sus clientes.
  *
  * ACTUALIZAR (cuando ya está instalado):
  * 1. En la hoja "ConnectRGV -Solicitudes": Extensiones > Apps Script. Borra todo y pega este archivo. Guarda.
@@ -20,6 +22,8 @@ var COLUMNAS = ['Recibido', 'Nombre', 'Teléfono', 'Correo', 'Empresa', 'Tipo de
   'Socio que refirió', 'Fecha de mudanza', 'Dirección', 'Código postal', 'Cuándo se muda', 'Servicios', 'Página', 'Estatus'];
 
 function doPost(e) {
+  var j = cuerpoJson_(e);
+  if (j && j.accion === 'panel') return panelSocio_(j);
   var p = (e && e.parameter) || {};
   var tipo = PESTANAS[p.tipo] ? p.tipo : 'familia';
   var hoja = obtenerHoja_(PESTANAS[tipo]);
@@ -58,18 +62,17 @@ function doPost(e) {
 // Solo salen los socios con "Publicada = Sí" en la pestaña Directorio (la llena el Hub, en 🧰 Página y kit).
 function doGet(e) {
   var p = (e && e.parameter) || {};
+  if (p.ev === 'pagina') return registrarPagina_(p);
   if (p.ev) return registrarVisita_(p);
-  var slug = String(p.p || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40);
-  var out = { ok: false };
-  if (slug) {
-    var cache = CacheService.getScriptCache(), hit = cache.get('pg_' + slug);
-    if (hit) out = JSON.parse(hit);
-    else {
-      out = paginaSocio_(slug);
-      try { cache.put('pg_' + slug, JSON.stringify(out), 120); } catch (x) { /* muy grande para el caché: no pasa nada */ }
-    }
-  }
-  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+  var slug = slug_(p.p);
+  return json_(slug ? paginaSocioCache_(slug) : { ok: false });
+}
+function paginaSocioCache_(slug) {
+  var cache = CacheService.getScriptCache(), hit = cache.get('pg_' + slug);
+  if (hit) return JSON.parse(hit);
+  var out = paginaSocio_(slug);
+  try { cache.put('pg_' + slug, JSON.stringify(out), 120); } catch (x) { /* muy grande para el caché: no pasa nada */ }
+  return out;
 }
 function paginaSocio_(slug) {
   var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Directorio');
@@ -126,6 +129,131 @@ function registrarVisita_(p) {
     }
   }
   return ContentService.createTextOutput('ok');
+}
+
+// ─── VISITAS A LAS PÁGINAS DE SOCIO ─────────────────────────────────
+// connectrgv.com/<nombre> avisa aquí cada vez que alguien la abre (una vez por visita, no por recarga).
+// Llegó por: "QR" (el QR del kit trae ?qr), "Enlace" (le compartieron el link: WhatsApp, correo, Facebook…) o "Directo".
+var COLUMNAS_PAGINA = ['Fecha', 'Página', 'Socio', 'Llegó por', 'Idioma', 'Dispositivo', 'Viene de'];
+var VIA_PAGINA = { qr: 'QR', enlace: 'Enlace', directo: 'Directo' };
+
+function registrarPagina_(p) {
+  var slug = slug_(p.s);
+  var info = slug ? paginaSocioCache_(slug) : null;
+  if (!info || !info.ok) return ContentService.createTextOutput('ok');   // solo páginas publicadas
+  var libro = SpreadsheetApp.getActiveSpreadsheet(), hoja = libro.getSheetByName('Visitas páginas');
+  if (!hoja) {
+    hoja = libro.insertSheet('Visitas páginas');
+    hoja.appendRow(COLUMNAS_PAGINA);
+    hoja.setFrozenRows(1);
+    hoja.getRange(1, 1, 1, COLUMNAS_PAGINA.length).setFontWeight('bold');
+  }
+  hoja.appendRow([new Date(), slug, info.clave || info.nombre || '', VIA_PAGINA[p.v] || 'Directo',
+    p.l === 'en' ? 'Inglés' : 'Español', limpiar_(p.d).slice(0, 20), limpiar_(p.r).slice(0, 80)]);
+  return ContentService.createTextOutput('ok');
+}
+
+// ─── PANEL PRIVADO DEL SOCIO ────────────────────────────────────────
+// connectrgv.com/<nombre>/panel manda { accion: 'panel', p: <nombre>, k: <clave> } y recibe el avance de sus clientes.
+// La clave vive en la pestaña Directorio (columna "Clave panel"); la saca el Hub en 🧰 Página y kit.
+// Solo sale lo que el socio necesita: nombre corto, fechas, en qué paso va y qué servicios eligió. Nada de teléfonos,
+// direcciones, planes ni comisiones. Después de 8 claves equivocadas, esa página se bloquea 15 minutos.
+var PANEL_INTENTOS = 8, PANEL_BLOQUEO = 900;
+var PANEL_PASOS = { 'Nuevo': 1, 'Contactado': 2, 'Servicios elegidos': 3, 'Instalado': 4, 'No avanzó': 0 };
+
+function panelSocio_(j) {
+  var slug = slug_(j.p), clave = String(j.k || '').replace(/\D/g, '').slice(0, 8);
+  if (!slug) return json_({ ok: false, code: 'PAGINA' });
+  var cache = CacheService.getScriptCache(), fk = 'pf_' + slug, fallas = Number(cache.get(fk) || 0);
+  if (fallas >= PANEL_INTENTOS) return json_({ ok: false, code: 'BLOQUEO' });
+  var d = directorioPorPagina_(slug);
+  if (!d || !d.pin || clave.length < 4 || clave !== d.pin) {
+    cache.put(fk, String(fallas + 1), PANEL_BLOQUEO);
+    return json_({ ok: false, code: d && d.pin ? 'CLAVE' : 'SIN_PANEL', quedan: Math.max(0, PANEL_INTENTOS - fallas - 1) });
+  }
+  cache.remove(fk);
+  var tz = Session.getScriptTimeZone();
+  var ymd = function (v) {
+    if (v instanceof Date && !isNaN(v)) return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+    var s = String(v || '').trim(), m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return m[3] + '-' + ('0' + m[1]).slice(-2) + '-' + ('0' + m[2]).slice(-2);
+    return '';
+  };
+  var libro = SpreadsheetApp.getActiveSpreadsheet(), clientes = [];
+  var hoja = libro.getSheetByName('Clientes de socios');
+  if (hoja && hoja.getLastRow() > 1) {
+    var v = hoja.getDataRange().getValues(), h = v[0].map(function (x) { return String(x).trim(); });
+    var c = function (n) { return h.indexOf(n); }, claveN = norm_(d.clave);
+    for (var i = 1; i < v.length; i++) {
+      var r = v[i], socio = c('Socio que refirió') >= 0 ? r[c('Socio que refirió')] : '', pag = c('Página') >= 0 ? r[c('Página')] : '';
+      var es = (claveN && norm_(socio) === claveN) || slugDeRuta_(pag) === slug;
+      if (!es || !String(r[c('Nombre')] || '').trim()) continue;
+      var estatus = String((c('Estatus') >= 0 && r[c('Estatus')]) || 'Nuevo').trim();
+      if (!(estatus in PANEL_PASOS)) estatus = 'Nuevo';
+      var elegidos = [];
+      try { elegidos = c('Servicios elegidos') >= 0 ? JSON.parse(String(r[c('Servicios elegidos')] || '[]')) : []; } catch (x) { elegidos = []; }
+      if (!Array.isArray(elegidos)) elegidos = [];
+      clientes.push({
+        n: nombreCorto_(r[c('Nombre')]), recibido: ymd(r[c('Recibido')]), mudanza: c('Fecha de mudanza') >= 0 ? ymd(r[c('Fecha de mudanza')]) : '',
+        estatus: estatus, paso: PANEL_PASOS[estatus],
+        elegidos: elegidos.filter(function (s) { return s && s.s; }).map(function (s) {
+          return { s: String(s.s), comp: String(s.comp || '').slice(0, 40), hecho: !!s.hecho || estatus === 'Instalado' };
+        }),
+        pidio: c('Servicios') >= 0 ? String(r[c('Servicios')] || '').slice(0, 120) : '',
+        actualizado: c('Actualizado') >= 0 ? ymd(r[c('Actualizado')]) : ''
+      });
+    }
+  }
+  clientes.sort(function (a, b) { return (b.recibido || '').localeCompare(a.recibido || ''); });
+  // Visitas a su página
+  var vis = { total: 0, mes: 0, qr: 0 }, hv = libro.getSheetByName('Visitas páginas');
+  if (hv && hv.getLastRow() > 1) {
+    var desde = new Date(Date.now() - 30 * 864e5);
+    hv.getRange(2, 1, hv.getLastRow() - 1, 4).getValues().forEach(function (r) {
+      if (String(r[1]) !== slug) return;
+      vis.total++;
+      if (r[0] instanceof Date && r[0] >= desde) vis.mes++;
+      if (r[3] === 'QR') vis.qr++;
+    });
+  }
+  return json_({ ok: true, slug: slug, nombre: d.nombre, empresa: d.empresa, idioma: d.idioma, clientes: clientes, visitas: vis,
+    hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd') });
+}
+function directorioPorPagina_(slug) {
+  var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Directorio');
+  if (!hoja || hoja.getLastRow() < 2) return null;
+  var v = hoja.getDataRange().getValues(), h = v[0].map(function (x) { return String(x).trim(); });
+  var c = function (n) { return h.indexOf(n); };
+  if (c('Pagina') < 0) return null;
+  for (var i = 1; i < v.length; i++) {
+    if (slugDeRuta_(v[i][c('Pagina')]) !== slug) continue;
+    return {
+      clave: String(v[i][c('Clave')] || ''), nombre: String(v[i][c('Nombre')] || ''), empresa: String(v[i][c('Empresa')] || ''),
+      idioma: String((c('Idioma') >= 0 && v[i][c('Idioma')]) || 'ES'), pin: c('Clave panel') >= 0 ? String(v[i][c('Clave panel')] || '').replace(/\D/g, '') : ''
+    };
+  }
+  return null;
+}
+// "/missionpm/" → "missionpm"
+function slugDeRuta_(v) {
+  var parts = String(v || '').toLowerCase().replace(/^https?:\/\/[^\/]+/, '').split(/[\/?#]/).filter(String);
+  return slug_(parts[0] === 'socio' ? '' : parts[0]);
+}
+// "María Guadalupe Treviño" → "María T."
+function nombreCorto_(n) {
+  var w = String(n || '').trim().split(/\s+/);
+  return w.length > 1 ? w[0] + ' ' + w[w.length - 1].charAt(0).toUpperCase() + '.' : w[0];
+}
+function norm_(s) {
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function slug_(v) { return String(v || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40); }
+function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+function cuerpoJson_(e) {
+  if (!e || !e.postData || !/^text\/plain/.test(String(e.postData.type || ''))) return null;
+  try { return JSON.parse(e.postData.contents); } catch (x) { return null; }
 }
 
 function obtenerHoja_(nombre) {

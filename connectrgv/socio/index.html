@@ -274,10 +274,29 @@ button:disabled{opacity:.6;cursor:default}
       if (btn) new MutationObserver(function () { if (lang() === 'en' && btn.textContent === TXT.es.enviando) btn.textContent = TXT.en.enviando; }).observe(btn, { childList: true, characterData: true, subtree: true });
     }
   });
+  // Cuenta la visita en la hoja (pestaña "Visitas páginas"): una vez por visita, no por recarga.
+  // El QR del kit trae ?qr; ?prueba (vista previa desde el Hub) no cuenta. Las dos se quitan de la barra.
+  function contarVisita() {
+    var q = new URLSearchParams(location.search), qr = q.has('qr'), prueba = q.has('prueba'), k = 'cgv_vis_' + slug;
+    if (qr || prueba) {
+      q.delete('qr'); q.delete('prueba');
+      var qs = q.toString();
+      try { history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } catch (e) {}
+    }
+    try { if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, '1'); } catch (e) {}
+    if (prueba) return;
+    var ref = '';
+    try { ref = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
+    if (ref === location.hostname) ref = '';
+    var ua = navigator.userAgent || '', dev = /iphone|ipad/i.test(ua) ? 'iPhone' : /android/i.test(ua) ? 'Android' : 'Computadora';
+    fetch(DATOS + '?ev=pagina&s=' + encodeURIComponent(slug) + '&v=' + (qr ? 'qr' : ref ? 'enlace' : 'directo') + '&l=' + lang() +
+      '&d=' + dev + '&r=' + encodeURIComponent(ref), { mode: 'no-cors', keepalive: true }).catch(function () {});
+  }
   textos();
   var fijo = FIJOS[slug];
   if (!slug) return generica();
   if (fijo && fijo.muestra) return pintar(fijo);
+  contarVisita();
   // Lo último que se vio de este socio sale al instante; luego se actualiza
   try { var c = JSON.parse(localStorage.getItem('cgv_socio_' + slug) || 'null'); if (c && c.ok) { if (!L && c.idioma === 'EN') L = 'en'; textos(); pintar(c); } } catch (e) {}
   setTimeout(function () { if (!done) { if (fijo) pintar(fijo); else generica(); } }, 4000);

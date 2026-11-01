@@ -35,15 +35,16 @@ var CGV_PREFIX = { cliente: 'C', familia: 'F', socio: 'S' };
 var CGV_EXTRA = ['ID', 'Servicios elegidos', 'Notas', 'Historial', 'Intentos', 'Primer contacto', 'Actualizado', 'Atendió',
   'Socio ID', 'Referido ID'];
 var CGV_DIR_TAB = 'Directorio';
-var CGV_DIR_HEADERS = ['Clave', 'Socio ID', 'Nombre', 'Empresa', 'Correo', 'Telefono', 'Idioma', 'Avisos', 'Pagina', 'Actualizado', 'Foto', 'Publicada'];
+var CGV_DIR_HEADERS = ['Clave', 'Socio ID', 'Nombre', 'Empresa', 'Correo', 'Telefono', 'Idioma', 'Avisos', 'Pagina', 'Actualizado', 'Foto', 'Publicada', 'Clave panel'];
 var CGV_SITE = 'connectrgv.com';
 // Direcciones que ya usa el sitio (no se le pueden dar a un socio)
-var CGV_RESERVED = ['socios', 'socio', 'ejemplo', 'assets', 'index', 'sitemap', 'robots', 'gracias', 'admin', 'wp-admin', 'cgi-bin', 'familias', 'contacto'];
+var CGV_RESERVED = ['socios', 'socio', 'ejemplo', 'assets', 'index', 'sitemap', 'robots', 'gracias', 'admin', 'wp-admin', 'cgi-bin', 'familias', 'contacto',
+  'panel', 'programa', 'guia', 'partners', 'en'];
 var CGV_ST_CLIENTE = ['Nuevo', 'Contactado', 'Servicios elegidos', 'Instalado', 'No avanzó'];
 var CGV_ST_SOCIO = ['Nuevo', 'Contactado', 'Reunión', 'Dado de alta', 'No avanzó'];
 var CGV_AVISO_ST = { 'Contactado': 1, 'Servicios elegidos': 1, 'Instalado': 1 };   // pasos que se le avisan al socio
 var CGV_SERVICIOS = ['Internet', 'Luz', 'Celular', 'TV'];
-var CGV_ACTIONS = { cgvList: 1, cgvAvisoGet: 1, cgvSave: 1, cgvDirSave: 1, cgvPartnerCreate: 1, cgvPartnerEmail: 1, cgvPageGet: 1, cgvPageSave: 1, cgvKitMail: 1 };
+var CGV_ACTIONS = { cgvList: 1, cgvAvisoGet: 1, cgvSave: 1, cgvDirSave: 1, cgvPartnerCreate: 1, cgvPartnerEmail: 1, cgvPageGet: 1, cgvPageSave: 1, cgvKitMail: 1, cgvPanelPin: 1 };
 
 // Nombre de columna en la hoja → nombre en el Hub
 var CGV_MAP = {
@@ -83,6 +84,7 @@ function conciergeRouter_(e) {
       if (a === 'cgvPartnerEmail') return cgvPartnerEmail_(d);
       if (a === 'cgvPageSave') return cgvPageSave_(d);
       if (a === 'cgvKitMail') return cgvKitMail_(d);
+      if (a === 'cgvPanelPin') return cgvPanelPin_(d);
     });
   } catch (err) {
     out = { error: String(err && err.message || err) };
@@ -246,13 +248,13 @@ function cgvDirReadRaw_() {
     return {
       _row: o._row, clave: o.Clave, socioId: o['Socio ID'], nombre: o.Nombre, empresa: o.Empresa, correo: o.Correo,
       telefono: o.Telefono, idioma: o.Idioma === 'EN' ? 'EN' : 'ES', avisos: o.Avisos !== 'No', pagina: o.Pagina, actualizado: o.Actualizado,
-      foto: o.Foto || '', publicada: o.Publicada === 'Sí'
+      foto: o.Foto || '', publicada: o.Publicada === 'Sí', pin: String(o['Clave panel'] || '').replace(/\D/g, '')
     };
   }).filter(function (d) { return d.clave; });
 }
 // Escribe un renglón del Directorio. Lo que no venga en d (undefined) se queda como estaba (foto, página publicada…).
 var CGV_DIR_F = { 'Clave': 'clave', 'Socio ID': 'socioId', 'Nombre': 'nombre', 'Empresa': 'empresa', 'Correo': 'correo', 'Telefono': 'telefono',
-  'Idioma': 'idioma', 'Avisos': 'avisos', 'Pagina': 'pagina', 'Foto': 'foto', 'Publicada': 'publicada' };
+  'Idioma': 'idioma', 'Avisos': 'avisos', 'Pagina': 'pagina', 'Foto': 'foto', 'Publicada': 'publicada', 'Clave panel': 'pin' };
 function cgvDirWrite_(d) {
   var t = cgvTab_(CGV_DIR_TAB, CGV_DIR_HEADERS, CGV_DIR_HEADERS);
   var row = d._row || Math.max(t.sh.getLastRow(), 1) + 1;
@@ -329,7 +331,7 @@ function cgvList_() {
   cgvDirEnsure_(clientes, socios, partners);
   var dir = cgvDirRead_();
   var strip = function (o) { var c = {}; for (var k in o) if (k !== '_row') c[k] = o[k]; return c; };
-  var dirOut = dir.map(function (d) { var c = strip(d); c.hasFoto = !!c.foto; delete c.foto; return c; });
+  var dirOut = dir.map(function (d) { var c = strip(d); c.hasFoto = !!c.foto; c.hasPin = !!c.pin; delete c.foto; delete c.pin; return c; });
   return {
     ok: true, clientes: clientes.map(strip), socios: socios.map(strip), dir: dirOut, partners: partners,
     socOn: typeof socSaveReferral_ === 'function', me: cgvMe_(), today: cgvToday_(), now: cgvNow_(),
@@ -505,11 +507,13 @@ function cgvAvisoMsg_(r, dir) {
   }
   var hola = EN ? 'Hi ' + who + ',' : 'Hola ' + who + ':';
   var closing = EN ? 'Anything you need, I am here.' : 'Cualquier cosa, aquí estoy.';
+  var pslug = dir.pin ? cgvSlug_(dir.pagina) : '', purl = pslug ? 'https://' + CGV_SITE + '/' + pslug + '/panel' : '';
+  var ptxt = EN ? 'All your clients, in your dashboard: ' : 'Todos sus clientes, en su panel: ';
   var sig = [firma, EN ? 'ConnectRGV · Your home services concierge' : 'ConnectRGV · Tu concierge de servicios para el hogar', CGV_PHONE + ' · connectrgv.com'];
   var steps = EN ? ['Received', 'Contacted', 'Services chosen', 'Installed'] : ['Recibido', 'Contactado', 'Servicios elegidos', 'Instalado'];
   var cur = { 'Contactado': 1, 'Servicios elegidos': 2, 'Instalado': 3 }[r.estatus];
   var text = [hola, '', intro].concat(lines.length && r.estatus !== 'Contactado' ? lines.map(function (l) { return '• ' + l; }) : [])
-    .concat(['', outro, '', closing, '', sig.join('\n')]).join('\n');
+    .concat(['', outro].concat(purl ? ['', ptxt + purl] : []).concat(['', closing, '', sig.join('\n')])).join('\n');
   var wa = [hola, intro].concat(lines.length && r.estatus !== 'Contactado' ? lines.map(function (l) { return '• ' + l; }) : []).concat([outro]).join('\n');
   var G = '#1E3A32', INK = '#111312', STONE = '#F4F2EE';
   var stepHtml = steps.map(function (s, i) {
@@ -529,6 +533,7 @@ function cgvAvisoMsg_(r, dir) {
       lines.map(function (l) { return '<li>' + cgvEsc_(l) + '</li>'; }).join('') + '</ul>' : '') +
     '<table role="presentation" style="width:100%;border-collapse:collapse;margin:18px 0 18px"><tr>' + stepHtml + '</tr></table>' +
     '<p style="margin:0 0 14px;font-size:15px;line-height:1.5">' + cgvEsc_(outro) + '</p>' +
+    (purl ? '<p style="margin:0 0 14px;font-size:14px;color:#55534E">' + cgvEsc_(ptxt) + '<a href="' + purl + '" style="color:' + G + ';font-weight:700">' + CGV_SITE + '/' + pslug + '/panel</a></p>' : '') +
     '<p style="margin:0 0 18px;font-size:15px">' + cgvEsc_(closing) + '</p>' +
     '<p style="margin:0;font-size:13px;line-height:1.5;color:#55534E"><b style="color:' + INK + '">' + cgvEsc_(sig[0]) + '</b><br>' +
     cgvEsc_(sig[1]) + '<br>' + cgvEsc_(sig[2]) + '</p>' +
@@ -630,10 +635,11 @@ function cgvPageGet_(d) {
   if (d.socioId) pr = cgvPartners_().filter(function (p) { return p.id === String(d.socioId); })[0] || null;
   if (!cur && !pr) throw new Error('No encontré ese socio.');
   var o = cur ? { clave: cur.clave, socioId: cur.socioId, nombre: cur.nombre, empresa: cur.empresa, correo: cur.correo, telefono: cur.telefono,
-      idioma: cur.idioma, pagina: cgvSlug_(cur.pagina), foto: cur.foto, publicada: cur.publicada, existe: true }
+      idioma: cur.idioma, pagina: cgvSlug_(cur.pagina), foto: cur.foto, publicada: cur.publicada, existe: true, pin: cur.pin || '' }
     : { clave: '', socioId: pr.id, nombre: pr.name, empresa: pr.property || '', correo: pr.email || '', telefono: pr.phone || '', idioma: 'ES',
-      pagina: cgvSlug_(pr.property || pr.name), foto: '', publicada: false, existe: false };
+      pagina: cgvSlug_(pr.property || pr.name), foto: '', publicada: false, existe: false, pin: '' };
   if (pr && !o.correo) o.correo = pr.email || '';
+  if (cur && o.pagina) { try { o.stats = cgvPageStats_(o.pagina, cur.clave); } catch (e) { o.stats = null; } }
   o.usadas = dir.filter(function (x) { return x !== cur && x.pagina; }).map(function (x) { return cgvSlug_(x.pagina); });
   o.reservadas = CGV_RESERVED;
   o.site = CGV_SITE;
@@ -661,6 +667,7 @@ function cgvPageSave_(d) {
   o.nombre = nombre; o.empresa = empresa; o.pagina = '/' + slug + '/';
   o.publicada = d.publicada !== false;
   if (d.foto !== undefined) o.foto = d.foto || '';
+  if (!cur || !cur.pin) o.pin = cgvNewPin_();
   cgvDirWrite_(o);
   var page = cgvPageGet_({ clave: cur ? cur.clave : o.clave, socioId: d.socioId }).page;
   return { ok: true, page: page, item: { ID: slug, Nombre: nombre } };
@@ -688,6 +695,12 @@ function cgvKitMail_(d) {
     'También le llevo unas tarjetas de bienvenida impresas para que las deje en la casa.',
     'Cualquier cosa, aquí estoy.'
   ];
+  var panelUrl = url + '/panel', panelP = '';
+  if (cur.pin) {
+    panelP = EN ? 'To see how each of your clients is doing, open your dashboard: ' + panelUrl + ' · Your code: ' + cur.pin
+      : 'Para ver cómo va cada uno de sus clientes, entre a su panel: ' + panelUrl + ' · Su clave: ' + cur.pin;
+    paras.splice(3, 0, panelP);
+  }
   var sig = [firma, EN ? 'ConnectRGV · Your home services concierge' : 'ConnectRGV · Tu concierge de servicios para el hogar', CGV_PHONE + ' · ' + CGV_SITE];
   var text = paras.join('\n\n') + '\n\n' + sig.join('\n');
   var html = '<div style="background:#F4F2EE;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#111312">' +
@@ -695,6 +708,10 @@ function cgvKitMail_(d) {
     '<div style="background:#1E3A32;color:#fff;padding:16px 22px;font-size:18px;font-weight:700">ConnectRGV</div><div style="padding:22px;font-size:15px;line-height:1.5">' +
     paras.map(function (t, i) {
       if (i === 1) return '<p style="margin:0 0 14px">' + cgvEsc_(t.replace(url, '')) + '<a href="' + url + '" style="color:#1E3A32;font-weight:700">' + CGV_SITE + '/' + slug + '</a></p>';
+      if (panelP && t === panelP) return '<p style="margin:0 0 14px;padding:12px 14px;background:#F4F2EE;border-radius:8px">' +
+        cgvEsc_(EN ? 'To see how each of your clients is doing, open your dashboard: ' : 'Para ver cómo va cada uno de sus clientes, entre a su panel: ') +
+        '<a href="' + panelUrl + '" style="color:#1E3A32;font-weight:700">' + CGV_SITE + '/' + slug + '/panel</a><br>' +
+        cgvEsc_(EN ? 'Your code: ' : 'Su clave: ') + '<b style="font-size:17px;letter-spacing:2px">' + cgvEsc_(cur.pin) + '</b></p>';
       return '<p style="margin:0 0 14px">' + cgvEsc_(t) + '</p>';
     }).join('') +
     '<p style="margin:18px 0 0;font-size:13px;color:#55534E"><b style="color:#111312">' + cgvEsc_(sig[0]) + '</b><br>' + cgvEsc_(sig[1]) + '<br>' + cgvEsc_(sig[2]) + '</p>' +
@@ -707,4 +724,38 @@ function cgvKitMail_(d) {
   }
   MailApp.sendEmail(opt);
   return { ok: true, to: to, item: { ID: slug, Nombre: cur.nombre } };
+}
+
+// ─── PANEL DEL SOCIO Y NÚMEROS DE SU PÁGINA ────────────────────────
+// connectrgv.com/<nombre>/panel pide una clave de 6 números (columna "Clave panel" del Directorio).
+// Se crea sola al guardar la página; desde 🧰 Página y kit se puede cambiar (la anterior deja de servir).
+// El panel solo enseña el avance de cada cliente; ninguna comisión.
+function cgvNewPin_() { return String(100000 + Math.floor(Math.random() * 900000)); }
+function cgvPanelPin_(d) {
+  var dir = cgvDirRead_(true), cur = cgvDirFind_(d, dir);
+  if (!cur || !cur.pagina) throw new Error('Primero guarda su página.');
+  var pin = cgvNewPin_();
+  cgvDirWrite_({ _row: cur._row, pin: pin });
+  return { ok: true, pin: pin, item: { ID: cgvSlug_(cur.pagina) + ' (clave del panel)', Nombre: cur.nombre } };
+}
+// Visitas (pestaña "Visitas páginas", la llena el Apps Script del sitio) y clientes que llegaron por su página
+function cgvPageStats_(slug, clave) {
+  var o = { visitas: 0, qr: 0, mes: 0, mesQr: 0, ultima: '', registros: 0, instalados: 0 };
+  var sh = cgvSS_().getSheetByName('Visitas páginas'), desde = new Date(Date.now() - 30 * 864e5);
+  if (sh && sh.getLastRow() > 1) {
+    sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().forEach(function (r) {
+      if (String(r[1]) !== slug) return;
+      var qr = r[3] === 'QR', f = r[0] instanceof Date ? r[0] : null;
+      o.visitas++; if (qr) o.qr++;
+      if (f && f >= desde) { o.mes++; if (qr) o.mesQr++; }
+      if (f && (!o.ultima || f.toISOString() > o.ultima)) o.ultima = f.toISOString();
+    });
+  }
+  var k = cgvNorm_(clave);
+  cgvRead_('cliente').forEach(function (r) {
+    var mine = (k && cgvNorm_(cgvKey_(r)) === k) || cgvSlug_(String(r.pagina || '').split('?')[0]) === slug;
+    if (!mine) return;
+    o.registros++; if (r.estatus === 'Instalado') o.instalados++;
+  });
+  return o;
 }

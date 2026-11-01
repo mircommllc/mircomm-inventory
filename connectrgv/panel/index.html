@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="es" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de socio · ConnectRGV</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="google" content="notranslate">
+<meta name="theme-color" content="#1E3A32">
+<link rel="icon" href="/assets/connectrgv-symbol.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Inter+Tight:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{--ink:#111312;--ink2:#3A403D;--mute:#5B615E;--line:#ECEAE5;--line2:#D4D1CA;--green:#1E3A32;--green2:#2F5A4D;--sand:#F4F2EE;--ok:#2E7D4F;--warn:#9A6B12;--bad:#B3261E}
+*{box-sizing:border-box}
+html{background:#F4F2EE}
+body{margin:0;background:#FFFFFF;font-family:'Inter Tight',system-ui,sans-serif;color:var(--ink);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--ink)}a:hover{color:var(--green)}
+input,button{font:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+.wrap{max-width:1040px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+header{border-bottom:1px solid var(--line);background:#fff}
+header .wrap{display:flex;align-items:center;gap:12px;padding-top:16px;padding-bottom:16px}
+.lang-sw{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line2);border-radius:999px;background:#fff;margin-left:auto}
+.lang-sw button{min-height:38px;padding:0 14px;border:0;border-radius:999px;background:transparent;font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap}
+.lang-sw button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.pill{min-height:44px;display:inline-flex;align-items:center;padding:0 18px;border-radius:999px;border:1px solid var(--ink);color:var(--ink);text-decoration:none;font-size:15px;font-weight:500;white-space:nowrap}
+.lg-s{display:none}
+@media (max-width:600px){.lang-sw .lg-l{display:none}.lang-sw .lg-s{display:inline}.lang-sw button{padding:0 11px}header .pill{display:none}header img{width:104px;height:auto}}
+.eyebrow{margin:0;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute);font-weight:500}
+h1{margin:6px 0 0;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:clamp(40px,7vw,60px);line-height:1;letter-spacing:-.01em}
+h2{margin:0;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;line-height:1.1}
+.lead{margin:14px 0 0;max-width:560px;color:var(--ink2);font-size:18px}
+/* Entrada */
+.login{min-height:calc(100vh - 77px);display:grid;place-items:center;padding:40px 16px;background:var(--sand)}
+.login-card{width:100%;max-width:440px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:32px clamp(20px,5vw,36px)}
+.login-card h1{font-size:44px}
+.field{margin-top:24px}
+.field label{display:block;font-size:14px;font-weight:500;color:var(--ink2)}
+.pin{width:100%;margin-top:8px;padding:14px 16px;border:1px solid var(--line2);border-radius:12px;font-size:26px;letter-spacing:.35em;text-align:center;font-variant-numeric:tabular-nums}
+.pin:focus{outline:2px solid var(--green);outline-offset:2px;border-color:var(--green)}
+.chk{display:flex;gap:10px;align-items:center;margin-top:14px;font-size:15px;color:var(--ink2)}
+.chk input{width:18px;height:18px;accent-color:var(--green)}
+.btn{min-height:50px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 22px;border-radius:999px;border:1px solid var(--green);background:var(--green);color:#fff;font-size:16px;font-weight:500;text-decoration:none}
+.btn:hover{background:var(--green2);color:#fff}
+.btn:disabled{opacity:.6;cursor:default}
+.btn.full{width:100%;margin-top:20px}
+.btn.ghost{background:#fff;color:var(--ink);border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn.sm{min-height:40px;padding:0 16px;font-size:14px}
+.err{margin:14px 0 0;color:var(--bad);font-size:15px}
+.help{margin:18px 0 0;font-size:14px;color:var(--mute)}
+/* Panel */
+.hero{padding:40px 0 28px}
+.hero-top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:28px}
+.tile{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:#fff}
+.tile b{display:block;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+.tile span{display:block;margin-top:6px;font-size:14px;color:var(--mute);line-height:1.3}
+.tile.dark{background:var(--green);border-color:var(--green);color:#fff}.tile.dark span{color:#CFE0D9}
+@media (max-width:760px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:18px 0;border-top:1px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--line2);background:#fff;font-size:14px;color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.list{display:grid;gap:12px;padding-bottom:28px}
+.card{border:1px solid var(--line);border-radius:16px;padding:18px 20px;background:#fff}
+.card.off{background:#FAFAF8}
+.card-top{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between}
+.card-name{margin:0;font-size:19px;font-weight:600}
+.card-meta{margin:2px 0 0;font-size:14px;color:var(--mute)}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:600;background:var(--sand);color:var(--ink2);white-space:nowrap}
+.badge.s4{background:#E5F2EA;color:var(--ok)}.badge.s0{background:#F1EFEB;color:var(--mute)}.badge.s2,.badge.s3{background:#EAF0EE;color:var(--green)}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:16px 0 0;padding:0;list-style:none}
+.steps li{font-size:12px;line-height:1.25;color:var(--mute)}
+.steps li::before{content:"";display:block;height:6px;border-radius:999px;background:var(--line);margin-bottom:7px}
+.steps li.on{color:var(--ink)}.steps li.on::before{background:var(--green)}
+.steps li.now{font-weight:600}
+.card.off .steps li.on::before{background:#BDB9B1}
+.svcs{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.svc{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;border:1px solid var(--line);font-size:14px;color:var(--ink2)}
+.svc.done{border-color:#CBE3D4;background:#F2F9F4;color:var(--ok)}
+.pidio{margin:12px 0 0;font-size:14px;color:var(--mute)}
+.empty{padding:40px 24px;border:1px dashed var(--line2);border-radius:16px;text-align:center;color:var(--ink2)}
+.empty p{margin:0 auto;max-width:460px}
+.share{margin-top:8px;padding:28px 0 40px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.share p{margin:0;color:var(--ink2);font-size:15px}
+.share .link{font-weight:600;color:var(--ink)}
+.share-btns{display:flex;flex-wrap:wrap;gap:8px}
+footer{background:var(--sand);border-top:1px solid var(--line);font-size:14px;color:var(--mute)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:10px 20px;justify-content:space-between;align-items:center;padding-top:22px;padding-bottom:22px}
+.spin{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--green);border-radius:50%;animation:sp 0.8s linear infinite;margin:60px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-size:14px;z-index:9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="/" aria-label="ConnectRGV"><img src="/assets/connectrgv-logo.svg" alt="ConnectRGV" width="128" height="30" style="display:block"></a>
+    <div class="lang-sw" role="group" aria-label="Idioma / Language"><button type="button" data-set-lang="es" lang="es" aria-pressed="true"><span class="lg-l">Español</span><span class="lg-s" aria-hidden="true">ES</span></button><button type="button" data-set-lang="en" lang="en" aria-pressed="false"><span class="lg-l">English</span><span class="lg-s" aria-hidden="true">EN</span></button></div>
+    <a class="pill" href="tel:+19564676695">(956) 467-6695</a>
+  </div>
+</header>
+
+<main>
+  <!-- Entrada con clave -->
+  <section class="login" id="v-login" hidden>
+    <form class="login-card" id="f-login" novalidate>
+      <p class="eyebrow" data-i="eyebrow">Panel de socio</p>
+      <h1 id="hola">Sus clientes, en un solo lugar.</h1>
+      <p class="lead" style="font-size:16px" data-i="loginP">Vea en qué paso va cada persona que nos recomendó.</p>
+      <div class="field">
+        <label for="pin" data-i="pinL">Su clave</label>
+        <input class="pin" id="pin" name="clave" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="8" required>
+      </div>
+      <label class="chk"><input type="checkbox" id="rec" checked> <span data-i="rec">Recordarme en este dispositivo</span></label>
+      <p class="err" id="err" role="alert" hidden></p>
+      <button class="btn full" type="submit" id="b-entrar" data-i="entrar">Entrar</button>
+      <p class="help" data-i="ayuda">¿No tiene su clave? Llámenos o mándenos mensaje al (956) 467-6695.</p>
+    </form>
+  </section>
+
+  <div id="v-cargando"><div class="spin" role="status" aria-label="…"></div></div>
+
+  <!-- Panel -->
+  <section id="v-panel" hidden>
+    <div class="wrap">
+      <div class="hero">
+        <div class="hero-top">
+          <div>
+            <p class="eyebrow" id="p-emp"></p>
+            <h1 id="p-hola"></h1>
+          </div>
+          <button class="btn ghost sm" type="button" id="b-act"><span aria-hidden="true">↻</span> <span data-i="act">Actualizar</span></button>
+        </div>
+        <div class="tiles">
+          <div class="tile dark"><b id="t-tot">0</b><span data-i="tTot">Clientes recomendados</span></div>
+          <div class="tile"><b id="t-proc">0</b><span data-i="tProc">En proceso</span></div>
+          <div class="tile"><b id="t-inst">0</b><span data-i="tInst">Con servicios instalados</span></div>
+          <div class="tile"><b id="t-vis">0</b><span id="t-vis-l"></span></div>
+        </div>
+      </div>
+      <div class="bar">
+        <h2 data-i="lista">Cómo va cada uno</h2>
+        <div class="chips" role="group" id="chips">
+          <button type="button" class="chip" data-f="todos" aria-pressed="true" data-i="fTodos">Todos</button>
+          <button type="button" class="chip" data-f="proc" aria-pressed="false" data-i="fProc">En proceso</button>
+          <button type="button" class="chip" data-f="inst" aria-pressed="false" data-i="fInst">Instalados</button>
+          <button type="button" class="chip" data-f="no" aria-pressed="false" data-i="fNo">No siguieron</button>
+        </div>
+      </div>
+      <div class="list" id="lista"></div>
+      <div class="share">
+        <p><span data-i="suPag">Su página para sus clientes:</span><br><a class="link" id="s-link" target="_blank" rel="noopener"></a></p>
+        <div class="share-btns">
+          <button class="btn sm" type="button" id="b-comp" data-i="compartir">Compartir enlace</button>
+          <button class="btn ghost sm" type="button" id="b-copiar" data-i="copiar">Copiar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><span data-i="dudas">¿Dudas sobre algún cliente? Llámenos al</span> <a href="tel:+19564676695">(956) 467-6695</a></span>
+    <button type="button" class="btn ghost sm" id="b-salir" hidden data-i="salir">Salir</button>
+  </div>
+</footer>
+
+<script>
+/* Panel privado del socio: connectrgv.com/<nombre>/panel
+   Pide la clave (la saca Joel en el Hub → 🧰 Página y kit) y muestra el avance de sus clientes desde la hoja
+   "ConnectRGV -Solicitudes" (Apps Script ConnectRGV → panelSocio_). Sin teléfonos, direcciones, planes ni comisiones. */
+(function () {
+  var DATOS = 'https://script.google.com/macros/s/AKfycbxqbu5EMlw3wmq6zEywKCEPJ3_yejlNfKrsMqcuGcU0P2RCHjjPFKhEOzK3f8Ivqw_JNQ/exec';
+  var TXT = {
+    es: {
+      eyebrow: 'Panel de socio', loginH: 'Sus clientes, en un solo lugar.', hola: function (n) { return 'Hola, ' + n + '.'; },
+      loginP: 'Vea en qué paso va cada persona que nos recomendó.', pinL: 'Su clave', rec: 'Recordarme en este dispositivo', entrar: 'Entrar',
+      entrando: 'Entrando…', ayuda: '¿No tiene su clave? Llámenos o mándenos mensaje al (956) 467-6695.',
+      eClave: function (q) { return 'Esa clave no es. Revísela, por favor.' + (q <= 3 ? ' Le quedan ' + q + ' intentos.' : ''); },
+      eBloqueo: 'Demasiados intentos. Espere 15 minutos o llámenos.', eSin: 'Este panel todavía no está activo. Llámenos y se lo activamos.',
+      ePag: 'No encontramos esta página.', eRed: 'No pudimos conectarnos. Revise su internet e intente otra vez.', eVacia: 'Escriba su clave.',
+      act: 'Actualizar', tTot: 'Clientes recomendados', tProc: 'En proceso', tInst: 'Con servicios instalados',
+      tVis: function (q) { return 'Visitas a su página (30 días)' + (q ? ' · ' + q + ' por QR' : ''); },
+      lista: 'Cómo va cada uno', fTodos: 'Todos', fProc: 'En proceso', fInst: 'Instalados', fNo: 'No siguieron',
+      pasos: ['Recibido', 'Lo contactamos', 'Eligió servicios', 'Instalado'],
+      est: { 'Nuevo': 'Recibido', 'Contactado': 'Lo contactamos', 'Servicios elegidos': 'Eligió servicios', 'Instalado': 'Instalado', 'No avanzó': 'No siguió' },
+      llego: 'Llegó', muda: 'Se muda', actz: 'Actualizado', pidio: 'Pidió:', listo: 'listo',
+      svc: { 'Internet': 'Internet', 'Luz': 'Luz', 'Celular': 'Celular', 'TV': 'TV' },
+      vacio: function (u) { return 'Todavía no hay clientes registrados. Cuando alguien llene su página ' + u + ', aparece aquí con su avance.'; },
+      vacioF: 'No hay clientes en este grupo.',
+      suPag: 'Su página para sus clientes:', compartir: 'Compartir enlace', copiar: 'Copiar', copiado: 'Enlace copiado',
+      compTxt: 'Bienvenido a tu nueva casa. Aquí te ayudan a dejar internet, luz y celular listos para tu mudanza:',
+      dudas: '¿Dudas sobre algún cliente? Llámenos al', salir: 'Salir', titulo: 'Panel de socio · ConnectRGV',
+      meses: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+    },
+    en: {
+      eyebrow: 'Partner dashboard', loginH: 'All your clients, in one place.', hola: function (n) { return 'Hi, ' + n + '.'; },
+      loginP: 'See where each person you referred to us stands.', pinL: 'Your access code', rec: 'Remember me on this device', entrar: 'Sign in',
+      entrando: 'Signing in…', ayuda: 'Don’t have your code? Call or text us at (956) 467-6695.',
+      eClave: function (q) { return 'That code is not right. Please check it.' + (q <= 3 ? ' ' + q + ' tries left.' : ''); },
+      eBloqueo: 'Too many tries. Wait 15 minutes or give us a call.', eSin: 'This dashboard is not active yet. Call us and we will turn it on.',
+      ePag: 'We could not find this page.', eRed: 'We could not connect. Check your internet and try again.', eVacia: 'Enter your code.',
+      act: 'Refresh', tTot: 'Clients referred', tProc: 'In progress', tInst: 'With services installed',
+      tVis: function (q) { return 'Visits to your page (30 days)' + (q ? ' · ' + q + ' by QR' : ''); },
+      lista: 'Where each one stands', fTodos: 'All', fProc: 'In progress', fInst: 'Installed', fNo: 'Did not continue',
+      pasos: ['Received', 'Contacted', 'Chose services', 'Installed'],
+      est: { 'Nuevo': 'Received', 'Contactado': 'Contacted', 'Servicios elegidos': 'Chose services', 'Instalado': 'Installed', 'No avanzó': 'Did not continue' },
+      llego: 'Came in', muda: 'Moving', actz: 'Updated', pidio: 'Asked for:', listo: 'done',
+      svc: { 'Internet': 'Internet', 'Luz': 'Electricity', 'Celular': 'Mobile', 'TV': 'TV' },
+      vacio: function (u) { return 'No clients yet. When someone fills out your page ' + u + ', they show up here with their progress.'; },
+      vacioF: 'No clients in this group.',
+      suPag: 'Your page for your clients:', compartir: 'Share link', copiar: 'Copy', copiado: 'Link copied',
+      compTxt: 'Welcome to your new home. They help you get internet, electricity and phone ready for move-in day:',
+      dudas: 'Questions about a client? Call us at', salir: 'Sign out', titulo: 'Partner dashboard · ConnectRGV',
+      meses: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    }
+  };
+  var COMP = { 'Tracfone': 'Tracfone 5G' };
+  var parts = location.pathname.split('/').filter(Boolean);
+  var slug = (parts[0] === 'panel' ? new URLSearchParams(location.search).get('p') : parts[0]) || '';
+  slug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40);
+  var KEY = 'cgv_panel_' + slug, qL = new URLSearchParams(location.search).get('l');
+  var L = qL === 'en' || qL === 'es' ? qL : '', datos = null, socio = null, filtro = 'todos', err = null;
+  try { if (!L) L = localStorage.getItem('cgv_lang') || ''; } catch (e) {}
+  var $ = function (id) { return document.getElementById(id); };
+  function T() { return TXT[L === 'en' ? 'en' : 'es']; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function primer(n) { return String(n || '').trim().split(/\s+/)[0] || ''; }
+  function pagUrl() { return 'connectrgv.com/' + slug; }
+  function fecha(ymd) {
+    var m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return '';
+    var t = T(), mes = t.meses[Number(m[2]) - 1], d = Number(m[3]), y = m[1] !== String(new Date().getFullYear()) ? ' ' + m[1] : '';
+    return L === 'en' ? mes + ' ' + d + (y ? ',' + y : '') : d + ' ' + mes + y;
+  }
+  function vista(v) { ['login', 'cargando', 'panel'].forEach(function (k) { $('v-' + k).hidden = k !== v; }); $('b-salir').hidden = v !== 'panel'; }
+  function toast(t) { var d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 2200); }
+
+  // ── Textos fijos ──
+  function textos() {
+    var t = T();
+    document.documentElement.lang = L === 'en' ? 'en' : 'es';
+    document.title = t.titulo;
+    document.querySelectorAll('[data-i]').forEach(function (el) { var v = t[el.getAttribute('data-i')]; if (typeof v === 'string') el.textContent = v; });
+    document.querySelectorAll('[data-set-lang]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-set-lang') === (L === 'en' ? 'en' : 'es') ? 'true' : 'false'); });
+    var n = primer((datos && datos.nombre) || (socio && socio.nombre));
+    $('hola').textContent = n ? t.hola(n) : t.loginH;
+    if (err) mostrarError(err.code, err.quedan);
+    if (datos) pintar();
+  }
+  function mostrarError(code, quedan) {
+    var t = T(), m = code === 'CLAVE' ? t.eClave(quedan) : code === 'BLOQUEO' ? t.eBloqueo : code === 'SIN_PANEL' ? t.eSin
+      : code === 'PAGINA' ? t.ePag : code === 'VACIA' ? t.eVacia : t.eRed;
+    err = { code: code, quedan: quedan };
+    $('err').textContent = m; $('err').hidden = false;
+  }
+
+  // ── Panel ──
+  function grupo(c) { return c.paso === 4 ? 'inst' : c.paso === 0 ? 'no' : 'proc'; }
+  function pintar() {
+    var t = T(), d = datos, C = d.clientes || [];
+    $('p-emp').textContent = d.empresa || t.eyebrow;
+    $('p-hola').textContent = t.hola(primer(d.nombre) || '');
+    $('t-tot').textContent = C.length;
+    $('t-proc').textContent = C.filter(function (c) { return grupo(c) === 'proc'; }).length;
+    $('t-inst').textContent = C.filter(function (c) { return grupo(c) === 'inst'; }).length;
+    $('t-vis').textContent = (d.visitas && d.visitas.mes) || 0;
+    $('t-vis-l').textContent = t.tVis(d.visitas && d.visitas.qr);
+    document.querySelectorAll('#chips .chip').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-f') === filtro ? 'true' : 'false'); });
+    var lista = C.filter(function (c) { return filtro === 'todos' || grupo(c) === filtro; });
+    if (!C.length) $('lista').innerHTML = '<div class="empty"><p>' + esc(t.vacio(pagUrl())) + '</p></div>';
+    else if (!lista.length) $('lista').innerHTML = '<div class="empty"><p>' + esc(t.vacioF) + '</p></div>';
+    else $('lista').innerHTML = lista.map(function (c) {
+      var off = c.paso === 0, ultimo = off ? 0 : c.paso;
+      var meta = [c.recibido ? t.llego + ' ' + fecha(c.recibido) : '', c.mudanza ? t.muda + ' ' + fecha(c.mudanza) : ''].filter(String).join(' · ');
+      var steps = t.pasos.map(function (p, i) {
+        var on = off ? i === 0 : i < c.paso;
+        return '<li class="' + (on ? 'on' : '') + (!off && i === c.paso - 1 ? ' now' : '') + '">' + esc(p) + '</li>';
+      }).join('');
+      var svcs = (c.elegidos || []).map(function (s) {
+        var comp = COMP[s.comp] || s.comp;
+        return '<span class="svc' + (s.hecho ? ' done' : '') + '">' + (s.hecho ? '✓ ' : '') + esc(t.svc[s.s] || s.s) + (comp ? ' · ' + esc(comp) : '') + '</span>';
+      }).join('');
+      var pidio = !svcs && c.pidio ? '<p class="pidio">' + esc(t.pidio) + ' ' + esc(c.pidio) + '</p>' : '';
+      return '<article class="card' + (off ? ' off' : '') + '">' +
+        '<div class="card-top"><div><p class="card-name">' + esc(c.n) + '</p>' + (meta ? '<p class="card-meta">' + esc(meta) + '</p>' : '') + '</div>' +
+        '<span class="badge s' + (off ? 0 : ultimo) + '">' + esc(t.est[c.estatus] || c.estatus) + '</span></div>' +
+        '<ol class="steps" aria-label="' + esc(t.est[c.estatus] || '') + '">' + steps + '</ol>' +
+        (svcs ? '<div class="svcs">' + svcs + '</div>' : pidio) +
+        (c.actualizado ? '<p class="card-meta" style="margin-top:12px">' + esc(t.actz) + ' ' + esc(fecha(c.actualizado)) + '</p>' : '') +
+        '</article>';
+    }).join('');
+    $('s-link').textContent = pagUrl(); $('s-link').href = 'https://' + pagUrl() + (L === 'en' ? '?l=en' : '');
+  }
+
+  // ── Datos ──
+  function pedir(clave) {
+    return fetch(DATOS, { method: 'POST', body: JSON.stringify({ accion: 'panel', p: slug, k: clave }) }).then(function (r) { return r.json(); });
+  }
+  function entrar(clave, recordar, silencioso) {
+    var b = $('b-entrar');
+    if (!silencioso) { b.disabled = true; b.textContent = T().entrando; }
+    return pedir(clave).then(function (d) {
+      if (d && d.ok) {
+        datos = d; err = null; $('err').hidden = true;
+        try { if (recordar) localStorage.setItem(KEY, clave); } catch (e) {}
+        if (!L && d.idioma === 'EN') L = 'en';
+        textos(); vista('panel');
+      } else {
+        try { localStorage.removeItem(KEY); } catch (e) {}
+        vista('login'); mostrarError((d && d.code) || 'RED', d && d.quedan);
+      }
+    }).catch(function () { vista('login'); mostrarError('RED'); })
+      .then(function () { b.disabled = false; b.textContent = T().entrar; });
+  }
+
+  // ── Eventos ──
+  document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+    b.addEventListener('click', function () { L = b.getAttribute('data-set-lang'); try { localStorage.setItem('cgv_lang', L); } catch (e) {} textos(); });
+  });
+  $('f-login').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var k = $('pin').value.replace(/\D/g, '');
+    if (!k) { mostrarError('VACIA'); $('pin').focus(); return; }
+    entrar(k, $('rec').checked);
+  });
+  $('pin').addEventListener('input', function () { this.value = this.value.replace(/\D/g, ''); });
+  document.querySelectorAll('#chips .chip').forEach(function (b) { b.addEventListener('click', function () { filtro = b.getAttribute('data-f'); pintar(); }); });
+  $('b-act').addEventListener('click', function () {
+    var k = ''; try { k = localStorage.getItem(KEY) || ''; } catch (e) {}
+    if (!k) k = $('pin').value.replace(/\D/g, '');
+    if (!k) return vista('login');
+    var b = this; b.disabled = true;
+    pedir(k).then(function (d) { if (d && d.ok) { datos = d; pintar(); } }).catch(function () { toast(T().eRed); }).then(function () { b.disabled = false; });
+  });
+  $('b-salir').addEventListener('click', function () {
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    datos = null; $('pin').value = ''; vista('login'); textos(); $('pin').focus();
+  });
+  $('b-copiar').addEventListener('click', function () {
+    var u = 'https://' + pagUrl();
+    (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { toast(T().copiado); }, function () { prompt('', u); });
+  });
+  $('b-comp').addEventListener('click', function () {
+    var u = 'https://' + pagUrl();
+    if (navigator.share) navigator.share({ title: 'ConnectRGV', text: T().compTxt, url: u }).catch(function () {});
+    else window.open('https://wa.me/?text=' + encodeURIComponent(T().compTxt + ' ' + u), '_blank', 'noopener');
+  });
+
+  // ── Arranque ──
+  textos();
+  if (!slug) { vista('login'); mostrarError('PAGINA'); return; }
+  // Nombre del socio para el saludo (datos públicos de su página)
+  fetch(DATOS + '?p=' + encodeURIComponent(slug)).then(function (r) { return r.json(); }).then(function (d) {
+    if (d && d.ok) { socio = d; if (!L && d.idioma === 'EN') L = 'en'; textos(); }
+  }).catch(function () {});
+  var guardada = ''; try { guardada = localStorage.getItem(KEY) || ''; } catch (e) {}
+  if (guardada) entrar(guardada, true, true);
+  else { vista('login'); setTimeout(function () { $('pin').focus(); }, 50); }
+})();
+</script>
+</body>
+</html>
