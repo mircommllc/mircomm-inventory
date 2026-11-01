@@ -17,6 +17,9 @@
  * Usa: isManagerToken_ (Activaciones.gs), adminMe_ / adminFirma_ (Admins.gs),
  *      socRead_ / socSaveReferral_ / socSavePartner_ / socRecalc_ (Socios.gs).
  *
+ * 📨 PRESENTACIÓN A PROSPECTOS (v53): cada envío de connectrgv.com/programa con el nombre del prospecto queda en la
+ * pestaña "Presentaciones" y se cruza con "Visitas programa" (la llena el Apps Script del sitio) para ver quién la abrió.
+ *
  * INSTALAR (una vez):
  *  1. Apps Script del Hub: ＋ → Script → nómbralo "Concierge" → pega todo este archivo → Guardar.
  *  2. En Code.gs, dentro de function hubGet_(e), pega esta línea JUSTO DEBAJO de  prosSessionPin_(e);
@@ -44,7 +47,8 @@ var CGV_ST_CLIENTE = ['Nuevo', 'Contactado', 'Servicios elegidos', 'Instalado', 
 var CGV_ST_SOCIO = ['Nuevo', 'Contactado', 'Reunión', 'Dado de alta', 'No avanzó'];
 var CGV_AVISO_ST = { 'Contactado': 1, 'Servicios elegidos': 1, 'Instalado': 1 };   // pasos que se le avisan al socio
 var CGV_SERVICIOS = ['Internet', 'Luz', 'Celular', 'TV'];
-var CGV_ACTIONS = { cgvList: 1, cgvAvisoGet: 1, cgvSave: 1, cgvDirSave: 1, cgvPartnerCreate: 1, cgvPartnerEmail: 1, cgvPageGet: 1, cgvPageSave: 1, cgvKitMail: 1, cgvPanelPin: 1 };
+var CGV_ACTIONS = { cgvList: 1, cgvAvisoGet: 1, cgvSave: 1, cgvDirSave: 1, cgvPartnerCreate: 1, cgvPartnerEmail: 1, cgvPageGet: 1, cgvPageSave: 1, cgvKitMail: 1, cgvPanelPin: 1,
+  cgvPresList: 1, cgvPresLog: 1, cgvPresMail: 1 };
 
 // Nombre de columna en la hoja → nombre en el Hub
 var CGV_MAP = {
@@ -76,6 +80,7 @@ function conciergeRouter_(e) {
     } else if (a === 'cgvList') out = cgvList_();
     else if (a === 'cgvAvisoGet') out = cgvAvisoGet_(cgvJson_(p.data) || p);
     else if (a === 'cgvPageGet') out = cgvPageGet_(cgvJson_(p.data) || p);
+    else if (a === 'cgvPresList') out = cgvPresList_();
     else out = cgvLock_(function () {
       var d = cgvJson_(p.data) || {};
       if (a === 'cgvSave') return cgvSave_(d);
@@ -85,6 +90,8 @@ function conciergeRouter_(e) {
       if (a === 'cgvPageSave') return cgvPageSave_(d);
       if (a === 'cgvKitMail') return cgvKitMail_(d);
       if (a === 'cgvPanelPin') return cgvPanelPin_(d);
+      if (a === 'cgvPresLog') return cgvPresLog_(d);
+      if (a === 'cgvPresMail') return cgvPresMail_(d);
     });
   } catch (err) {
     out = { error: String(err && err.message || err) };
@@ -102,6 +109,8 @@ function cgvAuditLabels_() {
       AUD_LABELS.cgvPartnerEmail = 'Socios: cambió correo del socio';
       AUD_LABELS.cgvPageSave = 'Concierge: guardó página del socio';
       AUD_LABELS.cgvKitMail = 'Concierge: mandó kit al socio';
+      AUD_LABELS.cgvPresLog = 'Concierge: mandó presentación a prospecto';
+      AUD_LABELS.cgvPresMail = 'Concierge: mandó presentación por correo';
     }
   } catch (e) {}
 }
@@ -768,4 +777,128 @@ function crearClavesPanel() {
   var dir = cgvDirEnsure_(cgvRead_('cliente').concat(cgvRead_('familia')), cgvRead_('socio'), cgvPartners_());
   var conPanel = dir.filter(function (d) { return d.pagina && d.pin; }).map(function (d) { return cgvSlug_(d.pagina); });
   Logger.log('Páginas con clave de panel: ' + (conPanel.join(', ') || 'ninguna'));
+}
+
+
+// ─── 📨 PRESENTACIÓN PARA PROSPECTOS ───────────────────────────────
+// El Hub arma el link personalizado connectrgv.com/programa/?n=Nombre&e=Empresa&s=clave(&l=en)
+// y la hoja de presentación impresa (leave-behind) con un QR propio (&v=qr, para contar los escaneos aparte).
+// Cada envío queda en la pestaña "Presentaciones"; las aperturas salen de "Visitas programa".
+var CGV_PRES_TAB = 'Presentaciones';
+var CGV_PRES_HEADERS = ['Fecha', 'Clave', 'Nombre', 'Empresa', 'Teléfono', 'Correo', 'Idioma', 'Vía', 'Por', 'Enlace'];
+var CGV_PRES_VIAS = { whatsapp: 'WhatsApp', copiado: 'Copiado', correo: 'Correo', impresa: 'Hoja impresa', texto: 'Mensaje de texto' };
+
+function cgvPresClean_(d) {
+  var t = function (v) { return String(v || '').replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80); };
+  var n = t(d.nombre), e = t(d.empresa);
+  if (!n) throw new Error('Falta el nombre del prospecto.');
+  return { s: cgvSlug_(d.clave || n) || 'socio', n: n, e: e, tel: cgvDigits_(d.telefono), correo: String(d.correo || '').trim().slice(0, 120),
+    en: String(d.idioma || '').toUpperCase() === 'EN' };
+}
+function cgvPresUrl_(c, qr) {
+  var q = ['n=' + encodeURIComponent(c.n)];
+  if (c.e) q.push('e=' + encodeURIComponent(c.e));
+  q.push('s=' + c.s);
+  if (c.en) q.push('l=en');
+  if (qr) q.push('v=qr');
+  return 'https://' + CGV_SITE + '/programa/?' + q.join('&');
+}
+function cgvPresSheet_() {
+  var ss = cgvSS_(), sh = ss.getSheetByName(CGV_PRES_TAB);
+  if (!sh) {
+    sh = ss.insertSheet(CGV_PRES_TAB);
+    sh.appendRow(CGV_PRES_HEADERS);
+    sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, CGV_PRES_HEADERS.length).setFontWeight('bold');
+  }
+  return sh;
+}
+function cgvPresAppend_(c, via) {
+  cgvPresSheet_().appendRow([new Date(), c.s, cgvSafe_(c.n), cgvSafe_(c.e), c.tel ? "'" + c.tel : '', cgvSafe_(c.correo), c.en ? 'EN' : 'ES', CGV_PRES_VIAS[via] || 'Otro', cgvMe_(), cgvPresUrl_(c)]);
+}
+// d: { nombre, empresa?, telefono?, correo?, idioma, clave?, via }
+function cgvPresLog_(d) {
+  var c = cgvPresClean_(d);
+  cgvPresAppend_(c, d.via);
+  return { ok: true, clave: c.s, item: { ID: c.s, Nombre: c.n } };
+}
+// Correo con el botón a su presentación, a nombre de ConnectRGV y en la voz de quien lo manda
+function cgvPresMail_(d) {
+  var c = cgvPresClean_(d);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.correo)) throw new Error('Escribe un correo válido.');
+  var url = cgvPresUrl_(c), EN = c.en, who = cgvFirst_(c.n) || c.n, firma = cgvFirmaName_();
+  var subject = EN ? 'ConnectRGV partner program · prepared for ' + c.n : 'Programa de socios de ConnectRGV · preparado para ' + c.n;
+  var paras = EN ? [
+    'Hi ' + who + ',',
+    'Here is the ConnectRGV partner program presentation. I put it together with your name on it:',
+    'It shows how it works, the services we get ready for your clients and what you receive as a partner. It only takes a few minutes.',
+    'Any questions, you can call or text me at ' + CGV_PHONE + '.'
+  ] : [
+    'Hola ' + who + ':',
+    'Le comparto la presentación del programa de socios de ConnectRGV. La preparé con su nombre:',
+    'Ahí viene cómo funciona, los servicios que les dejamos listos a sus clientes y lo que usted recibe como socio. Se ve en unos minutos.',
+    'Cualquier duda, me puede llamar o mandar mensaje al ' + CGV_PHONE + '.'
+  ];
+  var btn = EN ? 'View the presentation' : 'Ver la presentación';
+  var sig = [firma, EN ? 'ConnectRGV · Your home services concierge' : 'ConnectRGV · Tu concierge de servicios para el hogar', CGV_PHONE + ' · ' + CGV_SITE];
+  var text = [paras[0], paras[1] + '\n' + url, paras[2], paras[3]].join('\n\n') + '\n\n' + sig.join('\n');
+  var html = '<div style="background:#F4F2EE;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#111312">' +
+    '<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E3E0D9">' +
+    '<div style="background:#1E3A32;color:#fff;padding:16px 22px;font-size:18px;font-weight:700">ConnectRGV</div><div style="padding:22px;font-size:15px;line-height:1.5">' +
+    '<p style="margin:0 0 14px">' + cgvEsc_(paras[0]) + '</p>' +
+    '<p style="margin:0 0 16px">' + cgvEsc_(paras[1]) + '</p>' +
+    '<p style="margin:0 0 18px"><a href="' + cgvEsc_(url) + '" style="display:inline-block;background:#1E3A32;color:#fff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:999px">' + btn + ' →</a></p>' +
+    '<p style="margin:0 0 14px">' + cgvEsc_(paras[2]) + '</p>' +
+    '<p style="margin:0 0 14px">' + cgvEsc_(paras[3]) + '</p>' +
+    '<p style="margin:18px 0 0;font-size:13px;color:#55534E"><b style="color:#111312">' + cgvEsc_(sig[0]) + '</b><br>' + cgvEsc_(sig[1]) + '<br>' + cgvEsc_(sig[2]) + '</p>' +
+    '</div></div></div>';
+  MailApp.sendEmail({ to: c.correo, subject: subject, body: text, htmlBody: html, name: 'ConnectRGV', replyTo: CGV_REPLY_TO });
+  cgvPresAppend_(c, 'correo');
+  return { ok: true, to: c.correo, clave: c.s, item: { ID: c.s, Nombre: c.n } };
+}
+// Lista para la pestaña 📨 Presentaciones: envíos + aperturas + si ya se registró en el programa
+function cgvPresList_() {
+  var P = {}, iso = function (f) { return f instanceof Date ? f.toISOString() : ''; };
+  var get = function (s, n, e) {
+    if (!P[s]) P[s] = { clave: s, nombre: n || '', empresa: e || '', telefono: '', correo: '', idioma: 'ES', envios: [], enviada: '',
+      abrio: 0, abrioQr: 0, ultima: '', final: false, registro: false, llamar: false, texto: false, guia: false, celular: false };
+    return P[s];
+  };
+  var sh = cgvSS_().getSheetByName(CGV_PRES_TAB);
+  if (sh && sh.getLastRow() > 1) {
+    sh.getRange(2, 1, sh.getLastRow() - 1, CGV_PRES_HEADERS.length).getValues().forEach(function (r) {
+      var s = cgvSlug_(r[1]); if (!s) return;
+      var o = get(s, String(r[2] || ''), String(r[3] || '')), f = iso(r[0]);
+      o.nombre = String(r[2] || o.nombre); o.empresa = String(r[3] || o.empresa);
+      if (r[4]) o.telefono = cgvDigits_(r[4]);
+      if (r[5]) o.correo = String(r[5]);
+      o.idioma = r[6] === 'EN' ? 'EN' : 'ES';
+      o.envios.push({ f: f, via: String(r[7] || ''), por: String(r[8] || '') });
+      if (f > o.enviada) o.enviada = f;
+    });
+  }
+  var V = cgvSS_().getSheetByName('Visitas programa');
+  if (V && V.getLastRow() > 1) {
+    // Fecha, Evento, Socio, Nombre, Empresa, Idioma, Dispositivo, Viene de
+    V.getRange(2, 1, V.getLastRow() - 1, 8).getValues().forEach(function (r) {
+      var s = cgvSlug_(r[2]) || cgvSlug_(r[3]); if (!s) return;
+      var o = get(s, String(r[3] || ''), String(r[4] || '')), ev = String(r[1] || ''), f = iso(r[0]);
+      if (!o.envios.length && !o.empresa && r[4]) o.empresa = String(r[4]);
+      if (f > o.ultima) o.ultima = f;
+      if (ev === 'Abrió la presentación') { o.abrio++; if (String(r[7]) === 'QR') o.abrioQr++; if (r[6] === 'Celular') o.celular = true; }
+      else if (ev === 'Llegó al registro') o.final = true;
+      else if (ev === 'Se registró') o.registro = true;
+      else if (ev === 'Tocó Llamar') o.llamar = true;
+      else if (ev === 'Tocó Mandar mensaje') o.texto = true;
+      else if (ev === 'Abrió la guía') o.guia = true;
+    });
+  }
+  // Se registró desde su presentación (pestaña Socios, Página = /programa/?s=clave)
+  cgvRead_('socio').forEach(function (r) {
+    var m = String(r.pagina || '').match(/[?&]s=([a-z0-9-]+)/i);
+    if (m && P[cgvSlug_(m[1])]) { var o = P[cgvSlug_(m[1])]; o.registro = true; o.socioId = r.id; o.socioEstatus = r.estatus; }
+  });
+  var list = Object.keys(P).map(function (k) { var o = P[k]; o.ultimaAct = [o.enviada, o.ultima].sort().pop() || ''; return o; });
+  list.sort(function (a, b) { return String(b.ultimaAct).localeCompare(String(a.ultimaAct)); });
+  return { ok: true, list: list, now: cgvNow_() };
 }

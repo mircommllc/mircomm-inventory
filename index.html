@@ -672,6 +672,7 @@
   .cgv-tag.red { color:var(--red); border-color:rgba(255,68,85,.35); background:rgba(255,68,85,.10); }
   .cgv-tag.yel { color:var(--yellow); border-color:rgba(255,209,102,.35); background:rgba(255,209,102,.10); }
   .cgv-tag.muted { color:var(--muted); }
+  .cgv-tag.green { color:var(--green); border-color:rgba(0,200,120,.35); background:rgba(0,200,120,.10); }
   .cgv-card-side { display:flex; flex-direction:column; align-items:flex-end; gap:10px; flex-shrink:0; }
   .cgv-dots { display:flex; gap:4px; }
   .cgv-dots span { width:26px; height:5px; border-radius:3px; background:var(--border); }
@@ -1060,8 +1061,10 @@ function completeLogin() {
   posPending = []; posRecentSales = null; posLastReceipt = null; posRefreshPending(true);
 
   // Default page: el manager arranca en ☀ Hoy (Mi Escritorio). Con el acceso directo #kit, en 🤝 Socios con el kit abierto.
-  const kitBoot = isManager && location.hash === '#kit';
-  currentPage = kitBoot ? 'socios' : isManager ? 'desk' : 'pos';
+  // Con #pres, en 🏡 Concierge → 📨 Presentaciones con "Mandar presentación" abierto.
+  const kitBoot = isManager && location.hash === '#kit', presBoot = isManager && location.hash === '#pres';
+  currentPage = kitBoot ? 'socios' : presBoot ? 'concierge' : isManager ? 'desk' : 'pos';
+  if (presBoot) cgvTab = 'pres';
   if (kitBoot) socTab = 'socios';
   deskData = null; aiMsgs = [];
   document.body.classList.toggle('has-ai', isManager);
@@ -1074,6 +1077,7 @@ function completeLogin() {
   if (isManager) cgvStartBadge(); else cgvStop();
   loadCurrentPage();
   if (kitBoot) setTimeout(kitPicker, 400);
+  if (presBoot) setTimeout(() => presOpen(), 600);
 }
 
 function logout(msg) {
@@ -7092,7 +7096,7 @@ function cgvPaint() {
   const pronto = C.filter(r => { const m = cgvMove(r); return m && m.n !== undefined && m.n >= 0 && m.n <= 7 && !['Instalado', 'No avanzó'].includes(r.estatus); }).length;
   const sociosNuevos = S.filter(r => r.estatus === 'Nuevo').length;
   const tabs = [['mudanzas', `🏡 Mudanzas (${C.filter(r => !['Instalado', 'No avanzó'].includes(r.estatus)).length})`],
-    ['socios', `🤝 Socios nuevos${sociosNuevos ? ' (' + sociosNuevos + ')' : ''}`], ['dir', '📇 Directorio de socios']];
+    ['socios', `🤝 Socios nuevos${sociosNuevos ? ' (' + sociosNuevos + ')' : ''}`], ['pres', '📨 Presentaciones'], ['dir', '📇 Directorio de socios']];
   el.innerHTML = `
     <div class="page-title">🏡 Concierge</div>
     <div class="page-subtitle">Solicitudes de connectrgv.com · promesa: llamar el mismo día hábil · actualizado ${escHtml(cgvAgo(new Date(cgvLoadedAt).toISOString()))}</div>
@@ -7106,11 +7110,12 @@ function cgvPaint() {
     <div class="action-row" style="flex-wrap:wrap;gap:8px">
       <div class="pros-chips">${tabs.map(([k, l]) => `<span class="chip ${cgvTab === k ? 'on' : ''}" onclick="cgvTab='${k}';cgvPaint()">${l}</span>`).join('')}</div>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="presOpen()">📨 Mandar presentación</button>
         <a class="btn btn-ghost" href="${escHtml(D.sheetUrl || '#')}" target="_blank" rel="noopener">📄 Hoja</a>
-        <button class="btn btn-ghost" onclick="renderConcierge()">↻</button>
+        <button class="btn btn-ghost" onclick="presData=null;renderConcierge()">↻</button>
       </div>
     </div>
-    <div id="cgv-body">${cgvTab === 'socios' ? cgvSociosTab() : cgvTab === 'dir' ? cgvDirTab() : cgvMovesTab()}</div>`;
+    <div id="cgv-body">${cgvTab === 'socios' ? cgvSociosTab() : cgvTab === 'pres' ? presTab() : cgvTab === 'dir' ? cgvDirTab() : cgvMovesTab()}</div>`;
 }
 function cgvAlerts() {
   const D = cgvData;
@@ -7428,7 +7433,7 @@ function cgvSocOpen(id) {
     <div class="modal-title">🤝 ${escHtml(r.nombre || '—')} ${cgvStBadge(r.estatus)} <button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="cgv-info">${[['Empresa', r.empresa], ['Tipo', r.tipoSocio], ['Mudanzas al mes', r.volumen], ['Teléfono', phoneDigits(r.telefono).length === 10 ? fmtPhone(phoneDigits(r.telefono)) : r.telefono],
       ['Correo', r.correo], ['Se registró', `${cgvFmtWhen(r.recibido)} · ${cgvAgo(r.recibido)}`]].filter(x => x[1]).map(([k, v]) => `<div><span>${k}</span><b>${escHtml(v)}</b></div>`).join('')}</div>
-    <div class="cgv-actions">${cgvPhoneBtns(r, true)}${r.correo ? `<a class="btn btn-ghost" href="mailto:${escHtml(r.correo)}">✉️ Correo</a>` : ''}</div>
+    <div class="cgv-actions">${cgvPhoneBtns(r, true)}${r.correo ? `<a class="btn btn-ghost" href="mailto:${escHtml(r.correo)}">✉️ Correo</a>` : ''}${r.estatus !== 'Dado de alta' ? `<button class="btn btn-ghost" onclick="presFromSocio('${r.id}')">📨 Presentación</button>` : ''}</div>
     <div class="cgv-sec-h">Nota</div>
     <textarea id="cgv-nota" class="form-input" rows="2" placeholder="Ej. quedamos de vernos el jueves en su oficina"></textarea>
     <div class="cgv-foot">
@@ -7819,6 +7824,289 @@ h1{margin:.06in 0 0;font-family:'Instrument Serif',Georgia,serif;font-weight:400
   const w = window.open('', '_blank');
   if (!w) { toast('El navegador bloqueó la ventana. Permite ventanas emergentes para el Hub.', 'error', 5000); return; }
   w.document.open(); w.document.write(html); w.document.close();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 📨 PRESENTACIÓN PARA PROSPECTOS — connectrgv.com/programa con el nombre del prospecto
+// Link personalizado (?n=&e=&s=&l=) para WhatsApp, correo o copiar, y la hoja impresa (leave-behind)
+// con su propio QR (&v=qr, para saber si la abrió escaneando). Cada envío queda en la pestaña "Presentaciones"
+// y 📨 Presentaciones cruza esos envíos con "Visitas programa" para ver quién la abrió y quién se registró.
+// Backend: Concierge.gs (cgvPresList / cgvPresLog / cgvPresMail). Acceso directo: …/mircomm-inventory/#pres
+// ═══════════════════════════════════════════════════════════════════════
+let presP = null, presData = null, presLoading = false, presNoBack = false;
+
+function presSlug(p) { return kitSlug(p.nombre) || 'socio'; }
+function presUrl(p, opt) {
+  const q = new URLSearchParams();
+  q.set('n', String(p.nombre || '').trim());
+  if (String(p.empresa || '').trim()) q.set('e', String(p.empresa).trim());
+  q.set('s', presSlug(p));
+  if (p.idioma === 'EN') q.set('l', 'en');
+  if (opt === 'qr') q.set('v', 'qr');
+  if (opt === 'prueba') q.set('prueba', '1');
+  return `https://${KIT_SITE}/programa/?${q.toString().replace(/\+/g, '%20')}`;
+}
+function presSaludo(en) { const h = new Date().getHours(); return en ? (h < 12 ? 'good morning' : h < 18 ? 'good afternoon' : 'good evening') : cgvSaludo(); }
+// En la voz de quien lo manda: corto, sin tono de vendedor
+function presMsg(p) {
+  const first = String(p.nombre || '').trim().split(/\s+/)[0] || '', en = p.idioma === 'EN', url = presUrl(p);
+  return en
+    ? `Hi ${first}, ${presSaludo(true)}. Here's the ConnectRGV partner program presentation. I put it together with your name on it:\n${url}\n\nIt only takes a few minutes. Any questions, I'm here.`
+    : `Hola ${first}, ${presSaludo(false)}. Le comparto la presentación del programa de socios de ConnectRGV. La preparé con su nombre:\n${url}\n\nSe ve en unos minutos. Cualquier duda, aquí estoy.`;
+}
+function presMine(p) { return presData && presData.list ? presData.list.find(x => x.clave === presSlug(p)) : null; }
+
+// ── Abrir: pre = { nombre, empresa, telefono, correo, idioma } (todo opcional) ──
+async function presOpen(pre) {
+  pre = pre || {};
+  presP = { nombre: pre.nombre || '', empresa: pre.empresa || '', telefono: phoneDigits(pre.telefono || ''), correo: pre.correo || '', idioma: pre.idioma === 'EN' ? 'EN' : 'ES' };
+  presPaint();
+  try { await kitQrLib(); presQrPaint(); } catch (e) {}
+  if (!presData && !presNoBack) presLoad().then(() => { if (document.getElementById('pres-form')) presStatsPaint(); }).catch(() => {});
+}
+function presPaint() {
+  const p = presP;
+  openModal(`
+    <div class="modal-title">📨 Mandar presentación <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="kit-grid" id="pres-form">
+      <div>
+        <div class="cgv-hint" style="margin:0 0 10px">Se arma connectrgv.com/programa con su nombre. Cuando la abra te llega un correo y aquí ves qué tanto la vio.</div>
+        <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group"><label class="form-label">Nombre *</label><input class="form-input" id="pr-nombre" value="${escHtml(p.nombre)}" placeholder="Ej. Imelda Gonzalez" oninput="presSync()"></div>
+          <div class="form-group"><label class="form-label">Empresa o agencia</label><input class="form-input" id="pr-empresa" value="${escHtml(p.empresa)}" placeholder="Si aplica" oninput="presSync()"></div>
+          <div class="form-group"><label class="form-label">Celular (WhatsApp)</label><input class="form-input" id="pr-tel" type="tel" value="${escHtml(p.telefono ? fmtPhone(p.telefono) : '')}" placeholder="(956) 000-0000" oninput="presSync()"></div>
+          <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="pr-correo" type="email" value="${escHtml(p.correo)}" placeholder="nombre@correo.com" oninput="presSync()"></div>
+        </div>
+        <label class="form-label">Idioma de la presentación</label>
+        <div class="pros-chips" id="pr-idioma">${[['ES', 'Español'], ['EN', 'English']].map(([k, l]) => `<span class="chip ${p.idioma === k ? 'on' : ''}" onclick="presP.idioma='${k}';document.querySelectorAll('#pr-idioma .chip').forEach(c=>c.classList.toggle('on',c===this));presSync()">${l}</span>`).join('')}</div>
+        <div id="pres-stats" style="margin-top:14px"></div>
+      </div>
+      <div class="kit-side">
+        <div class="cgv-sec-h" style="margin-top:0">Su presentación</div>
+        <div class="kit-qr" id="pres-qr"></div>
+        <div class="kit-link" id="pres-link" style="font-size:12px;font-weight:600"></div>
+        <div class="kit-btns">
+          <button class="btn btn-primary btn-sm" id="pr-wa" onclick="presWa()">🟢 WhatsApp</button>
+          <button class="btn btn-ghost btn-sm" onclick="presCopy()">📋 Copiar mensaje</button>
+          <button class="btn btn-ghost btn-sm" onclick="presPrint()">🖨 Hoja para dejarle</button>
+          <a class="btn btn-ghost btn-sm" id="pr-ver" target="_blank" rel="noopener" title="Esta visita no cuenta">👁 Ver como la ve</a>
+        </div>
+        <button class="btn btn-primary btn-full" id="pr-mail" style="margin-top:10px" onclick="presMail(this)">✉️ Mandar por correo</button>
+        <div class="cgv-hint" id="pr-hint" style="margin-top:6px"></div>
+      </div>
+    </div>`, true);
+  presSync();
+}
+function presSync() {
+  const v = id => (document.getElementById(id) || {}).value || '';
+  if (document.getElementById('pr-nombre')) Object.assign(presP, { nombre: v('pr-nombre'), empresa: v('pr-empresa'), telefono: phoneDigits(v('pr-tel')), correo: v('pr-correo').trim() });
+  const p = presP, ok = !!p.nombre.trim(), tel = p.telefono.length === 10, mail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.correo);
+  const link = document.getElementById('pres-link'); if (!link) return;
+  link.textContent = ok ? `${KIT_SITE}/programa · ${presSlug(p)}${p.idioma === 'EN' ? ' · EN' : ''}` : 'Escribe su nombre';
+  document.getElementById('pr-ver').href = ok ? presUrl(p, 'prueba') : '#';
+  document.getElementById('pr-wa').disabled = !ok || !tel;
+  const mb = document.getElementById('pr-mail'); mb.disabled = !ok || !mail; if (!mb.dataset.sent) mb.textContent = mail ? `✉️ Mandar a ${p.correo}` : '✉️ Mandar por correo';
+  document.getElementById('pr-hint').textContent = !ok ? '' : !tel && !mail ? 'Pon su celular o su correo para mandársela. La hoja impresa sale igual.' :
+    `El QR de la hoja impresa lleva a la misma presentación, y aquí te dice si la abrió escaneándolo.`;
+  presQrPaint(); presStatsPaint();
+}
+function presQrPaint() {
+  const el = document.getElementById('pres-qr'); if (!el) return;
+  el.innerHTML = window.qrcode && presP.nombre.trim() ? kitQrSvg(presUrl(presP, 'qr')) : `<div style="color:#888;font-size:12px;text-align:center;padding-top:60px">${window.qrcode ? 'Aquí sale su QR' : 'Sin generador de QR'}</div>`;
+  el.style.opacity = presP.nombre.trim() ? 1 : .5;
+}
+function presStatsPaint() {
+  const el = document.getElementById('pres-stats'); if (!el) return;
+  const m = presP.nombre.trim() && presMine(presP);
+  el.innerHTML = m ? `<div class="cgv-prev"><div class="s">Ya se la habías mandado</div>${presStatusTags(m)}
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">${m.envios.map(e => `${escHtml(e.via)} · ${escHtml(cgvFmtWhen(e.f))}`).slice(-4).reverse().join('<br>') || 'Sin envíos registrados (llegó por un enlace anterior)'}</div></div>` : '';
+}
+function presCheck() {
+  presSync();
+  if (!presP.nombre.trim()) { toast('Escribe su nombre.', 'error'); document.getElementById('pr-nombre').focus(); return false; }
+  return true;
+}
+// Registra el envío en la hoja (si Concierge.gs todavía no lo tiene, no estorba)
+function presLog(via) {
+  if (presNoBack) return;
+  apiPost({ action: 'cgvPresLog', data: JSON.stringify(Object.assign({ via }, presP)) })
+    .then(() => { presData = null; })
+    .catch(e => { if (/cgvPres|unknown|desconocida|inválida|invalid/i.test(e.message)) presNoBack = true; });
+}
+function presWa() {
+  if (!presCheck()) return;
+  waOpen(`https://wa.me/1${presP.telefono}?text=${encodeURIComponent(presMsg(presP))}`);
+  presLog('whatsapp');
+}
+function presCopy() {
+  if (!presCheck()) return;
+  segCopy(presMsg(presP));
+  presLog('copiado');
+}
+async function presMail(btn) {
+  if (!presCheck()) return;
+  if (!confirm(`¿Mandarle la presentación a ${presP.correo}?`)) return;
+  btn.disabled = true; btn.textContent = 'Mandando…';
+  try {
+    await apiPost({ action: 'cgvPresMail', data: JSON.stringify(presP) });
+    presData = null;
+    btn.dataset.sent = '1'; btn.textContent = '✓ Enviado';
+    toast(`✉️ Le mandé la presentación a ${escHtml(presP.correo)}.`, 'success', 4000);
+  } catch (e) {
+    btn.disabled = false; btn.textContent = '✉️ Mandar otra vez';
+    if (/cgvPres|unknown|desconocida|inválida|invalid/i.test(e.message)) {
+      presNoBack = true;
+      toast('Falta actualizar Concierge.gs (Deploy → New version). Te abro el correo para mandarlo tú.', 'error', 6000);
+      const en = presP.idioma === 'EN';
+      location.href = `mailto:${encodeURIComponent(presP.correo)}?subject=${encodeURIComponent(en ? 'ConnectRGV partner program' : 'Programa de socios de ConnectRGV')}&body=${encodeURIComponent(presMsg(presP))}`;
+    } else toast(escHtml(e.message), 'error', 5000);
+  }
+}
+
+// ── Hoja para dejarle (leave-behind): una hoja carta con su nombre y su QR ──
+function presPrint() {
+  if (!presCheck()) return;
+  if (!window.qrcode) { toast('No cargó el generador de QR. Revisa el internet.', 'error'); return; }
+  const p = presP, en = p.idioma === 'EN', esc = escHtml, qr = kitQrSvg(presUrl(p, 'qr'));
+  const me = (cgvData && cgvData.me) || currentUser || 'Joel', firma = me === 'Joel' ? 'Joel Chavez' : me;
+  const T = en ? {
+    prep: 'Prepared for', eye: 'Partner Program', h: 'You hand over the keys. <em>We get the home connected.</em>',
+    lead: 'A move-in concierge for every client: internet, electricity, TV, mobile and a free moving guide, with your name up front.',
+    stepsH: 'Three steps. You only do the first one.',
+    steps: [['You refer', 'Share your page, your welcome card or your client’s info.'], ['We contact your client', 'Same business day. We check what reaches their address and walk them through their options.'], ['They’re connected', 'We coordinate every installation, send their moving guide and follow up.']],
+    svcH: 'What we get ready', svc: [['Internet', 'Spectrum · AT&T · Tracfone 5G · Viasat for rural areas'], ['Electricity', 'We compare plans and connect the best fit for move-in day'], ['Cable TV', 'Packages that pair with their internet'], ['Mobile service', 'Multiple carriers, the client picks the plan'], ['Free moving guide', 'Water, trash, homestead and change of address, on their phone']],
+    note: 'Your client pays each provider directly, at the same price as signing up on their own.',
+    getH: 'What you receive', get: ['A ConnectRGV page with your name', 'Printed welcome cards with your QR code', 'Updates at every step, by email or WhatsApp', 'Your own dashboard to see each client’s progress', 'Dedicated line: (956) 467-6695', 'Bilingual service · local store in Palmhurst'],
+    scan: 'Scan to see your full presentation', or: 'or call / text', foot: 'ConnectRGV · Your home services concierge · Internet through MirComm, authorized retailer.'
+  } : {
+    prep: 'Preparado para', eye: 'Programa de Socios', h: 'Usted entrega la llave. <em>Nosotros dejamos la casa conectada.</em>',
+    lead: 'Un concierge para la mudanza de cada cliente: internet, luz, TV, celular y una guía gratis, con su nombre por delante.',
+    stepsH: 'Tres pasos. Usted solo hace el primero.',
+    steps: [['Usted refiere', 'Comparta su página, su tarjeta de bienvenida o los datos de su cliente.'], ['Contactamos al cliente', 'El mismo día hábil. Verificamos qué llega a su dirección y le explicamos sus opciones.'], ['Queda conectado', 'Coordinamos cada instalación, le mandamos su guía de mudanza y le damos seguimiento.']],
+    svcH: 'Lo que le dejamos listo', svc: [['Internet', 'Spectrum · AT&T · Tracfone 5G · Viasat para ranchos'], ['Electricidad', 'Comparamos planes y conectamos el que más le conviene'], ['TV por cable', 'Paquetes que se combinan con su internet'], ['Telefonía móvil', 'Varias compañías, el cliente escoge su plan'], ['Guía de mudanza gratis', 'Agua, basura, homestead y cambio de domicilio, en su celular']],
+    note: 'Su cliente paga cada servicio directo a la compañía, al mismo precio que si lo contratara solo.',
+    getH: 'Lo que usted recibe', get: ['Una página de ConnectRGV con su nombre', 'Tarjetas de bienvenida impresas con su QR', 'Avisos en cada paso, por correo o WhatsApp', 'Su propio panel para ver cómo va cada cliente', 'Línea dedicada: (956) 467-6695', 'Atención bilingüe · tienda en Palmhurst'],
+    scan: 'Escanee para ver su presentación completa', or: 'o llame / mande mensaje', foot: 'ConnectRGV · Tu concierge de servicios para el hogar · Internet a través de MirComm, retailer autorizado.'
+  };
+  const html = `<!doctype html><html lang="${en ? 'en' : 'es'}"><head><meta charset="utf-8"><title>${en ? 'Presentation' : 'Presentación'} · ${esc(p.nombre)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+@page{size:letter;margin:0}*{box-sizing:border-box}body{margin:0;font-family:'Inter Tight',Arial,sans-serif;color:#111312;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:8.5in;height:11in;display:flex;flex-direction:column;overflow:hidden}
+.hero{background:#1E3A32;color:#F3F1EC;padding:.5in .65in .45in}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:.3in}
+.logo{height:.32in;filter:brightness(0) invert(1)}
+.prep{text-align:right}.prep small{display:block;font-size:7pt;letter-spacing:.18em;text-transform:uppercase;opacity:.7}
+.prep b{display:block;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:17pt;line-height:1.1;margin-top:3px}.prep span{font-size:9pt;opacity:.85}
+.eye{margin:.42in 0 0;font-size:7.5pt;letter-spacing:.2em;text-transform:uppercase;opacity:.75}
+h1{margin:.08in 0 0;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:34pt;line-height:1.02;max-width:6.4in}
+h1 em{font-style:italic;color:#C9DCCB}
+.lead{margin:.14in 0 0;font-size:10.5pt;line-height:1.45;max-width:6in;opacity:.92}
+.body{padding:.38in .65in 0;flex:1;display:flex;flex-direction:column}
+.h{font-size:7.5pt;letter-spacing:.18em;text-transform:uppercase;color:#5B615E;margin:0 0 .1in}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:.22in}
+.step b{display:flex;align-items:center;gap:7px;font-size:10.5pt}.step b i{font-style:normal;width:20px;height:20px;border-radius:50%;background:#1E3A32;color:#fff;font-size:9pt;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.step p{margin:.05in 0 0;font-size:8.8pt;line-height:1.4;color:#3A403D}
+.cols{display:grid;grid-template-columns:1.15fr 1fr;gap:.35in;margin:.3in 0 .26in;padding-top:.26in;border-top:1px solid #E3E0D9}
+.svc{margin:0;padding:0;list-style:none}.svc li{padding:.055in 0;border-bottom:1px solid #EEEBE5;font-size:8.8pt;line-height:1.35}.svc li b{display:block;font-size:9.8pt}
+.svc li span{color:#4A504D}.note{margin:.09in 0 0;font-size:8pt;color:#1E3A32;font-weight:500}
+.get{margin:0;padding:0;list-style:none}.get li{display:flex;gap:8px;padding:.05in 0;font-size:9.2pt;line-height:1.35}.get li:before{content:'✓';color:#1E3A32;font-weight:700}
+.cta{margin:auto -.65in 0;padding:.28in .65in;background:#F4F2EE;display:flex;align-items:center;gap:.32in}
+.qr{width:1.55in;height:1.55in;padding:.1in;background:#fff;border:1px solid #DCD8CF;border-radius:10px;flex:none}.qr svg{width:100%;height:100%;display:block}
+.cta .s{font-family:'Instrument Serif',Georgia,serif;font-size:19pt;line-height:1.1}
+.cta .u{margin-top:4px;font-size:9.5pt;font-weight:600;color:#1E3A32}
+.cta .or{margin-top:.12in;font-size:7.5pt;letter-spacing:.16em;text-transform:uppercase;color:#5B615E}
+.cta .tel{font-family:'Instrument Serif',Georgia,serif;font-size:22pt;line-height:1.05}.cta .who{font-size:9.5pt;margin-top:2px}
+.foot{padding:.14in .65in .3in;font-size:6.8pt;color:#6B706C;background:#F4F2EE}
+.tip{font:13px Arial;padding:12px;background:#FFF7E0;border-bottom:1px solid #E8D9A8;text-align:center}@media print{.tip{display:none}}
+</style></head><body><div class="tip">Se abre la ventana para imprimir. Para guardarla, escoge "Guardar como PDF".</div>
+<div class="page">
+  <div class="hero">
+    <div class="top"><img class="logo" src="https://${KIT_SITE}/assets/connectrgv-logo.svg" alt="ConnectRGV">
+      <div class="prep"><small>${T.prep}</small><b>${esc(p.nombre.trim())}</b>${p.empresa.trim() ? `<span>${esc(p.empresa.trim())}</span>` : ''}</div></div>
+    <p class="eye">${T.eye}</p>
+    <h1>${T.h}</h1>
+    <p class="lead">${T.lead}</p>
+  </div>
+  <div class="body">
+    <p class="h">${T.stepsH}</p>
+    <div class="steps">${T.steps.map((s, i) => `<div class="step"><b><i>${i + 1}</i>${s[0]}</b><p>${s[1]}</p></div>`).join('')}</div>
+    <div class="cols">
+      <div><p class="h">${T.svcH}</p><ul class="svc">${T.svc.map(s => `<li><b>${s[0]}</b><span>${s[1]}</span></li>`).join('')}</ul><p class="note">${T.note}</p></div>
+      <div><p class="h">${T.getH}</p><ul class="get">${T.get.map(g => `<li>${g}</li>`).join('')}</ul></div>
+    </div>
+    <div class="cta"><div class="qr">${qr}</div>
+      <div><div class="s">${T.scan}</div><div class="u">${KIT_SITE}/programa</div>
+        <div class="or">${T.or}</div><div class="tel">(956) 467-6695</div><div class="who">${esc(firma)} · ConnectRGV</div></div></div>
+  </div>
+  <div class="foot">${T.foot}</div>
+</div>
+<script>Promise.all([document.fonts.ready].concat([].map.call(document.images,function(i){return i.complete?0:new Promise(function(r){i.onload=i.onerror=r;})}))).then(function(){setTimeout(function(){window.print();},300);});<\/script>
+</body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { toast('El navegador bloqueó la ventana. Permite ventanas emergentes para el Hub.', 'error', 5000); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  presLog('impresa');
+}
+
+// ── Pestaña 📨 Presentaciones (dentro de 🏡 Concierge) ──
+async function presLoad() {
+  if (presLoading) return;
+  presLoading = true;
+  try { presData = await apiGet({ action: 'cgvPresList' }); presNoBack = false; }
+  catch (e) { if (/cgvPres|unknown|desconocida|inválida|invalid/i.test(e.message)) presNoBack = true; else throw e; }
+  finally { presLoading = false; }
+}
+function presStatusTags(m) {
+  const tags = [], dias = m.enviada ? (Date.now() - new Date(m.enviada)) / 864e5 : 0;
+  if (m.registro) tags.push(['green', `✅ Se registró${m.socioEstatus ? ' · ' + m.socioEstatus : ''}`]);
+  else if (m.final) tags.push(['blue', 'Llegó hasta el registro']);
+  if (m.abrio) tags.push(['blue', `👀 La abrió ${m.abrio === 1 ? '1 vez' : m.abrio + ' veces'} · ${cgvAgo(m.ultima)}`]);
+  else tags.push(dias >= 2 ? ['yel', 'No la ha abierto · dale seguimiento'] : ['muted', 'Todavía no la abre']);
+  if (m.abrioQr) tags.push(['blue', `🔳 Escaneó el QR${m.abrioQr > 1 ? ' ×' + m.abrioQr : ''}`]);
+  if (m.llamar || m.texto) tags.push(['blue', m.llamar ? '📞 Tocó Llamar' : '💬 Tocó Mensaje']);
+  if (m.guia) tags.push(['muted', 'Vio la guía']);
+  return `<div class="cgv-tags">${tags.map(([c, t]) => `<span class="cgv-tag ${c}">${escHtml(t)}</span>`).join('')}</div>`;
+}
+function presTab() {
+  if (presNoBack) return `<div class="cgv-hint" style="color:var(--yellow)">Para ver aquí a quién le mandaste la presentación y si la abrió, falta actualizar <b>Concierge.gs</b> en Apps Script (Deploy → Manage deployments → New version). Mientras, el botón 📨 Mandar presentación ya funciona.</div>`;
+  if (!presData) {
+    presLoad().then(() => { if (cgvTab === 'pres') { const b = document.getElementById('cgv-body'); if (b) b.innerHTML = presTab(); } })
+      .catch(e => { const b = document.getElementById('cgv-body'); if (b && cgvTab === 'pres') b.innerHTML = `<div class="cgv-hint" style="color:var(--red)">${escHtml(e.message)}</div>`; });
+    return `<div class="loading"><div class="spinner"></div></div>`;
+  }
+  const L = presData.list || [], d30 = Date.now() - 30 * 864e5;
+  const env = L.filter(m => m.enviada && new Date(m.enviada) >= d30), ab = env.filter(m => m.abrio), reg = env.filter(m => m.registro);
+  const pend = L.filter(m => m.enviada && !m.abrio && !m.registro && (Date.now() - new Date(m.enviada)) / 864e5 >= 2).length;
+  const hot = L.filter(m => m.abrio && !m.registro && m.ultima && (Date.now() - new Date(m.ultima)) / 864e5 <= 3).length;
+  return `<div class="report-grid pros-stats" style="margin-bottom:12px">
+      <div class="stat-card blue"><div class="stat-label">Enviadas · 30 días</div><div class="stat-value">${env.length}</div></div>
+      <div class="stat-card cyan"><div class="stat-label">La abrieron</div><div class="stat-value">${ab.length}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">${env.length ? Math.round(ab.length / env.length * 100) + '% de las enviadas' : '—'}</div></div>
+      <div class="stat-card yellow"><div class="stat-label">Para llamar hoy</div><div class="stat-value">${hot}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">la vieron en los últimos 3 días</div></div>
+      <div class="stat-card green"><div class="stat-label">Se registraron</div><div class="stat-value">${reg.length}</div>${pend ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${pend} sin abrir hace 2+ días</div>` : ''}</div>
+    </div>
+    ${L.length ? `<div class="cgv-list">${L.map((m, i) => {
+      const last = m.envios[m.envios.length - 1];
+      const ph = phoneDigits(m.telefono);
+      return `<div class="cgv-card" onclick="presOpenFrom(${i})">
+        <div class="cgv-card-main">
+          <div class="cgv-card-top"><b class="cgv-name">${escHtml(m.nombre || m.clave)}</b>${m.idioma === 'EN' ? ' <span class="pros-badge pros-b-exp">EN</span>' : ''}</div>
+          <div class="cgv-sub">${escHtml(m.empresa || '')}${m.empresa && last ? ' · ' : ''}${last ? `enviada ${escHtml(cgvAgo(last.f))} por ${escHtml(last.via)}${m.envios.length > 1 ? ` (${m.envios.length} envíos)` : ''}` : 'sin envío registrado'}</div>
+          ${presStatusTags(m)}
+        </div>
+        <div class="cgv-card-side"><div class="cgv-btns">${ph.length === 10 ? `<a class="btn btn-primary btn-sm" href="tel:+1${ph}" onclick="event.stopPropagation()">📞 ${fmtPhone(ph)}</a>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();presOpenFrom(${i})">📨 Reenviar</button></div></div>
+      </div>`;
+    }).join('')}</div>` : `<div class="empty-state"><div class="icon">📨</div><p>Todavía no mandas ninguna presentación. Usa 📨 Mandar presentación arriba.</p></div>`}`;
+}
+// Desde 🤝 Socios nuevos: con sus datos ya puestos
+function presFromSocio(id) {
+  const r = cgvFind(id); if (!r) return;
+  presOpen({ nombre: r.nombre || '', empresa: r.empresa || '', telefono: r.telefono || '', correo: r.correo || '', idioma: /ingl/i.test(r.servicios || '') ? 'EN' : 'ES' });
+}
+function presOpenFrom(i) {
+  const m = presData && presData.list[i]; if (!m) return;
+  presOpen({ nombre: m.nombre, empresa: m.empresa, telefono: m.telefono, correo: m.correo, idioma: m.idioma });
 }
 
 // ── Escoger socio (botón en 🤝 Socios y acceso directo #kit) ──

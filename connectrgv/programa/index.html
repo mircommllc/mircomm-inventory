@@ -723,10 +723,16 @@ footer a{color:var(--stone)}
   each('[data-set-lang]', function (b) { b.addEventListener('click', function () { setLang(b.getAttribute('data-set-lang')); }); });
   setLang(LANG);
 
-  /* ── Seguimiento (pestaña "Visitas programa") ── */
+  /* ── Seguimiento (pestaña "Visitas programa") ──
+     ?v=qr  → llegó escaneando el QR de su hoja impresa (se anota "QR" en "Viene de")
+     ?prueba → vista desde el Hub: no cuenta ni avisa */
+  var VIA_QR = q.get('v') === 'qr', PRUEBA = q.get('prueba') !== null;
+  if (VIA_QR || PRUEBA) {
+    try { var u = new URL(location.href); u.searchParams.delete('v'); u.searchParams.delete('prueba'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e) {}
+  }
   function track(ev) {
-    if (!LIVE) return;
-    var ref = ''; try { ref = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
+    if (!LIVE || PRUEBA) return;
+    var ref = VIA_QR ? 'QR' : ''; try { if (!ref) ref = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
     var p = new URLSearchParams({ ev: ev, s: S, n: N, e: E, l: LANG, d: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'Celular' : 'Computadora', r: ref });
     try { fetch(ENDPOINT + '?' + p.toString(), { mode: 'no-cors', keepalive: true }).catch(function () {}); } catch (e) {}
   }
