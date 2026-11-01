@@ -315,6 +315,8 @@ function cgvDirEnsure_(clientes, socios, partners) {
       correo: pr ? '' : su ? su.correo : '', telefono: (pr && pr.phone) || (su && su.telefono) || '', idioma: 'ES', avisos: true, pagina: r.pagina || '' });
     have[cgvNorm_(k)] = d; dir.push(d);
   });
+  // Páginas guardadas antes de que existiera el panel: se les crea su clave sola (ya no hay que volver a guardarlas)
+  dir.forEach(function (d) { if (d.pagina && !d.pin && d._row) { d.pin = cgvNewPin_(); cgvDirWrite_({ _row: d._row, pin: d.pin }); } });
   return dir;
 }
 function cgvDirFor_(r, dir) {
