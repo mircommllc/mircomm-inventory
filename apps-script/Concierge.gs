@@ -972,7 +972,9 @@ function cgvDigestKey_() {
   return k;
 }
 function cgvSign_(s) {
-  return Utilities.computeHmacSha256Signature(s, cgvDigestKey_()).map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('').slice(0, 24);
+  var b = Utilities.computeHmacSha256Signature(s, cgvDigestKey_()), h = '';
+  for (var i = 0; i < b.length && h.length < 24; i++) h += ('0' + (b[i] & 255).toString(16)).slice(-2);
+  return h;
 }
 function cgvToken_(clave, k, ymd) { var s = clave + '.' + k + '.' + ymd; return s + '.' + cgvSign_(s); }
 function cgvTokenRead_(tok) {
