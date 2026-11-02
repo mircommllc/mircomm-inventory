@@ -705,9 +705,24 @@
   .cgv-prev .s { font-size:11px; color:var(--muted); margin-bottom:4px; }
   .cgv-prev pre { white-space:pre-wrap; font-family:var(--font-body); font-size:13px; margin:6px 0 0; color:var(--text); }
   .cgv-tl { display:flex; flex-direction:column; gap:8px; }
+  /* 📨 Presentaciones: etapa del prospecto */
+  .pres-funnel { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin:0 0 16px; }
+  .pres-funnel .f { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; cursor:pointer; transition:border .15s, background .15s; }
+  .pres-funnel .f:hover { border-color:rgba(26,110,255,.45); }
+  .pres-funnel .f.on { border-color:var(--blue); background:rgba(26,110,255,.10); }
+  .pres-funnel .f .l { font-size:12px; color:var(--muted); }
+  .pres-funnel .f .n { font-size:22px; font-weight:800; line-height:1.2; }
+  .pres-funnel .f .w { font-size:11px; color:var(--yellow); margin-top:2px; }
+  .pres-stage { font-size:11px; padding:3px 9px; border-radius:20px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); cursor:pointer; white-space:nowrap; }
+  .pres-stage:hover { border-color:var(--blue); }
+  .pres-stage.s-pres { color:var(--blue); border-color:rgba(26,110,255,.35); background:rgba(26,110,255,.10); }
+  .pres-stage.s-reunion { color:var(--cyan); border-color:rgba(0,200,220,.35); background:rgba(0,200,220,.10); }
+  .pres-stage.s-socio { color:var(--green); border-color:rgba(0,200,120,.35); background:rgba(0,200,120,.10); }
+  .pres-stage.s-no { color:var(--red); border-color:rgba(255,68,85,.30); background:rgba(255,68,85,.08); }
   .cgv-tl-row { display:flex; gap:10px; font-size:13px; } .cgv-tl-row .i { width:20px; text-align:center; }
   .cgv-tl-row .s { font-size:11px; color:var(--muted); }
   @media (max-width: 700px) {
+    .pres-funnel { grid-template-columns:repeat(3, 1fr); }
     .cgv-card { flex-direction:column; align-items:stretch; }
     .cgv-card-side { align-items:stretch; }
     .cgv-btns { justify-content:flex-start; }
@@ -7834,7 +7849,7 @@ h1{margin:.06in 0 0;font-family:'Instrument Serif',Georgia,serif;font-weight:400
 // y 📨 Presentaciones cruza esos envíos con "Visitas programa" para ver quién la abrió y quién se registró.
 // Backend: Concierge.gs (cgvPresList / cgvPresLog / cgvPresMail). Acceso directo: …/mircomm-inventory/#pres
 // ═══════════════════════════════════════════════════════════════════════
-let presP = null, presData = null, presLoading = false, presNoBack = false;
+let presP = null, presData = null, presLoading = false, presNoBack = false, presStageF = '';
 
 function presSlug(p) { return kitSlug(p.nombre) || 'socio'; }
 function presUrl(p, opt) {
@@ -8051,13 +8066,19 @@ h1 em{font-style:italic;color:#C9DCCB}
 }
 
 // ── Pestaña 📨 Presentaciones (dentro de 🏡 Concierge) ──
-async function presLoad() {
-  if (presLoading) return;
+// Si ya se está cargando, regresa la MISMA carga (antes regresaba al instante y presTab volvía a pintar,
+// volvía a llamar presLoad… en un ciclo sin fin que congelaba la página al repintar mientras cargaba).
+let presLoadP = null;
+function presLoad() {
+  if (presLoadP) return presLoadP;
   presLoading = true;
-  // u: la URL del Apps Script, para que los botones del resumen diario apunten aquí
-  try { presData = await apiGet({ action: 'cgvPresList', u: SHEETS_URL }); presNoBack = false; }
-  catch (e) { if (/cgvPres|unknown|desconocida|inválida|invalid/i.test(e.message)) presNoBack = true; else throw e; }
-  finally { presLoading = false; }
+  presLoadP = (async () => {
+    // u: la URL del Apps Script, para que los botones del resumen diario apunten aquí
+    try { presData = await apiGet({ action: 'cgvPresList', u: SHEETS_URL }); presNoBack = false; }
+    catch (e) { if (/cgvPres|unknown|desconocida|inválida|invalid/i.test(e.message)) presNoBack = true; else throw e; }
+    finally { presLoading = false; presLoadP = null; }
+  })();
+  return presLoadP;
 }
 function presStatusTags(m) {
   const tags = [], dias = m.enviada ? (Date.now() - new Date(m.enviada)) / 864e5 : 0;
@@ -8076,6 +8097,8 @@ function presStatusTags(m) {
 // o hasta que la vuelva a abrir.
 function presFollowKind(m) {
   if (m.registro) return '';
+  const st = presStage(m);
+  if (st === 'socio' || st === 'no') return '';
   const now = Date.now(), seg = m.seguido ? new Date(m.seguido).getTime() : 0;
   const reabrio = m.ultimaAbrio && new Date(m.ultimaAbrio).getTime() > seg;
   if (seg && now - seg < 3 * 864e5 && !reabrio) return '';
@@ -8128,10 +8151,118 @@ function presFollowed(i, repaintNow) {
     .catch(e => toast('No se guardó el seguimiento: ' + e.message, 'error', 5000));
   setTimeout(() => { const b = document.getElementById('cgv-body'); if (b && cgvTab === 'pres') b.innerHTML = presTab(); }, repaintNow ? 0 : 600);
 }
+// ── Etapa del prospecto (Concierge.gs v56) ──
+// 📞 Llamé → 📨 Presentación → 🤝 Reunión → ✅ Socio activo  (o ✗ No le interesó)
+// Mandarle la presentación lo sube solo a 📨 y registrarse en el programa lo pasa a ✅.
+// Si cambias la etapa después del último envío, manda la tuya (así también se puede regresar).
+const PRES_STAGES = [['llame', '📞 Llamé'], ['pres', '📨 Presentación'], ['reunion', '🤝 Reunión'], ['socio', '✅ Socio activo'], ['no', '✗ No le interesó']];
+const PRES_RANK = { llame: 0, pres: 1, reunion: 2, socio: 3 };
+const presStageLabel = k => (PRES_STAGES.find(x => x[0] === k) || ['', ''])[1];
+function presStageOn() { return !!(presData && presData.v >= 56); }
+function presStage(m) {
+  if (m.registro) return 'socio';
+  const auto = (m.enviada || m.abrio) ? 'pres' : 'llame';
+  if (!m.etapa) return auto;
+  if (!m.enviada || m.etapaF >= m.enviada) return m.etapa;
+  if (m.etapa === 'no') return auto;
+  return PRES_RANK[m.etapa] >= PRES_RANK[auto] ? m.etapa : auto;
+}
+// Desde cuándo está en esa etapa
+function presStageSince(m, st) {
+  if (st === 'socio' && m.registro) return '';
+  if (m.etapa === st && m.etapaF && (!m.enviada || m.etapaF >= m.enviada || st !== 'pres')) return m.etapaF;
+  return st === 'pres' ? (m.enviada || m.ultimaAbrio || '') : '';
+}
+// Atorado: cuánto aguanta cada etapa antes de avisarte
+function presStuck(m) {
+  const st = presStage(m), since = presStageSince(m, st);
+  if (!since) return '';
+  const d = (Date.now() - new Date(since)) / 864e5;
+  if (st === 'llame' && d >= 2) return `Llamaste ${cgvAgo(since)} y no le has mandado la presentación`;
+  if (st === 'pres' && d >= 7) return `Tiene la presentación desde ${cgvAgo(since)} y no han quedado de verse`;
+  if (st === 'reunion' && d >= 10) return `Se vieron ${cgvAgo(since)} y todavía no se registra`;
+  return '';
+}
+// Solo prospectos de verdad (no las visitas sueltas del volante o sin nombre)
+function presIsProspect(m) { return !!(m.nombre || (m.envios && m.envios.length) || m.etapa); }
+function presFunnel() {
+  const P = (presData.list || []).filter(presIsProspect);
+  return `<div class="pres-funnel">${PRES_STAGES.map(([k, l]) => {
+    const inSt = P.filter(m => presStage(m) === k), stuck = inSt.filter(m => presStuck(m)).length;
+    return `<div class="f ${presStageF === k ? 'on' : ''}" onclick="presStageF=presStageF==='${k}'?'':'${k}';presRepaint()">
+      <div class="l">${l}</div><div class="n">${inSt.length}</div>${stuck ? `<div class="w">⏳ ${stuck} atorado${stuck > 1 ? 's' : ''}</div>` : ''}</div>`;
+  }).join('')}</div>`;
+}
+function presRepaint() { const b = document.getElementById('cgv-body'); if (b && cgvTab === 'pres') b.innerHTML = presTab(); }
+function presStageBadge(m, i) {
+  if (!presStageOn()) return '';
+  const st = presStage(m);
+  return `<span class="pres-stage s-${st}" title="Cambiar etapa" onclick="event.stopPropagation();presStageOpen(${i})">${presStageLabel(st)} ▾</span>`;
+}
+function presStageOpen(i) {
+  const m = presData && presData.list[i]; if (!m) return;
+  const st = presStage(m);
+  const last = m.etapaNota ? `Última nota: <b>${escHtml(m.etapaNota)}</b>${m.etapaF ? ' · ' + escHtml(cgvAgo(m.etapaF)) : ''}` : '';
+  openModal(`<div class="modal-title">Etapa · ${escHtml(m.nombre || m.clave)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${last ? `<div class="cgv-hint" style="margin:0 0 10px">${last}</div>` : ''}
+    <div class="pros-chips" id="ps-et">${PRES_STAGES.map(([k, l]) => `<span class="chip ${k === st ? 'on' : ''}" data-v="${k}" onclick="this.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c===this))">${l}</span>`).join('')}</div>
+    <div class="form-group" style="margin-top:12px"><label class="form-label">Nota (opcional)</label>
+      <input class="form-input" id="ps-nota" maxlength="200" placeholder="Ej. Quedamos el jueves a las 3 en su oficina"></div>
+    ${m.registro ? `<div class="cgv-hint" style="margin:0 0 10px">Ya se registró en el programa, así que se queda en ✅ Socio activo.</div>` : ''}
+    <button class="btn btn-primary btn-full" onclick="presStageSave(${i}, this)">Guardar</button>`);
+}
+async function presStageSave(i, btn) {
+  const m = presData && presData.list[i]; if (!m) return;
+  const et = (document.querySelector('#ps-et .chip.on') || {}).dataset?.v, nota = document.getElementById('ps-nota').value.trim();
+  if (!et) { toast('Escoge la etapa.', 'error'); return; }
+  btn.disabled = true;
+  try {
+    await apiPost({ action: 'cgvPresLog', data: JSON.stringify({ via: 'etapa', etapa: et, nota, nombre: m.nombre || m.clave, empresa: m.empresa, telefono: m.telefono, correo: m.correo, idioma: m.idioma, clave: m.clave }) });
+    Object.assign(m, { etapa: et, etapaF: new Date().toISOString(), etapaNota: nota, etapaPor: currentUser || '' });
+    closeModal(); toast(`${presStageLabel(et)} · guardado.`, 'success', 1800); presRepaint();
+  } catch (e) { btn.disabled = false; toast(escHtml(e.message), 'error', 5000); }
+}
+// 📞 Registrar llamada: el prospecto al que le hablaste y todavía no le mandas nada
+let presCall = null;
+function presCallOpen() {
+  presCall = { idioma: 'ES', etapa: 'llame' };
+  const outs = [['llame', 'Le voy a mandar la presentación'], ['reunion', 'Ya quedamos de vernos'], ['no', 'No le interesó']];
+  openModal(`<div class="modal-title">📞 Registrar llamada <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="cgv-hint" style="margin:0 0 10px">Para que no se te pierda nadie: queda en el embudo aunque todavía no le mandes nada.</div>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label class="form-label">Nombre *</label><input class="form-input" id="pc2-nombre" placeholder="Con quién hablaste"></div>
+      <div class="form-group"><label class="form-label">Empresa o agencia</label><input class="form-input" id="pc2-empresa" placeholder="Si aplica"></div>
+      <div class="form-group"><label class="form-label">Celular</label><input class="form-input" id="pc2-tel" type="tel" placeholder="(956) 000-0000"></div>
+      <div class="form-group"><label class="form-label">Idioma</label>
+        <div class="pros-chips">${[['ES', 'Español'], ['EN', 'English']].map(([k, l]) => `<span class="chip ${k === 'ES' ? 'on' : ''}" onclick="presCall.idioma='${k}';this.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c===this))">${l}</span>`).join('')}</div></div>
+    </div>
+    <label class="form-label">¿Cómo quedó?</label>
+    <div class="pros-chips">${outs.map(([k, l]) => `<span class="chip ${k === 'llame' ? 'on' : ''}" onclick="presCall.etapa='${k}';this.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c===this))">${l}</span>`).join('')}</div>
+    <div class="form-group" style="margin-top:12px"><label class="form-label">Nota (opcional)</label>
+      <input class="form-input" id="pc2-nota" maxlength="200" placeholder="Ej. Le ayuda a sus clientes una asistente; le interesa la luz"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" style="flex:1" onclick="presCallSave(this, true)">Guardar y mandar presentación</button>
+      <button class="btn btn-ghost" onclick="presCallSave(this, false)">Solo guardar</button>
+    </div>`);
+  setTimeout(() => { const n = document.getElementById('pc2-nombre'); if (n) n.focus(); }, 50);
+}
+async function presCallSave(btn, andSend) {
+  const v = id => document.getElementById(id).value.trim();
+  const d = { nombre: v('pc2-nombre'), empresa: v('pc2-empresa'), telefono: phoneDigits(v('pc2-tel')), correo: '', idioma: presCall.idioma, nota: v('pc2-nota'), etapa: presCall.etapa };
+  if (!d.nombre) { toast('Escribe su nombre.', 'error'); document.getElementById('pc2-nombre').focus(); return; }
+  btn.disabled = true;
+  try {
+    await apiPost({ action: 'cgvPresLog', data: JSON.stringify(Object.assign({ via: 'etapa', clave: presSlug(d) }, d)) });
+    toast(`${escHtml(d.nombre)} · ${presStageLabel(d.etapa)}`, 'success', 1800);
+    presData = null; presStageF = '';
+    if (andSend) presOpen(d); else closeModal();
+    presRepaint();
+  } catch (e) { btn.disabled = false; toast(escHtml(e.message), 'error', 5000); }
+}
 function presTab() {
   if (presNoBack) return `<div class="cgv-hint" style="color:var(--yellow)">Para ver aquí a quién le mandaste la presentación y si la abrió, falta actualizar <b>Concierge.gs</b> en Apps Script (Deploy → Manage deployments → New version). Mientras, el botón 📨 Mandar presentación ya funciona.</div>`;
   if (!presData) {
-    presLoad().then(() => { if (cgvTab === 'pres') { const b = document.getElementById('cgv-body'); if (b) b.innerHTML = presTab(); } })
+    presLoad().then(() => { if (cgvTab === 'pres' && (presData || presNoBack)) { const b = document.getElementById('cgv-body'); if (b) b.innerHTML = presTab(); } })
       .catch(e => { const b = document.getElementById('cgv-body'); if (b && cgvTab === 'pres') b.innerHTML = `<div class="cgv-hint" style="color:var(--red)">${escHtml(e.message)}</div>`; });
     return `<div class="loading"><div class="spinner"></div></div>`;
   }
@@ -8139,28 +8270,37 @@ function presTab() {
   const env = L.filter(m => m.enviada && new Date(m.enviada) >= d30), ab = env.filter(m => m.abrio), reg = env.filter(m => m.registro);
   const pend = L.filter(m => m.enviada && !m.abrio && !m.registro && (Date.now() - new Date(m.enviada)) / 864e5 >= 2).length;
   const hot = L.filter(m => m.abrio && !m.registro && m.ultima && (Date.now() - new Date(m.ultima)) / 864e5 <= 3).length;
-  return `<div class="report-grid pros-stats" style="margin-bottom:12px">
+  const stOn = presStageOn();
+  const shown = L.map((m, i) => ({ m, i })).filter(({ m }) => !stOn || !presStageF || (presIsProspect(m) && presStage(m) === presStageF));
+  return `${stOn ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="font-weight:700;font-size:15px">En qué va cada prospecto</div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="presCallOpen()">📞 Registrar llamada</button>
+    </div>${presFunnel()}` : `<div class="cgv-hint" style="margin:0 0 10px;color:var(--yellow)">Para ver la etapa de cada prospecto (📞 Llamé → 📨 → 🤝 → ✅), falta actualizar <b>Concierge.gs</b> a v56 en Apps Script (Deploy → Manage deployments → New version).</div>`}
+    <div class="report-grid pros-stats" style="margin-bottom:12px">
       <div class="stat-card blue"><div class="stat-label">Enviadas · 30 días</div><div class="stat-value">${env.length}</div></div>
       <div class="stat-card cyan"><div class="stat-label">La abrieron</div><div class="stat-value">${ab.length}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">${env.length ? Math.round(ab.length / env.length * 100) + '% de las enviadas' : '—'}</div></div>
       <div class="stat-card yellow"><div class="stat-label">Para llamar hoy</div><div class="stat-value">${hot}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">la vieron en los últimos 3 días</div></div>
       <div class="stat-card green"><div class="stat-label">Se registraron</div><div class="stat-value">${reg.length}</div>${pend ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${pend} sin abrir hace 2+ días</div>` : ''}</div>
     </div>
-    ${(() => { const F = presFollowList(); return F.length ? `<div style="margin:4px 0 8px;font-weight:700;font-size:15px">🔔 Por darle seguimiento <span style="color:var(--muted);font-weight:400;font-size:13px">· ${F.length}</span></div>
+    ${presStageF ? '' : (() => { const F = presFollowList(); return F.length ? `<div style="margin:4px 0 8px;font-weight:700;font-size:15px">🔔 Por darle seguimiento <span style="color:var(--muted);font-weight:400;font-size:13px">· ${F.length}</span></div>
       <div class="cgv-list" style="margin-bottom:18px">${F.map(presFollowCard).join('')}</div>
       <div style="margin:0 0 8px;font-weight:700;font-size:15px">Todas las presentaciones</div>` : ''; })()}
-    ${L.length ? `<div class="cgv-list">${L.map((m, i) => {
-      const last = m.envios[m.envios.length - 1];
+    ${presStageF ? `<div style="margin:0 0 8px;font-weight:700;font-size:15px">${presStageLabel(presStageF)} <span style="color:var(--muted);font-weight:400;font-size:13px">· ${shown.length} · <a href="#" onclick="presStageF='';presRepaint();return false">ver todas</a></span></div>` : ''}
+    ${shown.length ? `<div class="cgv-list">${shown.map(({ m, i }) => {
+      const last = m.envios[m.envios.length - 1], stuck = stOn && presStuck(m);
       const ph = phoneDigits(m.telefono);
       return `<div class="cgv-card" onclick="presOpenFrom(${i})">
         <div class="cgv-card-main">
-          <div class="cgv-card-top"><b class="cgv-name">${escHtml(m.nombre || m.clave)}</b>${m.idioma === 'EN' ? ' <span class="pros-badge pros-b-exp">EN</span>' : ''}</div>
-          <div class="cgv-sub">${escHtml(m.empresa || '')}${m.empresa && last ? ' · ' : ''}${last ? `enviada ${escHtml(cgvAgo(last.f))} por ${escHtml(last.via)}${m.envios.length > 1 ? ` (${m.envios.length} envíos)` : ''}` : 'sin envío registrado'}</div>
-          ${presStatusTags(m)}
+          <div class="cgv-card-top"><b class="cgv-name">${escHtml(m.nombre || m.clave)}</b>${m.idioma === 'EN' ? ' <span class="pros-badge pros-b-exp">EN</span>' : ''}${presStageBadge(m, i)}</div>
+          <div class="cgv-sub">${escHtml(m.empresa || '')}${m.empresa && last ? ' · ' : ''}${last ? `enviada ${escHtml(cgvAgo(last.f))} por ${escHtml(last.via)}${m.envios.length > 1 ? ` (${m.envios.length} envíos)` : ''}` : m.etapa ? `${escHtml(presStageLabel(m.etapa))} ${escHtml(cgvAgo(m.etapaF))}${m.etapaPor ? ' · ' + escHtml(m.etapaPor) : ''}` : 'sin envío registrado'}</div>
+          ${stOn && m.etapaNota ? `<div class="cgv-sub" style="margin-top:4px">📝 ${escHtml(m.etapaNota)}</div>` : ''}
+          ${m.envios.length || m.abrio ? presStatusTags(m) : ''}
+          ${stuck ? `<div class="cgv-tags"><span class="cgv-tag yel">⏳ ${escHtml(stuck)}</span></div>` : ''}
         </div>
         <div class="cgv-card-side"><div class="cgv-btns">${ph.length === 10 ? `<a class="btn btn-primary btn-sm" href="tel:+1${ph}" onclick="event.stopPropagation()">📞 ${fmtPhone(ph)}</a>` : ''}
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();presOpenFrom(${i})">📨 Reenviar</button></div></div>
       </div>`;
-    }).join('')}</div>` : `<div class="empty-state"><div class="icon">📨</div><p>Todavía no mandas ninguna presentación. Usa 📨 Mandar presentación arriba.</p></div>`}`;
+    }).join('')}</div>` : presStageF ? `<div class="cgv-hint">Nadie en esta etapa.</div>` : `<div class="empty-state"><div class="icon">📨</div><p>Todavía no mandas ninguna presentación. Usa 📨 Mandar presentación arriba.</p></div>`}`;
 }
 // Desde 🤝 Socios nuevos: con sus datos ya puestos
 function presFromSocio(id) {

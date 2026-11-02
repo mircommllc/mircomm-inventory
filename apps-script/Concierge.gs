@@ -26,6 +26,10 @@
  *      💬 y ✓ dejan el seguimiento en "Presentaciones" (Por = Resumen diario), igual que desde el Hub.
  *      Para activarlo (una vez): en el editor escoge la función  instalarSeguimientoDiario  → ▶ Ejecutar → acepta los permisos.
  *      Para probarlo al momento:  probarSeguimientoDiario  (lo manda aunque sea domingo).
+ * v56: ETAPA DEL PROSPECTO. 📞 Llamé → 📨 Presentación → 🤝 Reunión → ✅ Socio activo (o ✗ No le interesó).
+ *      Cada cambio queda en "Presentaciones" con Vía = Etapa y las columnas nuevas Etapa y Nota (se agregan solas al final).
+ *      Mandarle la presentación lo pasa solo a 📨, y registrarse en el programa lo pasa solo a ✅.
+ *      Los de ✅ Socio activo y ✗ No le interesó ya no salen en "Por darle seguimiento" ni en el resumen diario.
  *
  * INSTALAR (una vez):
  *  1. Apps Script del Hub: ＋ → Script → nómbralo "Concierge" → pega todo este archivo → Guardar.
@@ -118,7 +122,7 @@ function cgvAuditLabels_() {
       AUD_LABELS.cgvPartnerEmail = 'Socios: cambió correo del socio';
       AUD_LABELS.cgvPageSave = 'Concierge: guardó página del socio';
       AUD_LABELS.cgvKitMail = 'Concierge: mandó kit al socio';
-      AUD_LABELS.cgvPresLog = 'Concierge: mandó presentación a prospecto';
+      AUD_LABELS.cgvPresLog = 'Concierge: presentación o etapa de prospecto';
       AUD_LABELS.cgvPresMail = 'Concierge: mandó presentación por correo';
     }
   } catch (e) {}
@@ -795,7 +799,11 @@ function crearClavesPanel() {
 // Cada envío queda en la pestaña "Presentaciones"; las aperturas salen de "Visitas programa".
 var CGV_PRES_TAB = 'Presentaciones';
 var CGV_PRES_HEADERS = ['Fecha', 'Clave', 'Nombre', 'Empresa', 'Teléfono', 'Correo', 'Idioma', 'Vía', 'Por', 'Enlace'];
-var CGV_PRES_VIAS = { whatsapp: 'WhatsApp', copiado: 'Copiado', correo: 'Correo', impresa: 'Hoja impresa', texto: 'Mensaje de texto', seguimiento: 'Seguimiento' };
+var CGV_PRES_VIAS = { whatsapp: 'WhatsApp', copiado: 'Copiado', correo: 'Correo', impresa: 'Hoja impresa', texto: 'Mensaje de texto', seguimiento: 'Seguimiento', etapa: 'Etapa' };
+// v56: etapa del prospecto (columnas 11 y 12 de "Presentaciones")
+var CGV_PRES_EXTRA = ['Etapa', 'Nota'];
+var CGV_PRES_ETAPAS = { llame: 'Llamé', pres: 'Presentación', reunion: 'Reunión', socio: 'Socio activo', no: 'No le interesó' };
+var CGV_PRES_RANK = { llame: 0, pres: 1, reunion: 2, socio: 3 };
 
 function cgvPresClean_(d) {
   var t = function (v) { return String(v || '').replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80); };
@@ -820,6 +828,9 @@ function cgvPresSheet_() {
     sh.setFrozenRows(1);
     sh.getRange(1, 1, 1, CGV_PRES_HEADERS.length).setFontWeight('bold');
   }
+  if (String(sh.getRange(1, CGV_PRES_HEADERS.length + 1).getValue()) !== CGV_PRES_EXTRA[0]) {
+    sh.getRange(1, CGV_PRES_HEADERS.length + 1, 1, CGV_PRES_EXTRA.length).setValues([CGV_PRES_EXTRA]).setFontWeight('bold');
+  }
   return sh;
 }
 function cgvPresAppend_(c, via, por) {
@@ -828,6 +839,14 @@ function cgvPresAppend_(c, via, por) {
 // d: { nombre, empresa?, telefono?, correo?, idioma, clave?, via }
 function cgvPresLog_(d) {
   var c = cgvPresClean_(d);
+  if (d.via === 'etapa') {
+    var et = String(d.etapa || '');
+    if (!CGV_PRES_ETAPAS[et]) throw new Error('Etapa no válida.');
+    var nota = String(d.nota || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    cgvPresSheet_().appendRow([new Date(), c.s, cgvSafe_(c.n), cgvSafe_(c.e), c.tel ? "'" + c.tel : '', cgvSafe_(c.correo), c.en ? 'EN' : 'ES',
+      'Etapa', cgvMe_(), cgvPresUrl_(c), CGV_PRES_ETAPAS[et], cgvSafe_(nota)]);
+    return { ok: true, clave: c.s, etapa: et };
+  }
   cgvPresAppend_(c, d.via);
   return { ok: true, clave: c.s, item: { ID: c.s, Nombre: c.n } };
 }
@@ -870,19 +889,27 @@ function cgvPresList_() {
   var P = {}, iso = function (f) { return f instanceof Date ? f.toISOString() : ''; };
   var get = function (s, n, e) {
     if (!P[s]) P[s] = { clave: s, nombre: n || '', empresa: e || '', telefono: '', correo: '', idioma: 'ES', envios: [], enviada: '',
-      abrio: 0, abrioQr: 0, ultima: '', ultimaAbrio: '', seguido: '', seguidoPor: '', final: false, registro: false, llamar: false, texto: false, guia: false, celular: false };
+      abrio: 0, abrioQr: 0, ultima: '', ultimaAbrio: '', seguido: '', seguidoPor: '', final: false, registro: false, llamar: false, texto: false, guia: false, celular: false,
+      etapa: '', etapaF: '', etapaPor: '', etapaNota: '', primera: '' };
     return P[s];
   };
   var sh = cgvSS_().getSheetByName(CGV_PRES_TAB);
   if (sh && sh.getLastRow() > 1) {
-    sh.getRange(2, 1, sh.getLastRow() - 1, CGV_PRES_HEADERS.length).getValues().forEach(function (r) {
+    var etKey = {};
+    for (var ek in CGV_PRES_ETAPAS) etKey[CGV_PRES_ETAPAS[ek]] = ek;
+    sh.getRange(2, 1, sh.getLastRow() - 1, CGV_PRES_HEADERS.length + CGV_PRES_EXTRA.length).getValues().forEach(function (r) {
       var s = cgvSlug_(r[1]); if (!s) return;
       var o = get(s, String(r[2] || ''), String(r[3] || '')), f = iso(r[0]);
+      if (f && (!o.primera || f < o.primera)) o.primera = f;
       o.nombre = String(r[2] || o.nombre); o.empresa = String(r[3] || o.empresa);
       if (r[4]) o.telefono = cgvDigits_(r[4]);
       if (r[5]) o.correo = String(r[5]);
       o.idioma = r[6] === 'EN' ? 'EN' : 'ES';
       if (String(r[7]) === 'Seguimiento') { if (f > o.seguido) { o.seguido = f; o.seguidoPor = String(r[8] || ''); } return; }
+      if (String(r[7]) === 'Etapa') {
+        if (etKey[String(r[10])] && f >= o.etapaF) { o.etapa = etKey[String(r[10])]; o.etapaF = f; o.etapaPor = String(r[8] || ''); o.etapaNota = String(r[11] || ''); }
+        return;
+      }
       o.envios.push({ f: f, via: String(r[7] || ''), por: String(r[8] || '') });
       if (f > o.enviada) o.enviada = f;
     });
@@ -908,9 +935,19 @@ function cgvPresList_() {
     var m = String(r.pagina || '').match(/[?&]s=([a-z0-9-]+)/i);
     if (m && P[cgvSlug_(m[1])]) { var o = P[cgvSlug_(m[1])]; o.registro = true; o.socioId = r.id; o.socioEstatus = r.estatus; }
   });
-  var list = Object.keys(P).map(function (k) { var o = P[k]; o.ultimaAct = [o.enviada, o.ultima].sort().pop() || ''; return o; });
+  var list = Object.keys(P).map(function (k) { var o = P[k]; o.ultimaAct = [o.enviada, o.ultima, o.etapaF].sort().pop() || ''; return o; });
   list.sort(function (a, b) { return String(b.ultimaAct).localeCompare(String(a.ultimaAct)); });
-  return { ok: true, list: list, now: cgvNow_() };
+  return { ok: true, list: list, now: cgvNow_(), v: 56 };
+}
+// Etapa que se ve (misma regla que presStage del Hub): registrarse = ✅; si cambiaste la etapa después del último envío,
+// manda la tuya; si no, la presentación la sube a 📨 (sin bajarla de 🤝 o ✅).
+function cgvPresStage_(m) {
+  if (m.registro) return 'socio';
+  var auto = (m.enviada || m.abrio) ? 'pres' : 'llame';
+  if (!m.etapa) return auto;
+  if (!m.enviada || m.etapaF >= m.enviada) return m.etapa;
+  if (m.etapa === 'no') return auto;
+  return CGV_PRES_RANK[m.etapa] >= CGV_PRES_RANK[auto] ? m.etapa : auto;
 }
 
 // ─── 🔔 RESUMEN DIARIO "POR DARLE SEGUIMIENTO" (v55) ───────────────
@@ -924,6 +961,8 @@ var CGV_HUB_PAGE = 'https://mircommllc.github.io/mircomm-inventory/#seguimiento'
 
 function cgvFollowKind_(m, now) {
   if (m.registro) return '';
+  var st = cgvPresStage_(m);
+  if (st === 'socio' || st === 'no') return '';
   var t = function (iso) { return iso ? new Date(iso).getTime() : 0; };
   var seg = t(m.seguido), reabrio = m.ultimaAbrio && t(m.ultimaAbrio) > seg;
   if (seg && now - seg < 3 * 864e5 && !reabrio) return '';
