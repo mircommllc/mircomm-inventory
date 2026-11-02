@@ -24,8 +24,8 @@
  * v55: 🔔 RESUMEN DIARIO. De lunes a sábado, cerca de las 8 a.m., llega a connectrgv956@gmail.com la misma lista
  *      "Por darle seguimiento" con 💬 WhatsApp, 📞 y ✓ Listo por prospecto. Si no hay a quién, no manda nada.
  *      💬 y ✓ dejan el seguimiento en "Presentaciones" (Por = Resumen diario), igual que desde el Hub.
- *      Para activarlo (una vez): en el editor escoge la función  instalarResumenDiario  → ▶ Ejecutar → acepta los permisos.
- *      Para probarlo al momento:  probarResumenDiario  (lo manda aunque sea domingo).
+ *      Para activarlo (una vez): en el editor escoge la función  instalarSeguimientoDiario  → ▶ Ejecutar → acepta los permisos.
+ *      Para probarlo al momento:  probarSeguimientoDiario  (lo manda aunque sea domingo).
  *
  * INSTALAR (una vez):
  *  1. Apps Script del Hub: ＋ → Script → nómbralo "Concierge" → pega todo este archivo → Guardar.
@@ -1055,16 +1055,16 @@ function cgvDigestSend_(force) {
 // Lo corre el activador de cada mañana
 function cgvResumenDiario() { return cgvDigestSend_(false); }
 // ▶ Para probarlo al momento (lo manda aunque sea domingo; si no hay a quién darle seguimiento, no manda nada)
-function probarResumenDiario() { var r = cgvDigestSend_(true); Logger.log(JSON.stringify(r)); return r; }
+function probarSeguimientoDiario() { var r = cgvDigestSend_(true); Logger.log(JSON.stringify(r)); return r; }
 // ▶ Ejecutar UNA vez: deja el resumen programado de lunes a sábado cerca de las 8 a.m. (hora del Valle)
-function instalarResumenDiario() {
+function instalarSeguimientoDiario() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'cgvResumenDiario') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('cgvResumenDiario').timeBased().everyDays(1).atHour(8).nearMinute(0).inTimezone(CGV_TZ).create();
   cgvDigestKey_();
   Logger.log('Listo: resumen diario programado. Botones del correo → ' + (cgvHubUrl_() || 'abre 📨 Presentaciones en el Hub una vez'));
 }
 // ▶ Por si lo quieres quitar
-function quitarResumenDiario() {
+function quitarSeguimientoDiario() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'cgvResumenDiario') ScriptApp.deleteTrigger(t); });
 }
 
