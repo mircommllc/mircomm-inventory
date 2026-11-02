@@ -21,6 +21,11 @@
  * pestaña "Presentaciones" y se cruza con "Visitas programa" (la llena el Apps Script del sitio) para ver quién la abrió.
  * v54: lista "Por darle seguimiento". Cada seguimiento por WhatsApp desde el Hub queda en "Presentaciones" con Vía = Seguimiento
  *      (no cuenta como envío) y saca al prospecto de la lista hasta que vuelva a abrirla o pasen 3 días.
+ * v55: 🔔 RESUMEN DIARIO. De lunes a sábado, cerca de las 8 a.m., llega a connectrgv956@gmail.com la misma lista
+ *      "Por darle seguimiento" con 💬 WhatsApp, 📞 y ✓ Listo por prospecto. Si no hay a quién, no manda nada.
+ *      💬 y ✓ dejan el seguimiento en "Presentaciones" (Por = Resumen diario), igual que desde el Hub.
+ *      Para activarlo (una vez): en el editor escoge la función  instalarResumenDiario  → ▶ Ejecutar → acepta los permisos.
+ *      Para probarlo al momento:  probarResumenDiario  (lo manda aunque sea domingo).
  *
  * INSTALAR (una vez):
  *  1. Apps Script del Hub: ＋ → Script → nómbralo "Concierge" → pega todo este archivo → Guardar.
@@ -72,6 +77,8 @@ function conciergeRouter_(e) {
     try { var b = JSON.parse(e.postData.contents); for (var j in b) p[j] = b[j]; } catch (x) {}
   }
   var a = String(p.action || '');
+  // Botones del resumen diario (💬 WhatsApp / ✓ Listo): no llevan PIN, van firmados y vencen en 7 días
+  if (a === 'cgvGo') return cgvGoPage_(p);
   if (!CGV_ACTIONS[a]) return null;
   cgvAuditLabels_();
   cgvSocEmailCol_();
@@ -82,7 +89,7 @@ function conciergeRouter_(e) {
     } else if (a === 'cgvList') out = cgvList_();
     else if (a === 'cgvAvisoGet') out = cgvAvisoGet_(cgvJson_(p.data) || p);
     else if (a === 'cgvPageGet') out = cgvPageGet_(cgvJson_(p.data) || p);
-    else if (a === 'cgvPresList') out = cgvPresList_();
+    else if (a === 'cgvPresList') { cgvHubUrlSave_(p.u); out = cgvPresList_(); }
     else out = cgvLock_(function () {
       var d = cgvJson_(p.data) || {};
       if (a === 'cgvSave') return cgvSave_(d);
@@ -815,8 +822,8 @@ function cgvPresSheet_() {
   }
   return sh;
 }
-function cgvPresAppend_(c, via) {
-  cgvPresSheet_().appendRow([new Date(), c.s, cgvSafe_(c.n), cgvSafe_(c.e), c.tel ? "'" + c.tel : '', cgvSafe_(c.correo), c.en ? 'EN' : 'ES', CGV_PRES_VIAS[via] || 'Otro', cgvMe_(), cgvPresUrl_(c)]);
+function cgvPresAppend_(c, via, por) {
+  cgvPresSheet_().appendRow([new Date(), c.s, cgvSafe_(c.n), cgvSafe_(c.e), c.tel ? "'" + c.tel : '', cgvSafe_(c.correo), c.en ? 'EN' : 'ES', CGV_PRES_VIAS[via] || 'Otro', por || cgvMe_(), cgvPresUrl_(c)]);
 }
 // d: { nombre, empresa?, telefono?, correo?, idioma, clave?, via }
 function cgvPresLog_(d) {
@@ -904,4 +911,210 @@ function cgvPresList_() {
   var list = Object.keys(P).map(function (k) { var o = P[k]; o.ultimaAct = [o.enviada, o.ultima].sort().pop() || ''; return o; });
   list.sort(function (a, b) { return String(b.ultimaAct).localeCompare(String(a.ultimaAct)); });
   return { ok: true, list: list, now: cgvNow_() };
+}
+
+// ─── 🔔 RESUMEN DIARIO "POR DARLE SEGUIMIENTO" (v55) ───────────────
+// Misma regla que la lista del Hub (presFollowKind en index.html):
+//  'abrio'    la abrió pero no tocó Llamar/Mensaje ni se registró
+//  'sinabrir' se la mandaron hace 48 h o más y no la ha abierto
+// Un seguimiento (Vía = Seguimiento) lo saca 3 días, o hasta que la vuelva a abrir.
+var CGV_DIGEST_TO = CGV_REPLY_TO;
+var CGV_DIGEST_POR = 'Resumen diario';
+var CGV_HUB_PAGE = 'https://mircommllc.github.io/mircomm-inventory/#seguimiento';
+
+function cgvFollowKind_(m, now) {
+  if (m.registro) return '';
+  var t = function (iso) { return iso ? new Date(iso).getTime() : 0; };
+  var seg = t(m.seguido), reabrio = m.ultimaAbrio && t(m.ultimaAbrio) > seg;
+  if (seg && now - seg < 3 * 864e5 && !reabrio) return '';
+  if (!m.abrio) return m.enviada && (now - t(m.enviada)) / 864e5 >= 2 ? 'sinabrir' : '';
+  if (!m.llamar && !m.texto) return 'abrio';
+  return '';
+}
+function cgvFollowList_() {
+  var now = Date.now();
+  return cgvPresList_().list.map(function (m) { return { m: m, kind: cgvFollowKind_(m, now) }; })
+    .filter(function (x) { return x.kind; })
+    .sort(function (a, b) {
+      return (a.kind === b.kind ? 0 : a.kind === 'abrio' ? -1 : 1) ||
+        String(b.m.ultimaAbrio || b.m.enviada).localeCompare(String(a.m.ultimaAbrio || a.m.enviada));
+    });
+}
+function cgvSaludo_(en) {
+  var h = Number(Utilities.formatDate(new Date(), CGV_TZ, 'H'));
+  return en ? (h < 12 ? 'good morning' : h < 18 ? 'good afternoon' : 'good evening')
+    : (h < 12 ? 'buenos días' : h < 19 ? 'buenas tardes' : 'buenas noches');
+}
+// En la voz de Joel: corto, sin presión y sin decirle que vimos que la abrió (igual que presFollowMsg del Hub)
+function cgvFollowMsg_(m, kind) {
+  var first = cgvFirst_(m.nombre), en = m.idioma === 'EN';
+  if (kind === 'sinabrir') {
+    var url = cgvPresUrl_({ s: m.clave, n: m.nombre, e: m.empresa, en: en });
+    return en
+      ? 'Hi ' + first + ', ' + cgvSaludo_(true) + '. Sending the ConnectRGV presentation again in case it got buried in your messages:\n' + url + '\n\nIt only takes a few minutes. Any questions, I\'m here.'
+      : 'Hola ' + first + ', ' + cgvSaludo_(false) + '. Le vuelvo a mandar la presentación de ConnectRGV por si se le pasó entre tantos mensajes:\n' + url + '\n\nSe ve en unos minutos. Cualquier duda, aquí estoy.';
+  }
+  return en
+    ? 'Hi ' + first + ', ' + cgvSaludo_(true) + '. Just wanted to see if you had a chance to look at the ConnectRGV partner program. Any questions I can help with?'
+    : 'Hola ' + first + ', ' + cgvSaludo_(false) + '. Nada más para saber si pudo ver la información del programa de socios de ConnectRGV. ¿No le quedó alguna duda? Con gusto se la aclaro.';
+}
+function cgvAgo_(iso) {
+  if (!iso) return '';
+  var d = Math.floor((new Date(cgvToday_() + 'T12:00:00') - new Date(cgvYmd_(new Date(iso)) + 'T12:00:00')) / 864e5);
+  return d <= 0 ? 'hoy' : d === 1 ? 'ayer' : 'hace ' + d + ' días';
+}
+function cgvFmtPhone_(d) { return d.length === 10 ? '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6) : d; }
+
+// ── Firma de los botones (para que nadie más pueda marcar seguimientos) ──
+function cgvDigestKey_() {
+  var P = PropertiesService.getScriptProperties(), k = P.getProperty('CGV_DIGEST_KEY');
+  if (!k) { k = Utilities.getUuid() + Utilities.getUuid(); P.setProperty('CGV_DIGEST_KEY', k); }
+  return k;
+}
+function cgvSign_(s) {
+  return Utilities.computeHmacSha256Signature(s, cgvDigestKey_()).map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('').slice(0, 24);
+}
+function cgvToken_(clave, k, ymd) { var s = clave + '.' + k + '.' + ymd; return s + '.' + cgvSign_(s); }
+function cgvTokenRead_(tok) {
+  var m = String(tok || '').match(/^([a-z0-9-]+)\.(wa|ok)\.(\d{4}-\d{2}-\d{2})\.([0-9a-f]{24})$/);
+  if (!m || cgvSign_(m[1] + '.' + m[2] + '.' + m[3]) !== m[4]) return null;
+  if ((new Date(cgvToday_()) - new Date(m[3])) / 864e5 > 7) return { vencido: true };
+  return { clave: m[1], k: m[2] };
+}
+
+// ── URL del Apps Script del Hub (la manda el Hub al abrir 📨 Presentaciones) ──
+function cgvHubUrlSave_(u) {
+  u = String(u || '').trim();
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)) return;
+  var P = PropertiesService.getScriptProperties();
+  if (P.getProperty('CGV_HUB_URL') !== u) P.setProperty('CGV_HUB_URL', u);
+}
+function cgvHubUrl_() {
+  var u = PropertiesService.getScriptProperties().getProperty('CGV_HUB_URL');
+  if (u) return u;
+  try { u = ScriptApp.getService().getUrl() || ''; } catch (e) { u = ''; }
+  return /\/exec$/.test(u) ? u : '';
+}
+
+// ── El correo ──
+function cgvDigestSend_(force) {
+  var dow = Number(Utilities.formatDate(new Date(), CGV_TZ, 'u'));   // 7 = domingo
+  if (dow === 7 && !force) return { ok: true, skipped: 'domingo' };
+  var F = cgvFollowList_();
+  if (!F.length) return { ok: true, skipped: 'nadie' };
+  var hub = cgvHubUrl_(), ymd = cgvToday_();
+  var go = function (m, k) { return hub + '?action=cgvGo&t=' + encodeURIComponent(cgvToken_(m.clave, k, ymd)); };
+  var btn = function (href, label, bg, fg, border) {
+    return '<a href="' + cgvEsc_(href) + '" style="display:inline-block;margin:0 6px 6px 0;padding:9px 14px;border-radius:999px;font-size:14px;font-weight:700;text-decoration:none;' +
+      'background:' + bg + ';color:' + fg + ';border:1px solid ' + (border || bg) + '">' + label + '</a>';
+  };
+  var abrio = F.filter(function (x) { return x.kind === 'abrio'; }), sin = F.filter(function (x) { return x.kind === 'sinabrir'; });
+  var txt = [], html = '';
+  var card = function (x) {
+    var m = x.m, ph = cgvDigits_(m.telefono), msg = cgvFollowMsg_(m, x.kind);
+    var why = x.kind === 'sinabrir'
+      ? 'Se la mandaste ' + cgvAgo_(m.enviada) + ' y no la ha abierto'
+      : 'La abrió ' + cgvAgo_(m.ultimaAbrio || m.ultima) + (m.abrio > 1 ? ' (' + m.abrio + ' veces)' : '') + (m.abrioQr ? ' · escaneó el QR' : '') +
+        (m.final ? ' · llegó hasta el registro' : '') + ' y no ha llamado ni se registró';
+    var prev = m.seguido ? 'Último seguimiento ' + cgvAgo_(m.seguido) + (m.seguidoPor ? ' (' + m.seguidoPor + ')' : '') : '';
+    var wa = ph.length === 10 ? (hub ? go(m, 'wa') : 'https://wa.me/1' + ph + '?text=' + encodeURIComponent(msg)) : '';
+    var b = '';
+    if (wa) b += btn(wa, '💬 WhatsApp', '#1DA851', '#FFFFFF');
+    if (ph.length === 10) b += btn('tel:+1' + ph, '📞 ' + cgvFmtPhone_(ph), '#FFFFFF', '#111312', '#D4D1CA');
+    if (!wa) b += btn(CGV_HUB_PAGE, '📨 Reenviar desde el Hub', '#1E3A32', '#FFFFFF');
+    if (hub) b += btn(go(m, 'ok'), '✓ Listo', '#FFFFFF', '#55534E', '#D4D1CA');
+    txt.push('• ' + m.nombre + (m.empresa ? ' · ' + m.empresa : '') + (m.idioma === 'EN' ? ' [EN]' : '') + '\n  ' + why +
+      (prev ? '\n  ' + prev : '') + (ph.length === 10 ? '\n  ' + cgvFmtPhone_(ph) : '') + (wa ? '\n  WhatsApp: ' + wa : ''));
+    return '<div style="border:1px solid #E3E0D9;border-left:4px solid ' + (x.kind === 'abrio' ? '#2F6FD6' : '#D9A21B') + ';border-radius:10px;padding:14px 16px;margin:0 0 12px;background:#FFFFFF">' +
+      '<div style="font-size:16px;font-weight:700">' + cgvEsc_(m.nombre || m.clave) + (m.idioma === 'EN' ? ' <span style="font-size:11px;padding:2px 6px;border-radius:6px;background:#EEF2FB;color:#2F6FD6">EN</span>' : '') + '</div>' +
+      '<div style="font-size:13px;color:#55534E;margin:3px 0 0">' + cgvEsc_((m.empresa ? m.empresa + ' · ' : '') + why) + '</div>' +
+      (prev ? '<div style="font-size:12px;color:#8A877F;margin:2px 0 0">' + cgvEsc_(prev) + '</div>' : '') +
+      '<div style="font-size:13px;color:#33393A;font-style:italic;margin:8px 0 10px">“' + cgvEsc_(msg.split('\n')[0]) + '”</div>' + b + '</div>';
+  };
+  var section = function (title, L) {
+    if (!L.length) return;
+    txt.push('\n' + title + ' (' + L.length + ')');
+    html += '<div style="font-size:14px;font-weight:700;margin:18px 0 10px;color:#111312">' + cgvEsc_(title) + ' · ' + L.length + '</div>';
+    L.forEach(function (x) { html += card(x); });
+  };
+  section('La abrieron y no han llamado', abrio);
+  section('No la han abierto (2 días o más)', sin);
+  var n = F.length, fecha = Utilities.formatDate(new Date(), CGV_TZ, 'd/M');
+  var subject = '🔔 Por darle seguimiento · ' + n + ' prospecto' + (n === 1 ? '' : 's') + ' · ' + fecha;
+  var foot = '💬 abre WhatsApp con el mensaje ya escrito y ✓ Listo lo saca de la lista 3 días (los dos quedan en "Presentaciones").';
+  var body = '<div style="background:#F4F2EE;padding:20px 10px;font-family:Arial,Helvetica,sans-serif;color:#111312">' +
+    '<div style="max-width:600px;margin:0 auto">' +
+    '<div style="background:#1E3A32;color:#FFFFFF;padding:14px 18px;border-radius:12px 12px 0 0;font-size:17px;font-weight:700">🔔 Por darle seguimiento</div>' +
+    '<div style="background:#FBFAF7;border:1px solid #E3E0D9;border-top:0;border-radius:0 0 12px 12px;padding:6px 16px 16px">' + html +
+    '<p style="font-size:12px;color:#8A877F;margin:14px 0 0;line-height:1.5">' + cgvEsc_(foot) + (hub ? '' : ' (Abre 📨 Presentaciones en el Hub una vez para activar ✓ Listo.)') +
+    '<br><a href="' + CGV_HUB_PAGE + '" style="color:#1E3A32;font-weight:700">Ver todo en el Hub →</a></p></div></div></div>';
+  MailApp.sendEmail({ to: CGV_DIGEST_TO, subject: subject, name: 'ConnectRGV',
+    body: subject + '\n' + txt.join('\n') + '\n\n' + foot + '\n' + CGV_HUB_PAGE, htmlBody: body });
+  return { ok: true, sent: n };
+}
+// Lo corre el activador de cada mañana
+function cgvResumenDiario() { return cgvDigestSend_(false); }
+// ▶ Para probarlo al momento (lo manda aunque sea domingo; si no hay a quién darle seguimiento, no manda nada)
+function probarResumenDiario() { var r = cgvDigestSend_(true); Logger.log(JSON.stringify(r)); return r; }
+// ▶ Ejecutar UNA vez: deja el resumen programado de lunes a sábado cerca de las 8 a.m. (hora del Valle)
+function instalarResumenDiario() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'cgvResumenDiario') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('cgvResumenDiario').timeBased().everyDays(1).atHour(8).nearMinute(0).inTimezone(CGV_TZ).create();
+  cgvDigestKey_();
+  Logger.log('Listo: resumen diario programado. Botones del correo → ' + (cgvHubUrl_() || 'abre 📨 Presentaciones en el Hub una vez'));
+}
+// ▶ Por si lo quieres quitar
+function quitarResumenDiario() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'cgvResumenDiario') ScriptApp.deleteTrigger(t); });
+}
+
+// ── Página de los botones 💬 / ✓ ──
+// El seguimiento se guarda desde la página (con JavaScript), no al abrir el link, para que los
+// revisores automáticos de links del correo no marquen nada por su cuenta.
+function cgvGoPage_(p) {
+  var tk = cgvTokenRead_(p.t), m = null, kind = '';
+  if (tk && tk.clave) {
+    cgvPresList_().list.some(function (x) { if (x.clave === tk.clave) { m = x; return true; } return false; });
+    if (m) kind = cgvFollowKind_(m, Date.now()) || (m.abrio ? 'abrio' : 'sinabrir');
+  }
+  var ph = m ? cgvDigits_(m.telefono) : '';
+  var wa = m && tk.k === 'wa' && ph.length === 10 ? 'https://wa.me/1' + ph + '?text=' + encodeURIComponent(cgvFollowMsg_(m, kind)) : '';
+  var who = m ? cgvEsc_(m.nombre || m.clave) : '';
+  var msg = !tk ? 'Este botón no es válido.' : tk.vencido ? 'Este botón ya venció (dura 7 días). Abre la lista en el Hub.'
+    : !m ? 'No encontré a este prospecto en Presentaciones.' : '';
+  var h = '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<style>body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#F4F2EE;color:#111312}.c{max-width:420px;margin:40px auto;background:#fff;border:1px solid #E3E0D9;border-radius:14px;padding:24px;text-align:center}' +
+    '.b{display:block;margin:16px 0 0;padding:14px;border-radius:999px;font-size:17px;font-weight:700;text-decoration:none}.s{font-size:14px;color:#55534E;margin:10px 0 0}</style></head><body><div class="c">';
+  if (msg) {
+    h += '<div style="font-size:16px">' + msg + '</div><a class="b" style="background:#1E3A32;color:#fff" target="_top" href="' + CGV_HUB_PAGE + '">Abrir el Hub</a>';
+  } else if (tk.k === 'wa') {
+    h += '<div style="font-size:18px;font-weight:700">' + who + '</div>' +
+      (wa ? '<a class="b" style="background:#1DA851;color:#fff" target="_top" href="' + cgvEsc_(wa) + '">💬 Abrir WhatsApp</a>'
+          : '<div class="s">No tiene un teléfono de 10 dígitos.</div>') +
+      '<div class="s" id="st">Guardando el seguimiento…</div>';
+  } else {
+    h += '<div style="font-size:18px;font-weight:700">' + who + '</div><div class="s" id="st">Guardando…</div>';
+  }
+  if (!msg) {
+    var done = tk.k === 'wa' ? 'Seguimiento guardado ✓' : 'Listo ✓ Sale de la lista 3 días.';
+    h += '<script>google.script.run.withSuccessHandler(function(r){document.getElementById("st").textContent=r&&r.ok?' + JSON.stringify(done) +
+      ':"No se guardó: "+(r&&r.error||"")}).withFailureHandler(function(e){document.getElementById("st").textContent="No se guardó: "+e.message})' +
+      '.cgvResumenAccion(' + JSON.stringify(String(p.t)) + ');</script>';
+  }
+  h += '</div></body></html>';
+  return HtmlService.createHtmlOutput(h).setTitle('ConnectRGV · Seguimiento').addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+// La llama la página de arriba (google.script.run). Deja el seguimiento en "Presentaciones".
+function cgvResumenAccion(tok) {
+  var tk = cgvTokenRead_(tok);
+  if (!tk || !tk.clave) return { ok: false, error: tk && tk.vencido ? 'el botón venció' : 'botón no válido' };
+  return cgvLock_(function () {
+    var m = null;
+    cgvPresList_().list.some(function (x) { if (x.clave === tk.clave) { m = x; return true; } return false; });
+    if (!m) return { ok: false, error: 'no está en Presentaciones' };
+    // Si ya se registró un seguimiento en los últimos 10 minutos (doble toque), no lo repite
+    if (m.seguido && Date.now() - new Date(m.seguido).getTime() < 10 * 60000) return { ok: true, repetido: true };
+    cgvPresAppend_({ s: m.clave, n: m.nombre, e: m.empresa, tel: cgvDigits_(m.telefono), correo: m.correo, en: m.idioma === 'EN' }, 'seguimiento', CGV_DIGEST_POR);
+    return { ok: true };
+  });
 }

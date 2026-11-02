@@ -1061,9 +1061,11 @@ function completeLogin() {
 
   // Default page: el manager arranca en ☀ Hoy (Mi Escritorio). Con el acceso directo #kit, en 🤝 Socios con el kit abierto.
   // Con #pres, en 🏡 Concierge → 📨 Presentaciones con "Mandar presentación" abierto.
+  // Con #seguimiento (link del resumen diario), en 📨 Presentaciones con la lista 🔔 Por darle seguimiento arriba.
   const kitBoot = isManager && location.hash === '#kit', presBoot = isManager && location.hash === '#pres';
-  currentPage = kitBoot ? 'socios' : presBoot ? 'concierge' : isManager ? 'desk' : 'pos';
-  if (presBoot) cgvTab = 'pres';
+  const segBoot = isManager && location.hash === '#seguimiento';
+  currentPage = kitBoot ? 'socios' : (presBoot || segBoot) ? 'concierge' : isManager ? 'desk' : 'pos';
+  if (presBoot || segBoot) cgvTab = 'pres';
   if (kitBoot) socTab = 'socios';
   deskData = null; aiMsgs = [];
   document.body.classList.toggle('has-ai', isManager);
@@ -8052,7 +8054,8 @@ h1 em{font-style:italic;color:#C9DCCB}
 async function presLoad() {
   if (presLoading) return;
   presLoading = true;
-  try { presData = await apiGet({ action: 'cgvPresList' }); presNoBack = false; }
+  // u: la URL del Apps Script, para que los botones del resumen diario apunten aquí
+  try { presData = await apiGet({ action: 'cgvPresList', u: SHEETS_URL }); presNoBack = false; }
   catch (e) { if (/cgvPres|unknown|desconocida|inválida|invalid/i.test(e.message)) presNoBack = true; else throw e; }
   finally { presLoading = false; }
 }
