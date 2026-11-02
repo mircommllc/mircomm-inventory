@@ -3,7 +3,7 @@
   // Pega aquí la URL de tu Apps Script ("Implementar > Aplicación web").
   // Mientras esté vacía, los formularios abren un correo a EMAIL como respaldo.
   var ENDPOINT = 'https://script.google.com/macros/s/AKfycbxqbu5EMlw3wmq6zEywKCEPJ3_yejlNfKrsMqcuGcU0P2RCHjjPFKhEOzK3f8Ivqw_JNQ/exec';
-  var EMAIL = 'mircommllc@gmail.com';
+  var EMAIL = 'connectrgv956@gmail.com';
   // Idioma de la página (las páginas en inglés tienen <html lang="en">; las de socio lo cambian al vuelo)
   function EN() { return /^en/i.test(document.documentElement.lang || ''); }
 

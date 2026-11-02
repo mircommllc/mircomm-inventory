@@ -19,6 +19,8 @@
  *
  * 📨 PRESENTACIÓN A PROSPECTOS (v53): cada envío de connectrgv.com/programa con el nombre del prospecto queda en la
  * pestaña "Presentaciones" y se cruza con "Visitas programa" (la llena el Apps Script del sitio) para ver quién la abrió.
+ * v54: lista "Por darle seguimiento". Cada seguimiento por WhatsApp desde el Hub queda en "Presentaciones" con Vía = Seguimiento
+ *      (no cuenta como envío) y saca al prospecto de la lista hasta que vuelva a abrirla o pasen 3 días.
  *
  * INSTALAR (una vez):
  *  1. Apps Script del Hub: ＋ → Script → nómbralo "Concierge" → pega todo este archivo → Guardar.
@@ -32,7 +34,7 @@
 var CGV_SHEET_ID = '1K2j6EuKL0unPsqv3F9JJZ0UBWQGFb9CZ903IUMYOI0E';   // ConnectRGV -Solicitudes
 var CGV_TZ = 'America/Chicago';
 var CGV_PHONE = '(956) 467-6695';
-var CGV_REPLY_TO = 'mircommllc@gmail.com';
+var CGV_REPLY_TO = 'connectrgv956@gmail.com';   // respuestas de socios y prospectos
 var CGV_TABS = { cliente: 'Clientes de socios', familia: 'Familias', socio: 'Socios' };
 var CGV_PREFIX = { cliente: 'C', familia: 'F', socio: 'S' };
 var CGV_EXTRA = ['ID', 'Servicios elegidos', 'Notas', 'Historial', 'Intentos', 'Primer contacto', 'Actualizado', 'Atendió',
@@ -786,7 +788,7 @@ function crearClavesPanel() {
 // Cada envío queda en la pestaña "Presentaciones"; las aperturas salen de "Visitas programa".
 var CGV_PRES_TAB = 'Presentaciones';
 var CGV_PRES_HEADERS = ['Fecha', 'Clave', 'Nombre', 'Empresa', 'Teléfono', 'Correo', 'Idioma', 'Vía', 'Por', 'Enlace'];
-var CGV_PRES_VIAS = { whatsapp: 'WhatsApp', copiado: 'Copiado', correo: 'Correo', impresa: 'Hoja impresa', texto: 'Mensaje de texto' };
+var CGV_PRES_VIAS = { whatsapp: 'WhatsApp', copiado: 'Copiado', correo: 'Correo', impresa: 'Hoja impresa', texto: 'Mensaje de texto', seguimiento: 'Seguimiento' };
 
 function cgvPresClean_(d) {
   var t = function (v) { return String(v || '').replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80); };
@@ -861,7 +863,7 @@ function cgvPresList_() {
   var P = {}, iso = function (f) { return f instanceof Date ? f.toISOString() : ''; };
   var get = function (s, n, e) {
     if (!P[s]) P[s] = { clave: s, nombre: n || '', empresa: e || '', telefono: '', correo: '', idioma: 'ES', envios: [], enviada: '',
-      abrio: 0, abrioQr: 0, ultima: '', final: false, registro: false, llamar: false, texto: false, guia: false, celular: false };
+      abrio: 0, abrioQr: 0, ultima: '', ultimaAbrio: '', seguido: '', seguidoPor: '', final: false, registro: false, llamar: false, texto: false, guia: false, celular: false };
     return P[s];
   };
   var sh = cgvSS_().getSheetByName(CGV_PRES_TAB);
@@ -873,6 +875,7 @@ function cgvPresList_() {
       if (r[4]) o.telefono = cgvDigits_(r[4]);
       if (r[5]) o.correo = String(r[5]);
       o.idioma = r[6] === 'EN' ? 'EN' : 'ES';
+      if (String(r[7]) === 'Seguimiento') { if (f > o.seguido) { o.seguido = f; o.seguidoPor = String(r[8] || ''); } return; }
       o.envios.push({ f: f, via: String(r[7] || ''), por: String(r[8] || '') });
       if (f > o.enviada) o.enviada = f;
     });
@@ -885,7 +888,7 @@ function cgvPresList_() {
       var o = get(s, String(r[3] || ''), String(r[4] || '')), ev = String(r[1] || ''), f = iso(r[0]);
       if (!o.envios.length && !o.empresa && r[4]) o.empresa = String(r[4]);
       if (f > o.ultima) o.ultima = f;
-      if (ev === 'Abrió la presentación') { o.abrio++; if (String(r[7]) === 'QR') o.abrioQr++; if (r[6] === 'Celular') o.celular = true; }
+      if (ev === 'Abrió la presentación') { o.abrio++; if (f > o.ultimaAbrio) o.ultimaAbrio = f; if (String(r[7]) === 'QR') o.abrioQr++; if (r[6] === 'Celular') o.celular = true; }
       else if (ev === 'Llegó al registro') o.final = true;
       else if (ev === 'Se registró') o.registro = true;
       else if (ev === 'Tocó Llamar') o.llamar = true;

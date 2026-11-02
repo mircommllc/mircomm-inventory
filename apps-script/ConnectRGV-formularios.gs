@@ -10,7 +10,7 @@
  *    (NO "Nueva implementación": así la URL del sitio sigue siendo la misma.)
  */
 
-var AVISAR_A = 'mircommllc@gmail.com';
+var AVISAR_A = 'connectrgv956@gmail.com';   // aquí llegan todos los avisos de ConnectRGV
 
 var PESTANAS = {
   'familia': 'Familias',
@@ -118,17 +118,107 @@ function registrarVisita_(p) {
   hoja.appendRow([new Date(), EVENTOS_VISITA[ev], socio, nombre, empresa, idioma, limpiar_(p.d).slice(0, 20), limpiar_(p.r).slice(0, 80)]);
 
   if (ev === 'abrio' && (socio || nombre)) {
-    var cache = CacheService.getScriptCache(), clave = 'vis_' + (socio || nombre);
+    // Un aviso cada 6 h por socio. Escanear el QR de la hoja impresa avisa aparte (es señal de que la tiene en la mano).
+    var qr = String(p.r || '') === 'QR';
+    var cache = CacheService.getScriptCache(), clave = 'vis_' + (socio || nombre) + (qr ? '_qr' : '');
     if (!cache.get(clave)) {
       cache.put(clave, '1', 21600);
-      MailApp.sendEmail(AVISAR_A,
-        'ConnectRGV · ' + (nombre || socio) + ' abrió la presentación',
-        [(nombre || socio) + (empresa ? ' (' + empresa + ')' : '') + ' acaba de abrir la presentación del programa.',
-         '', 'Idioma: ' + idioma, 'Dispositivo: ' + limpiar_(p.d),
-         '', 'Buen momento para darle seguimiento. Todo queda en la pestaña "Visitas programa".'].join('\n'));
+      try { avisoApertura_(socio, nombre, empresa, p.l === 'en', limpiar_(p.d), qr, hoja); }
+      catch (x) {
+        MailApp.sendEmail(AVISAR_A, 'ConnectRGV · ' + (nombre || socio) + ' abrió la presentación',
+          (nombre || socio) + (empresa ? ' (' + empresa + ')' : '') + ' acaba de abrir la presentación del programa.' + (qr ? ' Llegó escaneando el QR.' : ''));
+      }
     }
   }
   return ContentService.createTextOutput('ok');
+}
+
+// ─── CORREO "ABRIÓ LA PRESENTACIÓN" ─────────────────────────────────
+// Con su teléfono (sale de la pestaña "Presentaciones", la llena el Hub al mandarla), botones de llamar y WhatsApp
+// con un mensaje corto ya escrito, y aviso si llegó escaneando el QR de la hoja impresa.
+function avisoApertura_(socio, nombre, empresa, en, dispositivo, qr, hojaVisitas) {
+  var pr = presentacionDe_(socio, nombre);
+  nombre = nombre || pr.nombre || socio; empresa = empresa || pr.empresa;
+  var tel = pr.telefono, first = String(nombre).trim().split(/\s+/)[0] || nombre;
+  var veces = vecesAbierta_(hojaVisitas, socio, nombre);
+  var hora = Number(Utilities.formatDate(new Date(), 'America/Chicago', 'H'));
+  var saludo = en ? (hora < 12 ? 'good morning' : hora < 18 ? 'good afternoon' : 'good evening')
+    : (hora < 12 ? 'buenos días' : hora < 19 ? 'buenas tardes' : 'buenas noches');
+  var wa = en
+    ? 'Hi ' + first + ', ' + saludo + '. Just wanted to see if you had a chance to look at the ConnectRGV partner program. Any questions I can help with?'
+    : 'Hola ' + first + ', ' + saludo + '. Nada más para saber si pudo ver la información del programa de socios de ConnectRGV. ¿No le quedó alguna duda? Con gusto se la aclaro.';
+  var telFmt = tel ? '(' + tel.slice(0, 3) + ') ' + tel.slice(3, 6) + '-' + tel.slice(6) : '';
+  var hTel = tel ? 'tel:+1' + tel : '', hWa = tel ? 'https://wa.me/1' + tel + '?text=' + encodeURIComponent(wa) : '';
+  var enviada = pr.fecha ? hace_(pr.fecha) + (pr.via ? ' por ' + pr.via : '') + (pr.por ? ' (' + pr.por + ')' : '') : '';
+  var vezTxt = veces > 1 ? 'Es la ' + veces + '.ª vez que la abre.' : 'Es la primera vez que la abre.';
+
+  var asunto = 'ConnectRGV · ' + (qr ? '🔳 ' : '👀 ') + nombre + (qr ? ' escaneó el QR de la presentación' : ' abrió la presentación');
+  var texto = [
+    nombre + (empresa ? ' (' + empresa + ')' : '') + ' acaba de abrir la presentación del programa.',
+    qr ? 'Llegó escaneando el QR de la hoja impresa: la tiene en la mano.' : null,
+    vezTxt, '',
+    tel ? 'Teléfono: ' + telFmt : 'No tengo su teléfono (ponlo la próxima vez que le mandes la presentación desde el Hub).',
+    enviada ? 'Se la mandaste ' + enviada + '.' : '',
+    'Idioma: ' + (en ? 'Inglés' : 'Español') + ' · ' + (dispositivo || ''),
+    tel ? '' : null,
+    tel ? 'Llamar: ' + hTel : null,
+    tel ? 'WhatsApp: ' + hWa : null,
+    '', 'Buen momento para darle seguimiento. Todo queda en la pestaña "Visitas programa" y en 📨 Presentaciones del Hub.'
+  ].filter(function (l) { return l !== null && l !== undefined; }).join('\n').replace(/\n{3,}/g, '\n\n');
+
+  var G = '#1E3A32', esc = function (v) { return String(v || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var btn = function (href, txt, bg) {
+    return '<a href="' + esc(href) + '" style="display:inline-block;background:' + bg + ';color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 18px;border-radius:999px;margin:0 8px 8px 0">' + txt + '</a>';
+  };
+  var fila = function (k, v) { return v ? '<tr><td style="padding:4px 12px 4px 0;color:#55534E;white-space:nowrap;vertical-align:top">' + k + '</td><td style="padding:4px 0">' + v + '</td></tr>' : ''; };
+  var html = '<div style="background:#F4F2EE;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#111312">' +
+    '<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E3E0D9">' +
+    '<div style="background:' + G + ';color:#fff;padding:16px 22px;font-size:18px;font-weight:700">ConnectRGV</div><div style="padding:22px;font-size:15px;line-height:1.5">' +
+    '<p style="margin:0 0 4px;font-size:19px;font-weight:700">' + esc(nombre) + (qr ? ' escaneó el QR' : ' abrió la presentación') + '</p>' +
+    (empresa ? '<p style="margin:0 0 14px;color:#55534E">' + esc(empresa) + '</p>' : '<div style="height:10px"></div>') +
+    (qr ? '<p style="margin:0 0 14px;padding:10px 14px;background:#FFF6DB;border-radius:8px;border:1px solid #F0DFA6">🔳 <b>Llegó escaneando el QR de la hoja impresa</b> — la tiene en la mano.</p>' : '') +
+    '<table role="presentation" style="border-collapse:collapse;font-size:14px;margin:0 0 16px">' +
+      fila('Teléfono', tel ? '<b>' + esc(telFmt) + '</b>' : '<span style="color:#9A6B00">No lo tengo — ponlo la próxima vez que le mandes la presentación desde el Hub.</span>') +
+      fila('Se la mandaste', esc(enviada)) +
+      fila('Veces', esc(vezTxt)) +
+      fila('Idioma', esc((en ? 'Inglés' : 'Español') + (dispositivo ? ' · ' + dispositivo : ''))) +
+    '</table>' +
+    (tel ? '<p style="margin:0 0 6px">' + btn(hTel, '📞 Llamar', G) + btn(hWa, '💬 WhatsApp', '#1DA851') + '</p>' +
+      '<p style="margin:0 0 16px;font-size:13px;color:#55534E">El WhatsApp ya va escrito: <i>' + esc(wa) + '</i></p>' : '') +
+    '<p style="margin:0;font-size:13px;color:#55534E">Buen momento para darle seguimiento. Todo queda en la pestaña "Visitas programa" y en 📨 Presentaciones del Hub.</p>' +
+    '</div></div></div>';
+  MailApp.sendEmail({ to: AVISAR_A, subject: asunto, body: texto, htmlBody: html, name: 'ConnectRGV' });
+}
+// Último envío del prospecto en la pestaña "Presentaciones" (por clave; si no, por nombre)
+function presentacionDe_(socio, nombre) {
+  var out = { nombre: '', empresa: '', telefono: '', fecha: null, via: '', por: '' };
+  var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Presentaciones');
+  if (!hoja || hoja.getLastRow() < 2) return out;
+  var v = hoja.getDataRange().getValues(), h = v[0].map(function (x) { return String(x).trim(); });
+  var c = function (n) { return h.indexOf(n); }, nn = norm_(nombre);
+  for (var i = v.length - 1; i >= 1; i--) {
+    var r = v[i], es = (socio && slug_(r[c('Clave')]) === socio) || (nn && norm_(r[c('Nombre')]) === nn);
+    if (!es) continue;
+    var tel = String(r[c('Teléfono')] || '').replace(/\D/g, '').slice(-10);
+    if (!out.telefono && tel.length === 10) out.telefono = tel;
+    if (!out.nombre) { out.nombre = String(r[c('Nombre')] || ''); out.empresa = String(r[c('Empresa')] || ''); }
+    var via = String(r[c('Vía')] || '');
+    if (!out.fecha && via !== 'Seguimiento' && r[c('Fecha')] instanceof Date) { out.fecha = r[c('Fecha')]; out.via = via; out.por = String(r[c('Por')] || ''); }
+    if (out.telefono && out.fecha) break;
+  }
+  return out;
+}
+function vecesAbierta_(hoja, socio, nombre) {
+  if (!hoja || hoja.getLastRow() < 2) return 1;
+  var n = 0, nn = norm_(nombre);
+  hoja.getRange(2, 2, hoja.getLastRow() - 1, 3).getValues().forEach(function (r) {
+    if (r[0] === 'Abrió la presentación' && ((socio && String(r[1]) === socio) || (!socio && norm_(r[2]) === nn))) n++;
+  });
+  return Math.max(1, n);
+}
+function hace_(f) {
+  var d = Math.floor((Date.now() - f.getTime()) / 864e5);
+  return d <= 0 ? 'hoy' : d === 1 ? 'ayer' : 'hace ' + d + ' días';
 }
 
 // ─── VISITAS A LAS PÁGINAS DE SOCIO ─────────────────────────────────

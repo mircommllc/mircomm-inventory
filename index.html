@@ -752,7 +752,6 @@
     <div class="login-sub">Palmhurst · Store Hub</div>
     <label class="login-label">Who are you?</label>
     <div class="employee-grid">
-      <button class="emp-btn" onclick="selectEmployee('Alondra')">Alondra</button>
       <button class="emp-btn" onclick="selectEmployee('Lizbeth')">Lizbeth</button>
     </div>
     <div id="rep-pin-box" style="display:none;margin-bottom:16px">
@@ -927,7 +926,7 @@
 // The manager PIN is checked by Apps Script (Activaciones.gs); it is not stored in this file.
 let mgrToken = '';
 let pinBusy = false;
-let EMPLOYEES = ['Joel', 'Alondra', 'Lizbeth'];
+let EMPLOYEES = ['Joel', 'Lizbeth'];   // Alondra dejó MirComm el 31 oct 2026
 // Administradores (Joel, Maricela…): entran con su propio PIN; el backend (Admins.gs) dice quién es.
 let adminNames = ['Joel'];
 let adminOwner = false;
@@ -935,8 +934,8 @@ let adminFirma = '';
 const ADMIN_FIRMA_JOEL = 'Joel Chavez\nOwner / General Manager\nMirComm LLC · Spectrum Rep ID CMMCL4423\n956-603-6505';
 function isAdminName(n) { return adminNames.includes(n); }
 function adminSetTeam() {
-  EMPLOYEES = [...new Set(adminNames.concat(['Alondra', 'Lizbeth']))];
-  DESK_STAFF = [...new Set(adminNames.concat(['Lizbeth', 'Alondra']))];
+  EMPLOYEES = [...new Set(adminNames.concat(['Lizbeth']))];
+  DESK_STAFF = [...new Set(adminNames.concat(['Lizbeth']))];
 }
 let SHEETS_URL = localStorage.getItem('mircomm_url') || '';
 let currentStore = 'palmhurst';
@@ -8068,6 +8067,64 @@ function presStatusTags(m) {
   if (m.guia) tags.push(['muted', 'Vio la guía']);
   return `<div class="cgv-tags">${tags.map(([c, t]) => `<span class="cgv-tag ${c}">${escHtml(t)}</span>`).join('')}</div>`;
 }
+// ── Por darle seguimiento ──
+// 'sinabrir': se la mandaste hace 48 h o más y no la ha abierto. 'abrio': la abrió pero no tocó Llamar/Mensaje ni se registró.
+// Al darle seguimiento (WhatsApp o ✓ Listo) queda en "Presentaciones" con Vía = Seguimiento y sale de la lista 3 días,
+// o hasta que la vuelva a abrir.
+function presFollowKind(m) {
+  if (m.registro) return '';
+  const now = Date.now(), seg = m.seguido ? new Date(m.seguido).getTime() : 0;
+  const reabrio = m.ultimaAbrio && new Date(m.ultimaAbrio).getTime() > seg;
+  if (seg && now - seg < 3 * 864e5 && !reabrio) return '';
+  if (!m.abrio) return m.enviada && (now - new Date(m.enviada)) / 864e5 >= 2 ? 'sinabrir' : '';
+  if (!m.llamar && !m.texto) return 'abrio';
+  return '';
+}
+// En la voz de Joel: corto, sin presión y sin decirle que vimos que la abrió
+function presFollowMsg(m, kind) {
+  const first = String(m.nombre || '').trim().split(/\s+/)[0] || '', en = m.idioma === 'EN';
+  if (kind === 'sinabrir') {
+    const url = presUrl({ nombre: m.nombre, empresa: m.empresa, idioma: m.idioma });
+    return en
+      ? `Hi ${first}, ${presSaludo(true)}. Sending the ConnectRGV presentation again in case it got buried in your messages:\n${url}\n\nIt only takes a few minutes. Any questions, I'm here.`
+      : `Hola ${first}, ${presSaludo(false)}. Le vuelvo a mandar la presentación de ConnectRGV por si se le pasó entre tantos mensajes:\n${url}\n\nSe ve en unos minutos. Cualquier duda, aquí estoy.`;
+  }
+  return en
+    ? `Hi ${first}, ${presSaludo(true)}. Just wanted to see if you had a chance to look at the ConnectRGV partner program. Any questions I can help with?`
+    : `Hola ${first}, ${presSaludo(false)}. Nada más para saber si pudo ver la información del programa de socios de ConnectRGV. ¿No le quedó alguna duda? Con gusto se la aclaro.`;
+}
+function presFollowList() {
+  const L = (presData && presData.list) || [];
+  return L.map((m, i) => ({ m, i, kind: presFollowKind(m) })).filter(x => x.kind)
+    .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'abrio' ? -1 : 1) || String(b.m.ultimaAbrio || b.m.enviada).localeCompare(String(a.m.ultimaAbrio || a.m.enviada)));
+}
+function presFollowCard({ m, i, kind }) {
+  const ph = phoneDigits(m.telefono), msg = presFollowMsg(m, kind);
+  const why = kind === 'sinabrir'
+    ? `Se la mandaste ${cgvAgo(m.enviada)} y no la ha abierto`
+    : `La abrió ${cgvAgo(m.ultimaAbrio || m.ultima)}${m.abrio > 1 ? ` (${m.abrio} veces)` : ''}${m.abrioQr ? ' · escaneó el QR' : ''}${m.final ? ' · llegó hasta el registro' : ''} y no ha llamado ni se registró`;
+  const prev = m.seguido ? ` · último seguimiento ${cgvAgo(m.seguido)}${m.seguidoPor ? ' (' + m.seguidoPor + ')' : ''}` : '';
+  return `<div class="cgv-card" style="border-left:3px solid ${kind === 'abrio' ? 'var(--blue)' : 'var(--yellow)'}" onclick="presOpenFrom(${i})">
+    <div class="cgv-card-main">
+      <div class="cgv-card-top"><b class="cgv-name">${escHtml(m.nombre || m.clave)}</b>${m.idioma === 'EN' ? ' <span class="pros-badge pros-b-exp">EN</span>' : ''}</div>
+      <div class="cgv-sub">${escHtml(m.empresa ? m.empresa + ' · ' : '')}${escHtml(why + prev)}</div>
+      <div class="cgv-sub" style="margin-top:6px;font-style:italic;white-space:pre-line">${escHtml(msg.split('\n')[0])}</div>
+    </div>
+    <div class="cgv-card-side"><div class="cgv-btns">
+      ${ph.length === 10 ? `<a class="btn btn-primary btn-sm" style="background:#1DA851;border-color:#1DA851" target="_blank" rel="noopener" href="https://wa.me/1${ph}?text=${encodeURIComponent(msg)}" onclick="event.stopPropagation();presFollowed(${i})">💬 WhatsApp</a>
+        <a class="btn btn-ghost btn-sm" href="tel:+1${ph}" onclick="event.stopPropagation()">📞 ${fmtPhone(ph)}</a>`
+      : `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();presOpenFrom(${i})">📨 Reenviar</button>`}
+      <button class="btn btn-ghost btn-sm" title="Ya le diste seguimiento por otro lado: sale de la lista 3 días" onclick="event.stopPropagation();presFollowed(${i}, true)">✓ Listo</button>
+    </div></div>
+  </div>`;
+}
+function presFollowed(i, repaintNow) {
+  const m = presData && presData.list[i]; if (!m) return;
+  m.seguido = new Date().toISOString(); m.seguidoPor = currentUser || '';
+  apiPost({ action: 'cgvPresLog', data: JSON.stringify({ via: 'seguimiento', nombre: m.nombre, empresa: m.empresa, telefono: m.telefono, correo: m.correo, idioma: m.idioma, clave: m.clave }) })
+    .catch(e => toast('No se guardó el seguimiento: ' + e.message, 'error', 5000));
+  setTimeout(() => { const b = document.getElementById('cgv-body'); if (b && cgvTab === 'pres') b.innerHTML = presTab(); }, repaintNow ? 0 : 600);
+}
 function presTab() {
   if (presNoBack) return `<div class="cgv-hint" style="color:var(--yellow)">Para ver aquí a quién le mandaste la presentación y si la abrió, falta actualizar <b>Concierge.gs</b> en Apps Script (Deploy → Manage deployments → New version). Mientras, el botón 📨 Mandar presentación ya funciona.</div>`;
   if (!presData) {
@@ -8085,6 +8142,9 @@ function presTab() {
       <div class="stat-card yellow"><div class="stat-label">Para llamar hoy</div><div class="stat-value">${hot}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">la vieron en los últimos 3 días</div></div>
       <div class="stat-card green"><div class="stat-label">Se registraron</div><div class="stat-value">${reg.length}</div>${pend ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${pend} sin abrir hace 2+ días</div>` : ''}</div>
     </div>
+    ${(() => { const F = presFollowList(); return F.length ? `<div style="margin:4px 0 8px;font-weight:700;font-size:15px">🔔 Por darle seguimiento <span style="color:var(--muted);font-weight:400;font-size:13px">· ${F.length}</span></div>
+      <div class="cgv-list" style="margin-bottom:18px">${F.map(presFollowCard).join('')}</div>
+      <div style="margin:0 0 8px;font-weight:700;font-size:15px">Todas las presentaciones</div>` : ''; })()}
     ${L.length ? `<div class="cgv-list">${L.map((m, i) => {
       const last = m.envios[m.envios.length - 1];
       const ph = phoneDigits(m.telefono);
@@ -8844,7 +8904,7 @@ const DESK_CATS = {
   Proveedores: ['rgba(0,232,135,0.12)', '#00E887'], Personal: ['rgba(255,140,170,0.13)', '#FF9DBB'],
   Hub: ['rgba(138,154,184,0.16)', '#C9D4E6']
 };
-let DESK_STAFF = ['Joel', 'Lizbeth', 'Alondra'];
+let DESK_STAFF = ['Joel', 'Lizbeth'];
 const DESK_PAY_ANCHOR = '2026-10-12';
 const DESK_DOW = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const DESK_DOW3 = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -9280,7 +9340,7 @@ function deskGoalCell(act, goal, elapsed) {
   return `<div class="desk-gc"><div><span style="color:${deskPaceColor(act, goal, elapsed)};font-weight:700">${act}</span>${goal ? `<span style="color:#8A9AB8"> / ${goal}</span>` : ''}</div>${goal ? deskBar(act, goal, elapsed) : ''}</div>`;
 }
 function deskWeekPeople(ws, st, g) {
-  const set = new Set(['Lizbeth', 'Alondra'].concat(Object.keys((g && g.personas) || {}), Object.keys(st.por)));
+  const set = new Set(['Lizbeth'].concat(Object.keys((g && g.personas) || {}), Object.keys(st.por)));
   return [...set].filter(p => p && p !== '—').sort((a, b) => (st.por[b] ? st.por[b].lineas + st.por[b].internet : 0) - (st.por[a] ? st.por[a].lineas + st.por[a].internet : 0));
 }
 
