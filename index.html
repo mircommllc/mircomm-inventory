@@ -8098,7 +8098,8 @@ function presStatusTags(m) {
 function presFollowKind(m) {
   if (m.registro) return '';
   const st = presStage(m);
-  if (st === 'socio' || st === 'no') return '';
+  // 🤝 Reunión tampoco: ya se vieron, su aviso es el ⏳ de 10 días en el embudo
+  if (st === 'socio' || st === 'no' || st === 'reunion') return '';
   const now = Date.now(), seg = m.seguido ? new Date(m.seguido).getTime() : 0;
   const reabrio = m.ultimaAbrio && new Date(m.ultimaAbrio).getTime() > seg;
   if (seg && now - seg < 3 * 864e5 && !reabrio) return '';

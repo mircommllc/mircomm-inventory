@@ -30,6 +30,8 @@
  *      Cada cambio queda en "Presentaciones" con Vía = Etapa y las columnas nuevas Etapa y Nota (se agregan solas al final).
  *      Mandarle la presentación lo pasa solo a 📨, y registrarse en el programa lo pasa solo a ✅.
  *      Los de ✅ Socio activo y ✗ No le interesó ya no salen en "Por darle seguimiento" ni en el resumen diario.
+ * v57: Los de 🤝 Reunión tampoco salen en "Por darle seguimiento" ni en el resumen diario (ya se vieron; el mensaje
+ *      "¿pudo ver la información?" no cuadra). Su aviso es el ⏳ de 10 días en el embudo del Hub.
  *
  * INSTALAR (una vez):
  *  1. Apps Script del Hub: ＋ → Script → nómbralo "Concierge" → pega todo este archivo → Guardar.
@@ -937,7 +939,7 @@ function cgvPresList_() {
   });
   var list = Object.keys(P).map(function (k) { var o = P[k]; o.ultimaAct = [o.enviada, o.ultima, o.etapaF].sort().pop() || ''; return o; });
   list.sort(function (a, b) { return String(b.ultimaAct).localeCompare(String(a.ultimaAct)); });
-  return { ok: true, list: list, now: cgvNow_(), v: 56 };
+  return { ok: true, list: list, now: cgvNow_(), v: 57 };
 }
 // Etapa que se ve (misma regla que presStage del Hub): registrarse = ✅; si cambiaste la etapa después del último envío,
 // manda la tuya; si no, la presentación la sube a 📨 (sin bajarla de 🤝 o ✅).
@@ -962,7 +964,7 @@ var CGV_HUB_PAGE = 'https://mircommllc.github.io/mircomm-inventory/#seguimiento'
 function cgvFollowKind_(m, now) {
   if (m.registro) return '';
   var st = cgvPresStage_(m);
-  if (st === 'socio' || st === 'no') return '';
+  if (st === 'socio' || st === 'no' || st === 'reunion') return '';
   var t = function (iso) { return iso ? new Date(iso).getTime() : 0; };
   var seg = t(m.seguido), reabrio = m.ultimaAbrio && t(m.ultimaAbrio) > seg;
   if (seg && now - seg < 3 * 864e5 && !reabrio) return '';
