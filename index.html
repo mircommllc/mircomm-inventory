@@ -8138,7 +8138,7 @@ function presFollowCard({ m, i, kind }) {
       <div class="cgv-sub" style="margin-top:6px;font-style:italic;white-space:pre-line">${escHtml(msg.split('\n')[0])}</div>
     </div>
     <div class="cgv-card-side"><div class="cgv-btns">
-      ${ph.length === 10 ? `<a class="btn btn-primary btn-sm" style="background:#1DA851;border-color:#1DA851" target="_blank" rel="noopener" href="https://wa.me/1${ph}?text=${encodeURIComponent(msg)}" onclick="event.stopPropagation();presFollowed(${i})">💬 WhatsApp</a>
+      ${ph.length === 10 ? `<a class="btn btn-primary btn-sm" style="background:#1DA851;border-color:#1DA851" href="#" onclick="event.stopPropagation();event.preventDefault();waOpen('https://wa.me/1${ph}?text=${encodeURIComponent(msg).replace(/'/g, '%27')}');presFollowed(${i})">💬 WhatsApp</a>
         <a class="btn btn-ghost btn-sm" href="tel:+1${ph}" onclick="event.stopPropagation()">📞 ${fmtPhone(ph)}</a>`
       : `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();presOpenFrom(${i})">📨 Reenviar</button>`}
       <button class="btn btn-ghost btn-sm" title="Ya le diste seguimiento por otro lado: sale de la lista 3 días" onclick="event.stopPropagation();presFollowed(${i}, true)">✓ Listo</button>
@@ -8210,9 +8210,12 @@ function presStageOpen(i) {
     <div class="form-group" style="margin-top:12px"><label class="form-label">Nota (opcional)</label>
       <input class="form-input" id="ps-nota" maxlength="200" placeholder="Ej. Quedamos el jueves a las 3 en su oficina"></div>
     ${m.registro ? `<div class="cgv-hint" style="margin:0 0 10px">Ya se registró en el programa, así que se queda en ✅ Socio activo.</div>` : ''}
-    <button class="btn btn-primary btn-full" onclick="presStageSave(${i}, this)">Guardar</button>`);
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" style="flex:1" onclick="presStageSave(${i}, this, true)">Guardar y mandar mensaje</button>
+      <button class="btn btn-ghost" onclick="presStageSave(${i}, this)">Solo guardar</button>
+    </div>`);
 }
-async function presStageSave(i, btn) {
+async function presStageSave(i, btn, andMsg) {
   const m = presData && presData.list[i]; if (!m) return;
   const et = (document.querySelector('#ps-et .chip.on') || {}).dataset?.v, nota = document.getElementById('ps-nota').value.trim();
   if (!et) { toast('Escoge la etapa.', 'error'); return; }
@@ -8221,6 +8224,7 @@ async function presStageSave(i, btn) {
     await apiPost({ action: 'cgvPresLog', data: JSON.stringify({ via: 'etapa', etapa: et, nota, nombre: m.nombre || m.clave, empresa: m.empresa, telefono: m.telefono, correo: m.correo, idioma: m.idioma, clave: m.clave }) });
     Object.assign(m, { etapa: et, etapaF: new Date().toISOString(), etapaNota: nota, etapaPor: currentUser || '' });
     closeModal(); toast(`${presStageLabel(et)} · guardado.`, 'success', 1800); presRepaint();
+    if (andMsg) presMsgOpen(i);
   } catch (e) { btn.disabled = false; toast(escHtml(e.message), 'error', 5000); }
 }
 // 📞 Registrar llamada: el prospecto al que le hablaste y todavía no le mandas nada
@@ -8259,6 +8263,86 @@ async function presCallSave(btn, andSend) {
     if (andSend) presOpen(d); else closeModal();
     presRepaint();
   } catch (e) { btn.disabled = false; toast(escHtml(e.message), 'error', 5000); }
+}
+// ── 💬 Mensaje por etapa ──
+// Textos ya escritos según en qué va el prospecto, en la voz de quien lo manda (corto, sin tono de vendedor).
+// Se pueden editar antes de mandarlos. Si el texto lleva la presentación y todavía está en 📞 Llamé, cuenta como envío
+// (lo sube a 📨); si no, queda como Seguimiento (sale de "Por darle seguimiento" 3 días).
+function presTpls(m) {
+  const first = String(m.nombre || '').trim().split(/\s+/)[0] || '', en = m.idioma === 'EN', s = presSaludo(en);
+  const url = presUrl({ nombre: m.nombre, empresa: m.empresa, idioma: m.idioma }), st = presStage(m);
+  const T = (id, label, es, eng, link) => ({ id, label, text: en ? eng : es, link: !!link });
+  if (st === 'llame') return [
+    T('mandar', '📨 Mandarle la presentación',
+      `Hola ${first}, ${s}. Gracias por atenderme. Como quedamos, le comparto la presentación del programa de socios de ConnectRGV. La preparé con su nombre:\n${url}\n\nSe ve en unos minutos. Cualquier duda, aquí estoy.`,
+      `Hi ${first}, ${s}. Thanks for taking my call. As we talked about, here's the ConnectRGV partner program presentation. I put it together with your name on it:\n${url}\n\nIt only takes a few minutes. Any questions, I'm here.`, true)];
+  if (st === 'pres') return [
+    T('vio', '👀 ¿Pudo verla?',
+      `Hola ${first}, ${s}. Nada más para saber si pudo ver la información del programa de socios de ConnectRGV. ¿No le quedó alguna duda? Con gusto se la aclaro.`,
+      `Hi ${first}, ${s}. Just wanted to see if you had a chance to look at the ConnectRGV partner program. Any questions I can help with?`),
+    T('cita', '🤝 Proponer reunión',
+      `Hola ${first}, ${s}. ¿No tendrá unos 15 minutos esta semana o la que entra? Me gustaría platicarle en persona cómo funciona el programa y resolverle cualquier duda. Usted me dice qué día le queda mejor.`,
+      `Hi ${first}, ${s}. Would you have 15 minutes this week or next? I'd like to walk you through how the program works in person and answer any questions. Just let me know what day works best for you.`),
+    T('otra', '📨 Mandarla otra vez',
+      `Hola ${first}, ${s}. Le vuelvo a mandar la presentación de ConnectRGV por si se le pasó entre tantos mensajes:\n${url}\n\nSe ve en unos minutos. Cualquier duda, aquí estoy.`,
+      `Hi ${first}, ${s}. Sending the ConnectRGV presentation again in case it got buried in your messages:\n${url}\n\nIt only takes a few minutes. Any questions, I'm here.`, true)];
+  if (st === 'reunion') return [
+    T('confirmar', '📅 Confirmar la reunión',
+      `Hola ${first}, ${s}. Nada más para confirmar nuestra reunión. ¿Sigue en pie?`,
+      `Hi ${first}, ${s}. Just confirming our meeting. Are we still on?`),
+    T('gracias', '🙏 Después de verse',
+      `Hola ${first}, ${s}. Gracias por su tiempo. Le dejo otra vez la presentación; al final viene el registro, para cuando guste:\n${url}\n\nCualquier duda, aquí estoy.`,
+      `Hi ${first}, ${s}. Thank you for your time. Here's the presentation again; the sign-up is at the end, whenever you're ready:\n${url}\n\nAny questions, I'm here.`, true)];
+  if (st === 'socio') return [
+    T('bienvenida', '🎉 Bienvenida',
+      `Hola ${first}, ${s}. Gracias por registrarse en el programa de socios de ConnectRGV. Cuando tenga un cliente que se va a mudar, nada más mándeme su nombre y su teléfono por aquí y nosotros nos encargamos de lo demás.`,
+      `Hi ${first}, ${s}. Thank you for joining the ConnectRGV partner program. Whenever you have a client who's moving, just send me their name and phone number here and we'll take care of the rest.`),
+    T('saludo', '👋 Saludo / ¿algún cliente?',
+      `Hola ${first}, ${s}. Nada más para saludarle. ¿No tiene algún cliente que se esté por mudar? Con gusto le ayudamos.`,
+      `Hi ${first}, ${s}. Just checking in. Do you have any clients getting ready to move? We'd be glad to help.`)];
+  return [
+    T('puerta', '🚪 Dejar la puerta abierta',
+      `Hola ${first}, ${s}. Gracias por su tiempo. Si más adelante le interesa, aquí estoy para lo que se le ofrezca.`,
+      `Hi ${first}, ${s}. Thank you for your time. If it's ever a good fit down the road, I'm here.`)];
+}
+let presMsgS = null;   // { i, tpls, k }
+function presMsgOpen(i, tplId) {
+  const m = presData && presData.list[i]; if (!m) return;
+  const tpls = presTpls(m), k = Math.max(0, tpls.findIndex(t => t.id === tplId));
+  presMsgS = { i, tpls, k };
+  const ph = phoneDigits(m.telefono), st = presStage(m);
+  openModal(`<div class="modal-title">💬 Mensaje · ${escHtml(m.nombre || m.clave)} <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="cgv-hint" style="margin:0 0 10px">${presStageLabel(st)}${m.idioma === 'EN' ? ' · en inglés' : ''}${m.etapaNota ? ' · 📝 ' + escHtml(m.etapaNota) : ''}</div>
+    ${tpls.length > 1 ? `<div class="pros-chips" id="pm-tpl">${tpls.map((t, j) => `<span class="chip ${j === k ? 'on' : ''}" onclick="presMsgPick(${j})">${escHtml(t.label)}</span>`).join('')}</div>` : ''}
+    <textarea class="form-input" id="pm-text" rows="7" style="margin-top:10px;resize:vertical;font-family:inherit;line-height:1.45">${escHtml(tpls[k].text)}</textarea>
+    <div class="cgv-hint" style="margin:6px 0 12px">Lo puedes cambiar antes de mandarlo.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${ph.length === 10 ? `<button class="btn btn-primary" style="flex:1;background:#1DA851;border-color:#1DA851" onclick="presMsgSend('whatsapp')">💬 WhatsApp</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="presMsgSend('texto')">✉️ Mensaje de texto</button>` : `<div class="cgv-hint" style="flex-basis:100%;margin:0 0 4px;color:var(--yellow)">No tiene celular guardado: cópialo y mándaselo por donde hablen.</div>`}
+      <button class="btn btn-ghost" style="flex:1" onclick="presMsgSend('copiado')">📋 Copiar</button>
+    </div>`);
+}
+function presMsgPick(j) {
+  if (!presMsgS) return;
+  presMsgS.k = j;
+  document.querySelectorAll('#pm-tpl .chip').forEach((c, x) => c.classList.toggle('on', x === j));
+  document.getElementById('pm-text').value = presMsgS.tpls[j].text;
+}
+function presMsgSend(via) {
+  const S = presMsgS, m = S && presData && presData.list[S.i]; if (!m) return;
+  const text = document.getElementById('pm-text').value.trim(), ph = phoneDigits(m.telefono);
+  if (!text) { toast('El mensaje está vacío.', 'error'); return; }
+  if (via === 'whatsapp') waOpen(`https://wa.me/1${ph}?text=${encodeURIComponent(text)}`);
+  else if (via === 'texto') location.href = `sms:+1${ph}?&body=${encodeURIComponent(text)}`;
+  else segCopy(text);
+  // Lleva la presentación y estaba en 📞 → cuenta como envío; lo demás, como seguimiento
+  const envio = S.tpls[S.k].link && presStage(m) === 'llame' && text.indexOf('/programa/') >= 0;
+  const now = new Date().toISOString();
+  if (envio) { m.envios.push({ f: now, via: via === 'whatsapp' ? 'WhatsApp' : via === 'texto' ? 'Mensaje de texto' : 'Copiado', por: currentUser || '' }); m.enviada = now; }
+  else { m.seguido = now; m.seguidoPor = currentUser || ''; }
+  apiPost({ action: 'cgvPresLog', data: JSON.stringify({ via: envio ? via : 'seguimiento', nombre: m.nombre || m.clave, empresa: m.empresa, telefono: m.telefono, correo: m.correo, idioma: m.idioma, clave: m.clave }) })
+    .catch(e => toast('No se guardó en la hoja: ' + e.message, 'error', 5000));
+  closeModal(); presRepaint();
 }
 function presTab() {
   if (presNoBack) return `<div class="cgv-hint" style="color:var(--yellow)">Para ver aquí a quién le mandaste la presentación y si la abrió, falta actualizar <b>Concierge.gs</b> en Apps Script (Deploy → Manage deployments → New version). Mientras, el botón 📨 Mandar presentación ya funciona.</div>`;
@@ -8299,7 +8383,8 @@ function presTab() {
           ${stuck ? `<div class="cgv-tags"><span class="cgv-tag yel">⏳ ${escHtml(stuck)}</span></div>` : ''}
         </div>
         <div class="cgv-card-side"><div class="cgv-btns">${ph.length === 10 ? `<a class="btn btn-primary btn-sm" href="tel:+1${ph}" onclick="event.stopPropagation()">📞 ${fmtPhone(ph)}</a>` : ''}
-          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();presOpenFrom(${i})">📨 Reenviar</button></div></div>
+          ${stOn ? `<button class="btn btn-ghost btn-sm" title="Mensaje ya escrito según la etapa" onclick="event.stopPropagation();presMsgOpen(${i})">💬 Mensaje</button>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();presOpenFrom(${i})">📨 ${m.envios.length ? 'Reenviar' : 'Mandar'}</button></div></div>
       </div>`;
     }).join('')}</div>` : presStageF ? `<div class="cgv-hint">Nadie en esta etapa.</div>` : `<div class="empty-state"><div class="icon">📨</div><p>Todavía no mandas ninguna presentación. Usa 📨 Mandar presentación arriba.</p></div>`}`;
 }
