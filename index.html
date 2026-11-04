@@ -8093,22 +8093,40 @@ function presStatusTags(m) {
 }
 // ── Por darle seguimiento ──
 // 'sinabrir': se la mandaste hace 48 h o más y no la ha abierto. 'abrio': la abrió pero no tocó Llamar/Mensaje ni se registró.
+// v58 · SIN MOVIMIENTO: si un prospecto se queda quieto en su etapa (sin envío, apertura, seguimiento ni cambio de etapa)
+// estos días, vuelve a salir con el mensaje de su etapa ya escrito:
+//   'llame'   📞 Llamé y no le has mandado la presentación  → 📨 Mandarle la presentación (cuenta como envío)
+//   'cita'    📨 Ya tiene la presentación y nada más        → 🤝 Proponer reunión
+//   'reunion' 🤝 Quedaron de verse y nada más               → 🤝 ¿Cómo va? (sirve se hayan visto o no)
+// Mismos días en Concierge.gs (CGV_ROT_DAYS), para que el resumen de las 8 a.m. salga igual.
 // Al darle seguimiento (WhatsApp o ✓ Listo) queda en "Presentaciones" con Vía = Seguimiento y sale de la lista 3 días,
 // o hasta que la vuelva a abrir.
+const PRES_ROT_DAYS = { llame: 2, pres: 3, reunion: 5 };
+const PRES_ROT_TPL = { llame: 'mandar', cita: 'cita', reunion: 'pendiente' };
+const PRES_FOLLOW_RANK = { abrio: 0, reunion: 1, cita: 2, llame: 3, sinabrir: 4 };
+// Último movimiento: envío, cualquier visita a su presentación, seguimiento o cambio de etapa
+function presLastMove(m) { return [m.enviada, m.ultima, m.seguido, m.etapaF].filter(Boolean).sort().pop() || ''; }
 function presFollowKind(m) {
   if (m.registro) return '';
   const st = presStage(m);
-  // 🤝 Reunión tampoco: ya se vieron, su aviso es el ⏳ de 10 días en el embudo
-  if (st === 'socio' || st === 'no' || st === 'reunion') return '';
+  if (st === 'socio' || st === 'no') return '';
   const now = Date.now(), seg = m.seguido ? new Date(m.seguido).getTime() : 0;
   const reabrio = m.ultimaAbrio && new Date(m.ultimaAbrio).getTime() > seg;
   if (seg && now - seg < 3 * 864e5 && !reabrio) return '';
-  if (!m.abrio) return m.enviada && (now - new Date(m.enviada)) / 864e5 >= 2 ? 'sinabrir' : '';
-  if (!m.llamar && !m.texto) return 'abrio';
-  return '';
+  // Sin movimiento: solo prospectos con nombre o etapa (no las visitas sueltas del volante)
+  const last = presLastMove(m), quieto = last ? (now - new Date(last)) / 864e5 : 0;
+  const rotOk = presStageOn() && presIsProspect(m);
+  if (st === 'reunion') return rotOk && quieto >= PRES_ROT_DAYS.reunion ? 'reunion' : '';
+  if (st === 'llame') return rotOk && m.etapaF && quieto >= PRES_ROT_DAYS.llame ? 'llame' : '';
+  if (!m.abrio && m.enviada) return (now - new Date(m.enviada)) / 864e5 >= 2 ? 'sinabrir' : '';
+  if (m.abrio && !m.llamar && !m.texto) return 'abrio';
+  return rotOk && quieto >= PRES_ROT_DAYS.pres ? 'cita' : '';
 }
+const presIsRot = kind => !!PRES_ROT_TPL[kind];
+function presRotTpl(m, kind) { const T = presTpls(m); return T.find(t => t.id === PRES_ROT_TPL[kind]) || T[0]; }
 // En la voz de Joel: corto, sin presión y sin decirle que vimos que la abrió
 function presFollowMsg(m, kind) {
+  if (presIsRot(kind)) return presRotTpl(m, kind).text;
   const first = String(m.nombre || '').trim().split(/\s+/)[0] || '', en = m.idioma === 'EN';
   if (kind === 'sinabrir') {
     const url = presUrl({ nombre: m.nombre, empresa: m.empresa, idioma: m.idioma });
@@ -8123,23 +8141,37 @@ function presFollowMsg(m, kind) {
 function presFollowList() {
   const L = (presData && presData.list) || [];
   return L.map((m, i) => ({ m, i, kind: presFollowKind(m) })).filter(x => x.kind)
-    .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'abrio' ? -1 : 1) || String(b.m.ultimaAbrio || b.m.enviada).localeCompare(String(a.m.ultimaAbrio || a.m.enviada)));
+    .sort((a, b) => (PRES_FOLLOW_RANK[a.kind] - PRES_FOLLOW_RANK[b.kind]) || String(b.m.ultimaAbrio || b.m.enviada || presLastMove(b.m)).localeCompare(String(a.m.ultimaAbrio || a.m.enviada || presLastMove(a.m))));
+}
+function presFollowWhy(m, kind) {
+  const quieto = `sin movimiento desde ${cgvAgo(presLastMove(m))}`;
+  if (kind === 'sinabrir') return `Se la mandaste ${cgvAgo(m.enviada)} y no la ha abierto`;
+  if (kind === 'abrio') return `La abrió ${cgvAgo(m.ultimaAbrio || m.ultima)}${m.abrio > 1 ? ` (${m.abrio} veces)` : ''}${m.abrioQr ? ' · escaneó el QR' : ''}${m.final ? ' · llegó hasta el registro' : ''} y no ha llamado ni se registró`;
+  if (kind === 'llame') return `📞 Le llamaste${m.etapaF ? ' ' + cgvAgo(m.etapaF) : ''} y no le has mandado la presentación`;
+  if (kind === 'cita') return `📨 Ya tiene la presentación${m.llamar || m.texto ? ' y te buscó' : ''} · ${quieto} · proponle verse`;
+  return `🤝 Quedaron de verse${m.etapaF ? ' ' + cgvAgo(m.etapaF) : ''} · ${quieto}`;
 }
 function presFollowCard({ m, i, kind }) {
-  const ph = phoneDigits(m.telefono), msg = presFollowMsg(m, kind);
-  const why = kind === 'sinabrir'
-    ? `Se la mandaste ${cgvAgo(m.enviada)} y no la ha abierto`
-    : `La abrió ${cgvAgo(m.ultimaAbrio || m.ultima)}${m.abrio > 1 ? ` (${m.abrio} veces)` : ''}${m.abrioQr ? ' · escaneó el QR' : ''}${m.final ? ' · llegó hasta el registro' : ''} y no ha llamado ni se registró`;
+  const ph = phoneDigits(m.telefono), msg = presFollowMsg(m, kind), rot = presIsRot(kind);
+  const why = presFollowWhy(m, kind);
   const prev = m.seguido ? ` · último seguimiento ${cgvAgo(m.seguido)}${m.seguidoPor ? ' (' + m.seguidoPor + ')' : ''}` : '';
-  return `<div class="cgv-card" style="border-left:3px solid ${kind === 'abrio' ? 'var(--blue)' : 'var(--yellow)'}" onclick="presOpenFrom(${i})">
+  const color = kind === 'abrio' ? 'var(--blue)' : rot ? '#F28C38' : 'var(--yellow)';
+  // Los de "sin movimiento" abren el 💬 Mensaje de su etapa (para escoger otro texto); los demás, el envío de la presentación
+  const open = rot ? `presMsgOpen(${i}, '${presRotTpl(m, kind).id}')` : `presOpenFrom(${i})`;
+  const waBtn = rot
+    ? `<a class="btn btn-primary btn-sm" style="background:#1DA851;border-color:#1DA851" href="#" onclick="event.stopPropagation();event.preventDefault();presRotWa(${i}, '${kind}')">💬 WhatsApp</a>`
+    : `<a class="btn btn-primary btn-sm" style="background:#1DA851;border-color:#1DA851" href="#" onclick="event.stopPropagation();event.preventDefault();waOpen('https://wa.me/1${ph}?text=${encodeURIComponent(msg).replace(/'/g, '%27')}');presFollowed(${i})">💬 WhatsApp</a>`;
+  return `<div class="cgv-card" style="border-left:3px solid ${color}" onclick="${open}">
     <div class="cgv-card-main">
-      <div class="cgv-card-top"><b class="cgv-name">${escHtml(m.nombre || m.clave)}</b>${m.idioma === 'EN' ? ' <span class="pros-badge pros-b-exp">EN</span>' : ''}</div>
+      <div class="cgv-card-top"><b class="cgv-name">${escHtml(m.nombre || m.clave)}</b>${m.idioma === 'EN' ? ' <span class="pros-badge pros-b-exp">EN</span>' : ''}${rot ? presStageBadge(m, i) : ''}</div>
       <div class="cgv-sub">${escHtml(m.empresa ? m.empresa + ' · ' : '')}${escHtml(why + prev)}</div>
+      ${rot && m.etapaNota ? `<div class="cgv-sub" style="margin-top:4px">📝 ${escHtml(m.etapaNota)}</div>` : ''}
       <div class="cgv-sub" style="margin-top:6px;font-style:italic;white-space:pre-line">${escHtml(msg.split('\n')[0])}</div>
     </div>
     <div class="cgv-card-side"><div class="cgv-btns">
-      ${ph.length === 10 ? `<a class="btn btn-primary btn-sm" style="background:#1DA851;border-color:#1DA851" href="#" onclick="event.stopPropagation();event.preventDefault();waOpen('https://wa.me/1${ph}?text=${encodeURIComponent(msg).replace(/'/g, '%27')}');presFollowed(${i})">💬 WhatsApp</a>
+      ${ph.length === 10 ? `${waBtn}
         <a class="btn btn-ghost btn-sm" href="tel:+1${ph}" onclick="event.stopPropagation()">📞 ${fmtPhone(ph)}</a>`
+      : rot ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();${open}">💬 Mensaje</button>`
       : `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();presOpenFrom(${i})">📨 Reenviar</button>`}
       <button class="btn btn-ghost btn-sm" title="Ya le diste seguimiento por otro lado: sale de la lista 3 días" onclick="event.stopPropagation();presFollowed(${i}, true)">✓ Listo</button>
     </div></div>
@@ -8292,7 +8324,11 @@ function presTpls(m) {
       `Hi ${first}, ${s}. Just confirming our meeting. Are we still on?`),
     T('gracias', '🙏 Después de verse',
       `Hola ${first}, ${s}. Gracias por su tiempo. Le dejo otra vez la presentación; al final viene el registro, para cuando guste:\n${url}\n\nCualquier duda, aquí estoy.`,
-      `Hi ${first}, ${s}. Thank you for your time. Here's the presentation again; the sign-up is at the end, whenever you're ready:\n${url}\n\nAny questions, I'm here.`, true)];
+      `Hi ${first}, ${s}. Thank you for your time. Here's the presentation again; the sign-up is at the end, whenever you're ready:\n${url}\n\nAny questions, I'm here.`, true),
+    // v58: el de "sin movimiento" en 🤝 (cuadra se hayan visto o no)
+    T('pendiente', '🤝 ¿Cómo va?',
+      `Hola ${first}, ${s}. Nada más para saber cómo va todo. ¿No le quedó alguna duda del programa de socios de ConnectRGV? Cuando guste, le mando el registro.`,
+      `Hi ${first}, ${s}. Just checking in. Any questions about the ConnectRGV partner program? Whenever you're ready, I can send you the sign-up.`)];
   if (st === 'socio') return [
     T('bienvenida', '🎉 Bienvenida',
       `Hola ${first}, ${s}. Gracias por registrarse en el programa de socios de ConnectRGV. Cuando tenga un cliente que se va a mudar, nada más mándeme su nombre y su teléfono por aquí y nosotros nos encargamos de lo demás.`,
@@ -8330,19 +8366,30 @@ function presMsgPick(j) {
 }
 function presMsgSend(via) {
   const S = presMsgS, m = S && presData && presData.list[S.i]; if (!m) return;
-  const text = document.getElementById('pm-text').value.trim(), ph = phoneDigits(m.telefono);
+  const text = document.getElementById('pm-text').value.trim();
   if (!text) { toast('El mensaje está vacío.', 'error'); return; }
+  presMsgDo(m, S.tpls[S.k], text, via);
+  closeModal(); presRepaint();
+}
+// 💬 WhatsApp de un toque desde "Por darle seguimiento" (los de sin movimiento): el texto de su etapa, tal cual
+function presRotWa(i, kind) {
+  const m = presData && presData.list[i]; if (!m) return;
+  const tpl = presRotTpl(m, kind);
+  presMsgDo(m, tpl, tpl.text, 'whatsapp');
+  setTimeout(presRepaint, 600);
+}
+function presMsgDo(m, tpl, text, via) {
+  const ph = phoneDigits(m.telefono);
   if (via === 'whatsapp') waOpen(`https://wa.me/1${ph}?text=${encodeURIComponent(text)}`);
   else if (via === 'texto') location.href = `sms:+1${ph}?&body=${encodeURIComponent(text)}`;
   else segCopy(text);
   // Lleva la presentación y estaba en 📞 → cuenta como envío; lo demás, como seguimiento
-  const envio = S.tpls[S.k].link && presStage(m) === 'llame' && text.indexOf('/programa/') >= 0;
+  const envio = tpl.link && presStage(m) === 'llame' && text.indexOf('/programa/') >= 0;
   const now = new Date().toISOString();
   if (envio) { m.envios.push({ f: now, via: via === 'whatsapp' ? 'WhatsApp' : via === 'texto' ? 'Mensaje de texto' : 'Copiado', por: currentUser || '' }); m.enviada = now; }
   else { m.seguido = now; m.seguidoPor = currentUser || ''; }
   apiPost({ action: 'cgvPresLog', data: JSON.stringify({ via: envio ? via : 'seguimiento', nombre: m.nombre || m.clave, empresa: m.empresa, telefono: m.telefono, correo: m.correo, idioma: m.idioma, clave: m.clave }) })
     .catch(e => toast('No se guardó en la hoja: ' + e.message, 'error', 5000));
-  closeModal(); presRepaint();
 }
 function presTab() {
   if (presNoBack) return `<div class="cgv-hint" style="color:var(--yellow)">Para ver aquí a quién le mandaste la presentación y si la abrió, falta actualizar <b>Concierge.gs</b> en Apps Script (Deploy → Manage deployments → New version). Mientras, el botón 📨 Mandar presentación ya funciona.</div>`;

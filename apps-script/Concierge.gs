@@ -32,6 +32,12 @@
  *      Los de ✅ Socio activo y ✗ No le interesó ya no salen en "Por darle seguimiento" ni en el resumen diario.
  * v57: Los de 🤝 Reunión tampoco salen en "Por darle seguimiento" ni en el resumen diario (ya se vieron; el mensaje
  *      "¿pudo ver la información?" no cuadra). Su aviso es el ⏳ de 10 días en el embudo del Hub.
+ * v58: SIN MOVIMIENTO. Si un prospecto se queda quieto en su etapa (sin envío, apertura, seguimiento ni cambio de etapa),
+ *      vuelve a salir en "Por darle seguimiento" y en el resumen de las 8 a.m. con el mensaje de su etapa ya escrito:
+ *        📞 Llamé a los 2 días   → le manda la presentación (cuenta como envío y lo sube a 📨)
+ *        📨 Presentación a los 3 → propone una reunión (si ya la abrió y te buscó, o no hay más que hacer)
+ *        🤝 Reunión a los 5      → "¿cómo va?" (cuadra se hayan visto o no)
+ *      Los días se cambian en CGV_ROT_DAYS (y en PRES_ROT_DAYS del Hub, para que los dos digan lo mismo).
  *
  * INSTALAR (una vez):
  *  1. Apps Script del Hub: ＋ → Script → nómbralo "Concierge" → pega todo este archivo → Guardar.
@@ -939,7 +945,7 @@ function cgvPresList_() {
   });
   var list = Object.keys(P).map(function (k) { var o = P[k]; o.ultimaAct = [o.enviada, o.ultima, o.etapaF].sort().pop() || ''; return o; });
   list.sort(function (a, b) { return String(b.ultimaAct).localeCompare(String(a.ultimaAct)); });
-  return { ok: true, list: list, now: cgvNow_(), v: 57 };
+  return { ok: true, list: list, now: cgvNow_(), v: 58 };
 }
 // Etapa que se ve (misma regla que presStage del Hub): registrarse = ✅; si cambiaste la etapa después del último envío,
 // manda la tuya; si no, la presentación la sube a 📨 (sin bajarla de 🤝 o ✅).
@@ -961,25 +967,33 @@ var CGV_DIGEST_TO = CGV_REPLY_TO;
 var CGV_DIGEST_POR = 'Resumen diario';
 var CGV_HUB_PAGE = 'https://mircommllc.github.io/mircomm-inventory/#seguimiento';
 
+// v58 · sin movimiento (misma regla que presFollowKind del Hub): 'llame', 'cita', 'reunion'
+var CGV_ROT_DAYS = { llame: 2, pres: 3, reunion: 5 };
+var CGV_FOLLOW_RANK = { abrio: 0, reunion: 1, cita: 2, llame: 3, sinabrir: 4 };
+function cgvIsRot_(kind) { return kind === 'llame' || kind === 'cita' || kind === 'reunion'; }
+// Último movimiento: envío, cualquier visita a su presentación, seguimiento o cambio de etapa
+function cgvLastMove_(m) { return [m.enviada, m.ultima, m.seguido, m.etapaF].filter(function (x) { return x; }).sort().pop() || ''; }
+function cgvIsProspect_(m) { return !!(m.nombre || (m.envios && m.envios.length) || m.etapa); }
 function cgvFollowKind_(m, now) {
   if (m.registro) return '';
   var st = cgvPresStage_(m);
-  if (st === 'socio' || st === 'no' || st === 'reunion') return '';
+  if (st === 'socio' || st === 'no') return '';
   var t = function (iso) { return iso ? new Date(iso).getTime() : 0; };
   var seg = t(m.seguido), reabrio = m.ultimaAbrio && t(m.ultimaAbrio) > seg;
   if (seg && now - seg < 3 * 864e5 && !reabrio) return '';
-  if (!m.abrio) return m.enviada && (now - t(m.enviada)) / 864e5 >= 2 ? 'sinabrir' : '';
-  if (!m.llamar && !m.texto) return 'abrio';
-  return '';
+  var last = cgvLastMove_(m), quieto = last ? (now - t(last)) / 864e5 : 0, rotOk = cgvIsProspect_(m);
+  if (st === 'reunion') return rotOk && quieto >= CGV_ROT_DAYS.reunion ? 'reunion' : '';
+  if (st === 'llame') return rotOk && m.etapaF && quieto >= CGV_ROT_DAYS.llame ? 'llame' : '';
+  if (!m.abrio && m.enviada) return (now - t(m.enviada)) / 864e5 >= 2 ? 'sinabrir' : '';
+  if (m.abrio && !m.llamar && !m.texto) return 'abrio';
+  return rotOk && quieto >= CGV_ROT_DAYS.pres ? 'cita' : '';
 }
 function cgvFollowList_() {
   var now = Date.now();
+  var k = function (m) { return String(m.ultimaAbrio || m.enviada || cgvLastMove_(m)); };
   return cgvPresList_().list.map(function (m) { return { m: m, kind: cgvFollowKind_(m, now) }; })
     .filter(function (x) { return x.kind; })
-    .sort(function (a, b) {
-      return (a.kind === b.kind ? 0 : a.kind === 'abrio' ? -1 : 1) ||
-        String(b.m.ultimaAbrio || b.m.enviada).localeCompare(String(a.m.ultimaAbrio || a.m.enviada));
-    });
+    .sort(function (a, b) { return (CGV_FOLLOW_RANK[a.kind] - CGV_FOLLOW_RANK[b.kind]) || k(b.m).localeCompare(k(a.m)); });
 }
 function cgvSaludo_(en) {
   var h = Number(Utilities.formatDate(new Date(), CGV_TZ, 'H'));
@@ -988,7 +1002,20 @@ function cgvSaludo_(en) {
 }
 // En la voz de Joel: corto, sin presión y sin decirle que vimos que la abrió (igual que presFollowMsg del Hub)
 function cgvFollowMsg_(m, kind) {
-  var first = cgvFirst_(m.nombre), en = m.idioma === 'EN';
+  var first = cgvFirst_(m.nombre), en = m.idioma === 'EN', s = cgvSaludo_(en);
+  // v58: mismos textos que presTpls del Hub (📨 Mandarle la presentación, 🤝 Proponer reunión, 🤝 ¿Cómo va?)
+  if (kind === 'llame') {
+    var u = cgvPresUrl_({ s: m.clave, n: m.nombre, e: m.empresa, en: en });
+    return en
+      ? 'Hi ' + first + ', ' + s + '. Thanks for taking my call. As we talked about, here\'s the ConnectRGV partner program presentation. I put it together with your name on it:\n' + u + '\n\nIt only takes a few minutes. Any questions, I\'m here.'
+      : 'Hola ' + first + ', ' + s + '. Gracias por atenderme. Como quedamos, le comparto la presentación del programa de socios de ConnectRGV. La preparé con su nombre:\n' + u + '\n\nSe ve en unos minutos. Cualquier duda, aquí estoy.';
+  }
+  if (kind === 'cita') return en
+    ? 'Hi ' + first + ', ' + s + '. Would you have 15 minutes this week or next? I\'d like to walk you through how the program works in person and answer any questions. Just let me know what day works best for you.'
+    : 'Hola ' + first + ', ' + s + '. ¿No tendrá unos 15 minutos esta semana o la que entra? Me gustaría platicarle en persona cómo funciona el programa y resolverle cualquier duda. Usted me dice qué día le queda mejor.';
+  if (kind === 'reunion') return en
+    ? 'Hi ' + first + ', ' + s + '. Just checking in. Any questions about the ConnectRGV partner program? Whenever you\'re ready, I can send you the sign-up.'
+    : 'Hola ' + first + ', ' + s + '. Nada más para saber cómo va todo. ¿No le quedó alguna duda del programa de socios de ConnectRGV? Cuando guste, le mando el registro.';
   if (kind === 'sinabrir') {
     var url = cgvPresUrl_({ s: m.clave, n: m.nombre, e: m.empresa, en: en });
     return en
@@ -1052,13 +1079,18 @@ function cgvDigestSend_(force) {
       'background:' + bg + ';color:' + fg + ';border:1px solid ' + (border || bg) + '">' + label + '</a>';
   };
   var abrio = F.filter(function (x) { return x.kind === 'abrio'; }), sin = F.filter(function (x) { return x.kind === 'sinabrir'; });
+  var rot = F.filter(function (x) { return cgvIsRot_(x.kind); });
   var txt = [], html = '';
   var card = function (x) {
     var m = x.m, ph = cgvDigits_(m.telefono), msg = cgvFollowMsg_(m, x.kind);
-    var why = x.kind === 'sinabrir'
-      ? 'Se la mandaste ' + cgvAgo_(m.enviada) + ' y no la ha abierto'
+    var quieto = 'sin movimiento desde ' + cgvAgo_(cgvLastMove_(m));
+    var why = x.kind === 'sinabrir' ? 'Se la mandaste ' + cgvAgo_(m.enviada) + ' y no la ha abierto'
+      : x.kind === 'llame' ? '📞 Le llamaste' + (m.etapaF ? ' ' + cgvAgo_(m.etapaF) : '') + ' y no le has mandado la presentación'
+      : x.kind === 'cita' ? '📨 Ya tiene la presentación' + (m.llamar || m.texto ? ' y te buscó' : '') + ' · ' + quieto + ' · proponle verse'
+      : x.kind === 'reunion' ? '🤝 Quedaron de verse' + (m.etapaF ? ' ' + cgvAgo_(m.etapaF) : '') + ' · ' + quieto
       : 'La abrió ' + cgvAgo_(m.ultimaAbrio || m.ultima) + (m.abrio > 1 ? ' (' + m.abrio + ' veces)' : '') + (m.abrioQr ? ' · escaneó el QR' : '') +
         (m.final ? ' · llegó hasta el registro' : '') + ' y no ha llamado ni se registró';
+    if (m.etapaNota && cgvIsRot_(x.kind)) why += ' · 📝 ' + m.etapaNota;
     var prev = m.seguido ? 'Último seguimiento ' + cgvAgo_(m.seguido) + (m.seguidoPor ? ' (' + m.seguidoPor + ')' : '') : '';
     var wa = ph.length === 10 ? (hub ? go(m, 'wa') : 'https://wa.me/1' + ph + '?text=' + encodeURIComponent(msg)) : '';
     var b = '';
@@ -1068,7 +1100,7 @@ function cgvDigestSend_(force) {
     if (hub) b += btn(go(m, 'ok'), '✓ Listo', '#FFFFFF', '#55534E', '#D4D1CA');
     txt.push('• ' + m.nombre + (m.empresa ? ' · ' + m.empresa : '') + (m.idioma === 'EN' ? ' [EN]' : '') + '\n  ' + why +
       (prev ? '\n  ' + prev : '') + (ph.length === 10 ? '\n  ' + cgvFmtPhone_(ph) : '') + (wa ? '\n  WhatsApp: ' + wa : ''));
-    return '<div style="border:1px solid #E3E0D9;border-left:4px solid ' + (x.kind === 'abrio' ? '#2F6FD6' : '#D9A21B') + ';border-radius:10px;padding:14px 16px;margin:0 0 12px;background:#FFFFFF">' +
+    return '<div style="border:1px solid #E3E0D9;border-left:4px solid ' + (x.kind === 'abrio' ? '#2F6FD6' : cgvIsRot_(x.kind) ? '#F28C38' : '#D9A21B') + ';border-radius:10px;padding:14px 16px;margin:0 0 12px;background:#FFFFFF">' +
       '<div style="font-size:16px;font-weight:700">' + cgvEsc_(m.nombre || m.clave) + (m.idioma === 'EN' ? ' <span style="font-size:11px;padding:2px 6px;border-radius:6px;background:#EEF2FB;color:#2F6FD6">EN</span>' : '') + '</div>' +
       '<div style="font-size:13px;color:#55534E;margin:3px 0 0">' + cgvEsc_((m.empresa ? m.empresa + ' · ' : '') + why) + '</div>' +
       (prev ? '<div style="font-size:12px;color:#8A877F;margin:2px 0 0">' + cgvEsc_(prev) + '</div>' : '') +
@@ -1081,6 +1113,7 @@ function cgvDigestSend_(force) {
     L.forEach(function (x) { html += card(x); });
   };
   section('La abrieron y no han llamado', abrio);
+  section('Sin movimiento en su etapa', rot);
   section('No la han abierto (2 días o más)', sin);
   var n = F.length, fecha = Utilities.formatDate(new Date(), CGV_TZ, 'd/M');
   var subject = '🔔 Por darle seguimiento · ' + n + ' prospecto' + (n === 1 ? '' : 's') + ' · ' + fecha;
@@ -1156,8 +1189,11 @@ function cgvResumenAccion(tok) {
     cgvPresList_().list.some(function (x) { if (x.clave === tk.clave) { m = x; return true; } return false; });
     if (!m) return { ok: false, error: 'no está en Presentaciones' };
     // Si ya se registró un seguimiento en los últimos 10 minutos (doble toque), no lo repite
-    if (m.seguido && Date.now() - new Date(m.seguido).getTime() < 10 * 60000) return { ok: true, repetido: true };
-    cgvPresAppend_({ s: m.clave, n: m.nombre, e: m.empresa, tel: cgvDigits_(m.telefono), correo: m.correo, en: m.idioma === 'EN' }, 'seguimiento', CGV_DIGEST_POR);
+    var reciente = function (iso) { return iso && Date.now() - new Date(iso).getTime() < 10 * 60000; };
+    if (reciente(m.seguido) || reciente(m.enviada)) return { ok: true, repetido: true };
+    // v58: 💬 a uno de 📞 Llamé lleva la presentación → cuenta como envío (lo sube a 📨); lo demás, seguimiento
+    var envio = tk.k === 'wa' && cgvFollowKind_(m, Date.now()) === 'llame';
+    cgvPresAppend_({ s: m.clave, n: m.nombre, e: m.empresa, tel: cgvDigits_(m.telefono), correo: m.correo, en: m.idioma === 'EN' }, envio ? 'whatsapp' : 'seguimiento', CGV_DIGEST_POR);
     return { ok: true };
   });
 }
