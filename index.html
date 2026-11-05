@@ -2595,14 +2595,21 @@ function exportCustomersCSV() {
 // Cada asesora entra con su PIN personal de 6 dígitos (se valida en el backend, Prospectos.gs).
 // Ella solo ve sus prospectos; Joel ve todos, revisa ventas y ve resultados por canal.
 const PROS_CHANNELS = [
+  { id: 'Seguimiento de tienda', icon: '🏪', label: 'Vino a la tienda' },
   { id: 'Redes sociales', icon: '📱' },
   { id: 'Conocido personal', icon: '🤝' },
   { id: 'Referido de un cliente', icon: '🗣️' },
   { id: 'Llamada o mensaje en frío', icon: '📞' },
   { id: 'Visita o evento', icon: '📍' },
-  { id: 'Código personal', icon: '🏷️' },
-  { id: 'Seguimiento de tienda', icon: '🏪' }
+  { id: 'Código personal', icon: '🏷️' }
 ];
+function prosChannelLabel(c) { const x = PROS_CHANNELS.find(y => y.id === c); return x ? (x.label || x.id) : c; }
+// v59: Joel (y cualquier admin) también puede ser dueño del prospecto. Él va primero y viene seleccionado.
+function prosOwnerOptions(cur) {
+  const me = prosAuth.user;
+  const names = [...new Set([me].concat((prosData.users || []).map(u => u.name)))];
+  return names.map(n => `<option value="${escHtml(n)}" ${n === (cur || me) ? 'selected' : ''}>${escHtml(n)}${n === me ? ' (yo)' : ''}</option>`).join('');
+}
 const PROS_PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'WhatsApp', 'Facebook Marketplace', 'Grupo de Facebook', 'Otra'];
 const PROS_RELATIONS = ['Familiar', 'Amigo(a)', 'Vecino(a)', 'Compañero(a) de trabajo', 'Otro'];
 const PROS_INTERESTS = ['Internet', 'Línea móvil', 'TV', 'Accesorios'];
@@ -2868,7 +2875,7 @@ function renderProsManager() {
       ${prosViewChips()}
       <select class="form-input form-select" style="width:auto" onchange="prosFilter.canal=this.value;prosRenderList()">
         <option value="">Todos los canales</option>
-        ${PROS_CHANNELS.map(c => `<option ${prosFilter.canal === c.id ? 'selected' : ''}>${c.id}</option>`).join('')}
+        ${PROS_CHANNELS.map(c => `<option value="${c.id}" ${prosFilter.canal === c.id ? 'selected' : ''}>${c.label || c.id}</option>`).join('')}
       </select>
       <input class="search-input" style="flex:1;min-width:180px" placeholder="Buscar nombre o teléfono…" value="${escHtml(prosFilter.q)}"
         oninput="prosFilter.q=this.value;prosRenderList()">
@@ -3001,7 +3008,6 @@ function prosExportCSV() {
 function openProsNew() {
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   prosForm = { canal: '', interes: ['Internet'], proximo: prosYmd(tomorrow) };
-  const users = (prosData.users || []).filter(u => !u.manager);
   openModal(`
     <div class="modal-title">＋ Nuevo prospecto <button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="form-group"><label class="form-label">Nombre *</label>
@@ -3015,7 +3021,7 @@ function openProsNew() {
     </div>
     <div class="form-group"><label class="form-label">¿De dónde salió? *</label>
       <div class="pros-chips" id="pn-canal">${PROS_CHANNELS.map(c =>
-        `<span class="chip" data-v="${c.id}" onclick="prosPickChannel('${c.id}')">${c.icon} ${c.id}</span>`).join('')}</div></div>
+        `<span class="chip" data-v="${c.id}" onclick="prosPickChannel('${c.id}')">${c.icon} ${c.label || c.id}</span>`).join('')}</div></div>
     <div id="pn-detail"></div>
     <div class="form-group"><label class="form-label">Le interesa</label>
       <div class="pros-chips" id="pn-int">${PROS_INTERESTS.map(i =>
@@ -3038,15 +3044,15 @@ function openProsNew() {
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Hora (opcional)</label><input class="form-input" id="pn-phora" type="time"></div>
-      ${prosAuth.manager ? `<div class="form-group"><label class="form-label">Asesora</label>
-        <select class="form-input form-select" id="pn-asesora">${users.map(u => `<option>${escHtml(u.name)}</option>`).join('')}</select></div>` : '<div></div>'}
+      ${prosAuth.manager ? `<div class="form-group"><label class="form-label">A nombre de</label>
+        <select class="form-input form-select" id="pn-asesora">${prosOwnerOptions()}</select></div>` : '<div></div>'}
     </div>
     <div class="pros-hint" style="margin:-6px 0 14px">Lo normal: mensaje de bienvenida hoy mismo. Después el sistema te va sugiriendo los siguientes pasos.</div>` : `
     <div class="form-row">
       <div class="form-group"><label class="form-label">Próximo seguimiento</label>
         <input class="form-input" id="pn-prox" type="date" value="${prosForm.proximo}"></div>
-      ${prosAuth.manager ? `<div class="form-group"><label class="form-label">Asesora</label>
-        <select class="form-input form-select" id="pn-asesora">${users.map(u => `<option>${escHtml(u.name)}</option>`).join('')}</select></div>` : '<div></div>'}
+      ${prosAuth.manager ? `<div class="form-group"><label class="form-label">A nombre de</label>
+        <select class="form-input form-select" id="pn-asesora">${prosOwnerOptions()}</select></div>` : '<div></div>'}
     </div>`}
     <div class="form-group"><label class="form-label">Notas</label>
       <textarea class="form-input" id="pn-notas" rows="2" placeholder="Qué busca, cuánto paga hoy, cuándo se muda…"></textarea></div>
@@ -3072,7 +3078,9 @@ function prosPickChannel(c) {
     'Código personal': `<div class="form-group"><label class="form-label">Código que mencionó *</label>
         <input class="form-input" id="pn-codigo" style="text-transform:uppercase" placeholder="Ej. LIZ" maxlength="10">
         <div class="pros-hint">Para clientes que llegan a la tienda con el código de una asesora. El prospecto queda a nombre de la dueña del código.</div></div>`,
-    'Seguimiento de tienda': `<div class="pros-hint" style="margin:-6px 0 14px">Cliente que vino a la tienda y no compró. Si después contrata, cuenta como venta de tienda ($40).</div>`
+    'Seguimiento de tienda': `<div class="pros-hint" style="margin:-6px 0 14px">${prosAuth.manager
+      ? 'Cliente que vino a la tienda y no compró. Si lo dejas a tu nombre, cuando alguien active su línea el crédito te queda a ti.'
+      : 'Cliente que vino a la tienda y no compró. Si después contrata, cuenta como venta de tienda ($40).'}</div>`
   }[c] || '';
   document.getElementById('pn-detail').innerHTML = html;
 }
@@ -3215,7 +3223,7 @@ function openProsDetail(id) {
     </div>
     ${segDetailHtml(p)}
     <div class="cust-meta">
-      ${field('Canal', `${p.Canal}${p.Detalle ? ' · ' + p.Detalle : ''}${p.Codigo ? ' · código ' + p.Codigo : ''}`)}
+      ${field('Canal', `${prosChannelLabel(p.Canal)}${p.Detalle ? ' · ' + p.Detalle : ''}${p.Codigo ? ' · código ' + p.Codigo : ''}`)}
       ${field('Registrado', p.Creado + (p.RegistradoPor && p.RegistradoPor !== p.Asesora ? ` por ${p.RegistradoPor}` : ''))}
       ${m ? field('Asesora', p.Asesora) : ''}
       ${field('Vence', active ? `${p.VenceEl} (${prosDaysLeft(p)} días)` : p.VenceEl)}
@@ -3234,6 +3242,13 @@ function openProsDetail(id) {
       ${segOn() ? `<input type="hidden" id="pd-prox" value="${escHtml(p.ProximoSeguimiento)}">` : `<div class="form-group"><label class="form-label">Próximo seguimiento</label><input class="form-input" id="pd-prox" type="date" value="${escHtml(p.ProximoSeguimiento)}"></div>`}
       <div class="form-group"><label class="form-label">Le interesa</label><input class="form-input" id="pd-int" value="${escHtml(p.Interes)}"></div>
     </div>
+    ${m && active ? `<div class="form-row">
+      <div class="form-group"><label class="form-label">A nombre de</label>
+        <select class="form-input form-select" id="pd-owner">${prosOwnerOptions(p.Asesora)}</select></div>
+      <div class="form-group"><label class="form-label">Canal</label>
+        <select class="form-input form-select" id="pd-canal">${PROS_CHANNELS.concat(PROS_CHANNELS.some(c => c.id === p.Canal) ? [] : [{ id: p.Canal, icon: '•' }])
+          .map(c => `<option value="${escHtml(c.id)}" ${c.id === p.Canal ? 'selected' : ''}>${c.icon} ${escHtml(c.label || c.id)}</option>`).join('')}</select></div>
+    </div>` : ''}
     <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" id="pd-notas" rows="2">${escHtml(p.Notas)}</textarea></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
       <button class="btn btn-primary btn-sm" onclick="prosSaveDetail('${id}')">Guardar cambios</button>
@@ -3252,9 +3267,15 @@ function openProsDetail(id) {
 }
 async function prosSaveDetail(id) {
   const v = x => document.getElementById(x).value;
+  const p0 = prosData.prospects.find(x => x.ID === id) || {};
+  const extra = {}, ow = document.getElementById('pd-owner'), ca = document.getElementById('pd-canal');
+  if (ow && ow.value && ow.value !== p0.Asesora) extra.Asesora = ow.value;
+  if (ca && ca.value && ca.value !== p0.Canal) { extra.Canal = ca.value; if (['Seguimiento de tienda', 'Código personal'].includes(ca.value)) extra.Detalle = ''; }
   try {
-    const r = await prosApi('prosUpdate', { id, Direccion: v('pd-dir'), Zip: v('pd-zip'), ProximoSeguimiento: v('pd-prox'), Interes: v('pd-int'), Notas: v('pd-notas') });
+    const r = await prosApi('prosUpdate', { id, Direccion: v('pd-dir'), Zip: v('pd-zip'), ProximoSeguimiento: v('pd-prox'), Interes: v('pd-int'), Notas: v('pd-notas'), ...extra });
     prosReplace(r.prospect);
+    if (extra.Asesora && typeof segData !== 'undefined' && segData && segData.tasks)
+      segData.tasks.forEach(t => { if (t.ProspectoID === id && t.Estado === 'Pendiente') t.Asesora = extra.Asesora; });
     await segSaveDetail(id);
     closeModal(); renderProspects(); toast('Cambios guardados.', 'success');
   } catch (e) { toast(escHtml(e.message), 'error'); }
