@@ -43,11 +43,14 @@ jobs:
         working-directory: backend
         run: |
           mkdir -p /tmp/live && cp .clasp.json /tmp/live/ && (cd /tmp/live && clasp pull >/dev/null)
-          mkdir -p /tmp/prev && PREV="${{ github.event.before }}"; case "$PREV" in ''|0000000*) PREV=HEAD~1;; esac
-          git archive "$PREV" backend 2>/dev/null | tar -x -C /tmp/prev || true
           same() { diff -rq -x .clasp.json -x .claspignore -x README.md -x '*.md' "$1" "$2" >/dev/null 2>&1; }
           if same /tmp/live . ; then echo "Live code already matches."; exit 0; fi
-          if [ -d /tmp/prev/backend ] && same /tmp/live /tmp/prev/backend ; then echo "Live code = previous commit. OK to push."; exit 0; fi
+          # OK if the live code equals ANY earlier version of backend/ saved in GitHub (nothing would be lost).
+          for SHA in $(git -C "$GITHUB_WORKSPACE" log -n 30 --format=%H -- backend); do
+            rm -rf /tmp/prev && mkdir -p /tmp/prev
+            git -C "$GITHUB_WORKSPACE" archive "$SHA" backend | tar -x -C /tmp/prev || continue
+            if same /tmp/live /tmp/prev/backend ; then echo "Live code = GitHub commit ${SHA:0:8}. OK to push."; exit 0; fi
+          done
           echo "::error::The live Apps Script code has changes that are NOT in GitHub (someone edited it in the editor). Not overwriting them."
           diff -r -x .clasp.json /tmp/live . | head -80
           exit 1
