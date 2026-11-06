@@ -831,6 +831,83 @@
   .kit-pick:hover { border-color:var(--blue); }
   .kit-pick b { display:block; font-size:14px; } .kit-pick span { font-size:11px; color:var(--muted); }
   @media (max-width: 700px) { .kit-grid { grid-template-columns:1fr; } .kit-btns { grid-template-columns:1fr; } }
+
+  /* ─── 🧪 Fase 2 (v64) ─── */
+  .p2-tag { margin-left: 12px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(199,166,255,.14); color: #C7A6FF; border: 1px solid rgba(199,166,255,.3); white-space: nowrap; }
+  .p2-cfg { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+  .p2-sw { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; flex-wrap: wrap; }
+  .p2-sw input { width: 16px; height: 16px; margin: 0; flex: none; }
+  .p2-sw span { font-size: 11px; color: var(--muted); }
+  .p2-steps { display: flex; align-items: stretch; gap: 8px; margin: 4px 0 18px; flex-wrap: wrap; }
+  .p2-step { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text);
+    font-family: var(--font-body); cursor: pointer; text-align: left; min-width: 0; flex: 1 1 180px; transition: border-color .15s, background .15s; }
+  .p2-step:hover { border-color: #2C4470; }
+  .p2-step .n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+    background: var(--surface2); border: 1px solid var(--border); color: var(--muted); flex: none; }
+  .p2-step b { display: block; font-size: 14px; }
+  .p2-step small { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p2-step.on { border-color: var(--blue); background: rgba(26,110,255,.08); }
+  .p2-step.on .n { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .p2-step.done .n { background: rgba(0,232,135,.14); border-color: rgba(0,232,135,.4); color: var(--green); }
+  .p2-arrow { align-self: center; color: #33486E; font-size: 16px; }
+  .p2-all { margin-left: auto; align-self: center; background: none; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); padding: 9px 12px; cursor: pointer; font-family: var(--font-body); font-size: 13px; }
+  .p2-all:hover, .p2-all.on { color: var(--text); border-color: var(--blue); }
+  .p2-drop { display: block; text-align: center; padding: 34px 20px; border: 2px dashed #2A3D60; border-radius: 14px; background: var(--surface); cursor: pointer; transition: border-color .15s, background .15s; margin-bottom: 14px; }
+  .p2-drop:hover, .p2-drop.over { border-color: var(--blue); background: rgba(26,110,255,.06); }
+  .p2-drop .big { font-size: 17px; font-weight: 700; }
+  .p2-drop .s { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .p2-rcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .p2-rcard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .p2-rcard .h { font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .p2-rcard .h span { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--yellow); }
+  .p2-rcard.ok { border-color: rgba(0,232,135,.35); }
+  .p2-rcard.ok .h span { color: var(--green); }
+  .p2-rcard .s { font-size: 12px; color: #A9B7CF; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .p2-table td { cursor: pointer; vertical-align: top; }
+  .p2-table tr.p2-sel td { background: rgba(26,110,255,.06); }
+  .p2-ck { width: 17px; height: 17px; margin: 2px 0 0; cursor: pointer; accent-color: var(--blue); }
+  .p2-src { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); white-space: nowrap; }
+  .p2-fix { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .p2-fix > summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+  .p2-disp-head { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+  .p2-disp-head .big { font-family: var(--font-display, inherit); font-size: 20px; font-weight: 800; }
+  .p2-disp-head .s { font-size: 13px; color: var(--muted); margin-top: 4px; max-width: 620px; line-height: 1.5; }
+  .lf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+  .lf-grid .wide { grid-column: span 2; }
+  @media (max-width: 560px) { .lf-grid { grid-template-columns: 1fr; } .lf-grid .wide { grid-column: auto; } }
+  .lf-step { display: inline-flex; align-items: stretch; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .lf-step button { width: 40px; background: var(--surface2); border: 0; color: var(--text); font-size: 18px; cursor: pointer; }
+  .lf-step button:hover { background: #1A2846; }
+  .lf-step input { width: 64px; text-align: center; border: 0; border-radius: 0; -moz-appearance: textfield; }
+  .lf-step input::-webkit-outer-spin-button, .lf-step input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .lf-amt { font-family: var(--font-mono); font-size: 11px; color: var(--green); }
+  .lf-more { margin: 4px 0 14px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--surface2); }
+  .lf-more > summary { cursor: pointer; font-size: 13px; font-weight: 600; }
+  .lf-more > summary span { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .lf-more .lf-grid { margin-top: 10px; }
+  .lf-mergebox { margin-bottom: 12px; border-color: rgba(255,209,102,.6) !important; color: var(--text) !important; }
+  .hs-ov { position: fixed; inset: 0; background: rgba(4,8,16,.62); backdrop-filter: blur(3px); z-index: 3000; display: none; align-items: flex-start; justify-content: center; padding: 10vh 16px 16px; }
+  .hs-ov.open { display: flex; }
+  .hs { width: 100%; max-width: 640px; background: var(--surface); border: 1px solid #2A3D60; border-radius: 14px; box-shadow: 0 24px 70px rgba(0,0,0,.55); overflow: hidden; display: flex; flex-direction: column; max-height: 76vh; }
+  .hs-in { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); color: var(--muted); }
+  .hs-in input { flex: 1; background: none; border: 0; outline: 0; color: var(--text); font-size: 16px; font-family: var(--font-body); min-width: 0; }
+  .hs-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px; }
+  .hs-chips:not(:empty) { padding: 10px 16px 0; }
+  .hs-chips span { font-size: 11px; color: #A9B7CF; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 3px 9px; }
+  .hs-list { overflow-y: auto; padding: 6px; flex: 1; }
+  .hs-g { font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); padding: 10px 10px 4px; }
+  .hs-r { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; cursor: pointer; }
+  .hs-r.on { background: rgba(26,110,255,.14); }
+  .hs-r .ic { width: 28px; height: 28px; display: grid; place-items: center; background: var(--surface2); border-radius: 8px; flex: none; font-size: 14px; }
+  .hs-r .tx { flex: 1; min-width: 0; }
+  .hs-r .tx b { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hs-r .tx small { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hs-r mark { background: rgba(255,209,102,.25); color: inherit; border-radius: 3px; padding: 0 1px; }
+  .hs-id { font-size: 12px; color: var(--muted); }
+  .hs-empty { padding: 26px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+  .hs-foot { display: flex; gap: 14px; align-items: center; padding: 9px 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); }
+  .hs-foot .kbd { margin-right: 3px; }
+  @media (max-width: 640px) { .hs-ov { padding-top: 12px; } .hs { max-height: 88vh; } .p2-arrow { display: none; } .p2-all { margin-left: 0; } }
 </style>
 </head>
 <body>
@@ -861,7 +938,8 @@
 <div class="topbar">
   <div class="logo">MirComm</div>
   <div style="color:var(--muted);font-size:12px;font-weight:600">STORE HUB</div>
-  <button class="desk-capture manager-only" onclick="deskOpenCapture()" title="Captura rápida (Ctrl K)">
+  <span class="p2-tag" id="p2-tag" style="display:none" title="Vista previa de la Fase 2: solo tú la ves (⚙ Configure)">🧪 Preview</span>
+  <button class="desk-capture manager-only" onclick="p2() ? hubSearchOpen() : deskOpenCapture()" title="Captura rápida (Ctrl K)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
     <span class="t">Escribe o dicta un pendiente…</span><span class="kbd">Ctrl K</span></button>
   <div class="topbar-right">
@@ -980,6 +1058,7 @@
         <option value="web">Siempre WhatsApp Web</option>
       </select>
     </div>
+    <div id="config-p2-box"></div>
     <button class="btn btn-primary btn-full" onclick="saveConfig()">Save & Connect</button>
   </div>
 </div>
@@ -1119,6 +1198,7 @@ async function checkPin(val) {
       adminOwner = r.user ? !!r.user.owner : true;
       adminFirma = (r.user && r.user.firma) || (currentUser === 'Joel' ? ADMIN_FIRMA_JOEL : `${currentUser}\nMirComm LLC\n956-603-6505`);
       adminSetTeam();
+      p2Apply();
       try { deskFilter.mine = localStorage.getItem('mircomm_mine_' + currentUser) === '1'; } catch (e) {}
       prosAuth = null; prosData = null; segData = null; prosMgrTried = false;
       nomData = null; nomPeriod = null; nomEdits = {};
@@ -1176,7 +1256,7 @@ function completeLogin() {
 function logout(msg) {
   if (isManager && mgrToken && typeof msg !== 'string') apiPost({ action: 'adminLogout' }).catch(() => {});
   apiCacheClear();
-  currentUser = ''; isManager = false; adminOwner = false; adminFirma = ''; auditData = null; mgrToken = ''; repLoginName = ''; cart = []; stockData = [];
+  currentUser = ''; isManager = false; try { p2Apply(); } catch (e) {} adminOwner = false; adminFirma = ''; auditData = null; mgrToken = ''; repLoginName = ''; cart = []; stockData = [];
   closeModal();
   document.getElementById('rep-pin-box').style.display = 'none';
   document.getElementById('rep-pin-error').textContent = '';
@@ -1196,6 +1276,7 @@ function openConfig() {
   if (!isManager && SHEETS_URL) return;
   document.getElementById('config-url-input').value = SHEETS_URL;
   document.getElementById('config-wa').value = waPref();
+  document.getElementById('config-p2-box').innerHTML = p2ConfigHtml();
   document.getElementById('config-overlay').classList.add('open');
 }
 // ─── WHATSAPP: app de escritorio (whatsapp://) o WhatsApp Web (wa.me) ─────
@@ -1235,6 +1316,7 @@ function saveConfig() {
   SHEETS_URL = url;
   localStorage.setItem('mircomm_url', url);
   try { localStorage.setItem('mircomm_wa', document.getElementById('config-wa').value); } catch (e) {}
+  p2ConfigSave();
   document.getElementById('config-overlay').classList.remove('open');
   toast('Configuration saved!', 'success');
   loadCurrentPage();
@@ -2689,7 +2771,7 @@ async function apiGet(params) {
 }
 async function apiGetNet_(params) {
   if (!SHEETS_URL) { if(isManager) openConfig(); throw new Error('No URL configured'); }
-  const url = new URL(SHEETS_URL);
+  const url = new URL(apiBase());
   Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
   if (mgrToken) url.searchParams.set('mt', mgrToken);
   const r = await fetch(url.toString());
@@ -2701,7 +2783,7 @@ async function apiGetNet_(params) {
 async function apiPost(body) {
   apiCacheClear();
   if (!SHEETS_URL) { if(isManager) openConfig(); throw new Error('No URL configured'); }
-  const r = await fetch(SHEETS_URL, { method: 'POST', body: JSON.stringify(mgrToken ? { ...body, mt: mgrToken } : body) });
+  const r = await fetch(apiBase(), { method: 'POST', body: JSON.stringify(mgrToken ? { ...body, mt: mgrToken } : body) });
   const d = await r.json();
   if (d && d.code === 'AUTH') authExpired(d.error);
   if (d.error) throw new Error(d.error);
@@ -3694,6 +3776,7 @@ async function renderCustomers() {
       <button class="btn btn-ghost" onclick="exportCustomersCSV()">⬇ Exportar CSV</button>
     </div>
     <div id="cust-table"><div class="loading"><div class="spinner"></div></div></div>`;
+  if (p2() && await renderCustomersP2()) return;
   try {
     // v63: the list shows as soon as the Customers sheet arrives; the full sales history
     // (visits, spent, last purchase) fills in right after, without blocking the page.
@@ -3834,7 +3917,8 @@ function openCustomerDetail(phone) {
   const r = c.raw;
   const field = (label, val) => `<div><span>${label}</span>${val ? escHtml(val) : '—'}</div>`;
   const dob = parseAnyDate(r.DOB);
-  const hist = c.history.map(tx => {
+  if (c.history === null) setTimeout(() => custLoadHistory(phone), 0);
+  const hist = (c.history || []).map(tx => {
     let items = []; try { items = JSON.parse(tx.ItemsJSON || '[]'); } catch(_) {}
     const voided = String(tx.Status).toLowerCase() === 'voided';
     const sp = pickField(tx, 'SpectrumAccountNumber');
@@ -3870,7 +3954,7 @@ function openCustomerDetail(phone) {
     <div class="form-label" style="margin-bottom:8px">Historial de compras</div>
     <div class="table-wrap" style="overflow-x:auto"><table>
       <thead><tr><th>Fecha</th><th>Venta</th><th>Artículos</th><th>Total</th><th>Estado</th></tr></thead>
-      <tbody>${hist || `<tr><td colspan="5"><div class="empty-state" style="padding:20px"><p>Sin ventas vinculadas a este teléfono</p></div></td></tr>`}</tbody>
+      <tbody id="cust-hist">${c.history === null ? `<tr><td colspan="5"><div class="loading" style="padding:16px"><div class="spinner"></div></div></td></tr>` : hist || `<tr><td colspan="5"><div class="empty-state" style="padding:20px"><p>Sin ventas vinculadas a este teléfono</p></div></td></tr>`}</tbody>
     </table></div>`, true);
 }
 
@@ -5534,7 +5618,11 @@ async function renderActivations() {
   if (!isManager) { showPage('pos'); return; }
   const el = document.getElementById('content');
   if (!SHEETS_URL) { el.innerHTML = noSheetNotice(); return; }
-  el.innerHTML = `
+  el.innerHTML = p2() ? `
+    <div class="page-title">📡 Activations</div>
+    <div class="page-subtitle">Spectrum · sube los reportes, revisa las diferencias y disputa lo que falte · mes fiscal del 29 al 28</div>
+    <div id="act-p2-bar"></div>
+    <div id="act-body"><div class="loading"><div class="spinner"></div></div></div>` : `
     <div class="page-title">📡 Activations</div>
     <div class="page-subtitle">Spectrum · se registran solas desde el correo de confirmación · mes fiscal del 29 al 28</div>
     <div class="action-row">
@@ -5631,6 +5719,13 @@ function actFiltered() {
 function renderActBody() {
   const body = document.getElementById('act-body');
   if (!body) return;
+  if (p2() && document.getElementById('act-p2-bar')) {
+    const loaded = !!(actReco || actMobReco || actComReco);
+    if (!actP2.step || actP2.auto) { actP2.step = loaded ? 'diff' : 'upload'; actP2.auto = !loaded; }
+    actP2Bar();
+    if (actP2.step !== 'all') { actP2Render(); return; }
+  }
+  const p2All = p2() && !!document.getElementById('act-p2-bar');
   const months = [...new Set(actData.map(a => a.FiscalMonth).filter(Boolean))].sort().reverse();
   const cur = actFiscalMonth(ymdToday());
   if (!months.includes(cur)) months.unshift(cur);
@@ -5695,6 +5790,7 @@ function renderActBody() {
       <div class="stat-card green"><div class="stat-label">Comisión estimada</div><div class="stat-value">${fmtMoney(est)}</div>
         ${estUnknown ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${estUnknown} sin calcular</div>` : ''}</div>
     </div>
+    ${p2All ? `<div class="action-row"><button class="btn btn-ghost" onclick="openActForm()">📱 Registrar línea</button><button class="btn btn-ghost" onclick="actImportNow(false)">↻ Importar correos nuevos</button><button class="btn btn-ghost" onclick="actExportCSV()">⬇ Exportar CSV</button></div>` : `
     ${actPosPanel(actPosReconcile())}
     ${actDupPanel()}
     ${actEmailsPanel()}
@@ -5702,8 +5798,8 @@ function renderActBody() {
     ${actComReco ? actPeriodPanel() : ''}
     ${actComReco ? actComRecoPanel() : ''}
     ${actMobReco ? actMobRecoPanel() : ''}
-    ${actReco ? actRecoPanel() : ''}
-    ${!actReco && !actMobReco && !actComReco ? `<div class="act-hint">${actSavedP && !actSaved ? '⏳ Cargando los reportes guardados…' : '📄 Sube los reportes de Cellmart (Core, Mobile y Commission; puedes escoger los tres juntos) para ver qué conectó, qué se pagó, qué falta cobrar y qué líneas nadie registró. Se guardan solos.'}</div>`
+    ${actReco ? actRecoPanel() : ''}`}
+    ${p2All ? '' : !actReco && !actMobReco && !actComReco ? `<div class="act-hint">${actSavedP && !actSaved ? '⏳ Cargando los reportes guardados…' : '📄 Sube los reportes de Cellmart (Core, Mobile y Commission; puedes escoger los tres juntos) para ver qué conectó, qué se pagó, qué falta cobrar y qué líneas nadie registró. Se guardan solos.'}</div>`
       : `<div class="act-hint" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Cargados: ${[actReco && '📄 Core', actMobReco && '📱 Mobile', actComReco && '💵 Commission'].filter(Boolean).join(' · ')}${!actComReco ? ' · falta el Commission Report para ver los pagos' : ''}
         ${actSaveOff ? '<span style="color:var(--yellow)">· ⚠️ No se guardan: falta instalar Reportes.gs en Apps Script</span>' : actSaved && Object.keys(actSaved).length ? '<span style="color:var(--muted)">· guardados en la hoja, se cargan solos</span>' : ''}
         <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="actExportClaims()">⬇ Lista para reclamar</button></div>`}
@@ -5848,6 +5944,7 @@ async function actDelete(id) {
 // ─── Manual entry (mobile, or anything the email missed) ───
 let actFormPre = {};
 function openActForm(id, pre) {
+  if (p2()) return openLineForm(id, pre);
   actFormPre = pre || {};
   const a = id ? actData.find(x => x.ID === id) || {} : Object.assign({ RepID: 'CMMCL4423' }, pre || {});
   const repOpts = Object.entries(ACT_REPS).map(([rid, n]) => `<option value="${rid}" ${String(a.RepID||'').toUpperCase()===rid?'selected':''}>${n} (${rid})</option>`).join('');
@@ -6391,6 +6488,7 @@ function mlTypeBadge(t, lines) {
 }
 
 function openMlForm(msgId, pre) {
+  if (p2()) return openLineForm(null, pre, msgId);
   const e = msgId ? (mlData.emails || []).find(x => x.MsgId === msgId) : null;
   pre = pre || {};
   mlFormPre = pre;
@@ -11644,7 +11742,7 @@ function deskAskAbout(id) {
 document.addEventListener('keydown', e => {
   if (!isManager) return;
   const k = e.key.toLowerCase();
-  if ((e.ctrlKey || e.metaKey) && k === 'k') { e.preventDefault(); deskOpenCapture(); }
+  if ((e.ctrlKey || e.metaKey) && k === 'k') { e.preventDefault(); if (p2()) { if (document.getElementById('hub-search')?.classList.contains('open')) hubSearchClose(); else hubSearchOpen(); } else deskOpenCapture(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'j') { e.preventDefault(); aiToggle(); }
   else if (e.key === 'Escape' && document.getElementById('ai-drawer')?.classList.contains('open') && !document.getElementById('modal-overlay').classList.contains('open')) aiClose();
 });
@@ -11865,6 +11963,7 @@ async function deskMailSend(draftOnly) {
     closeModal();
     if (draftOnly) { toast('Borrador guardado en Gmail' + (r.adjuntos && r.adjuntos.length ? ' con el formato de disputa adjunto.' : '.'), 'success'); return; }
     (r.items || []).forEach(deskReplace); if (r.espera) deskReplace(r.espera); if (r.tarea) deskReplace(r.tarea);
+    if (typeof deskMail.onSent === 'function') { try { deskMail.onSent(r); } catch (x) { console.error(x); } }
     toast(`✉ Enviado a ${escHtml(c ? c.Nombre : to)}${r.adjuntos && r.adjuntos.length ? ' con el formato de disputa 📎' : ''}.${r.espera ? ' Te aviso el ' + deskNice(r.espera.Fecha) + ' si no contestan.' : ''}${r.tarea ? ' ＋ Pendiente para el ' + deskNice(r.tarea.Fecha) + '.' : ''}`, 'success', 5000);
     if (typeof deskMail.after === 'function') deskMail.after(r);
     deskRerender();
@@ -12031,6 +12130,626 @@ function custMail(phone) {
   deskCompose({ kind: 'general', to: c.email, idiomaIni: es ? 'es' : 'en', noAutoDraft: true,
     datos: `Cliente de la tienda: ${c.name || ''}; teléfono ${fmtPhone(c.phone)}; compañía actual ${c.carrier || r.Carrier || '—'}; idioma ${r.Language || '—'}; compras recientes: ${compras || '—'}.` });
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// 🧪 FASE 2 (v64) — se prueba primero en el perfil de manager
+//   ⚙ Configure → "Phase 2 preview" (solo en esta computadora) y, si ya existe, el "Test backend URL".
+//   Con la vista previa apagada el Hub funciona exactamente igual que en v63.
+//   Para abrirla a todos: P2_FOR_ALL = true (y desplegar el backend a producción).
+//   1) Un solo formulario de líneas (Activations y My Lines) → openLineForm (Lineas.gs → actRepLineSave)
+//   2) Activations en 3 pasos: Upload reports → Differences → Dispute
+//   3) Búsqueda global Ctrl K (Buscar.gs → getSearchIndex) — la captura rápida sigue ahí ("＋ Nuevo pendiente")
+//   4) Customers: el resumen viene calculado del backend (Clientes.gs → getCustomerSummary)
+// ═══════════════════════════════════════════════════════════════════════
+const P2_FOR_ALL = false;
+function p2Pref() { try { return localStorage.getItem('mircomm_p2') === '1'; } catch (e) { return false; } }
+function p2TestUrl() { try { return localStorage.getItem('mircomm_p2_url') || ''; } catch (e) { return ''; } }
+function p2() { return P2_FOR_ALL || (isManager && p2Pref()); }
+// La vista previa del manager usa el backend de prueba si ya está configurado; todos los demás, el de siempre.
+function apiBase() { return (!P2_FOR_ALL && isManager && p2Pref() && p2TestUrl()) || SHEETS_URL; }
+function p2Unknown(e) { return /unknown action|acci[oó]n desconocida|invalid action/i.test(String(e && e.message || e)); }
+function p2Apply() {
+  document.body.classList.toggle('p2', p2());
+  const b = document.querySelector('.desk-capture');
+  if (b) {
+    b.title = p2() ? 'Buscar o capturar (Ctrl K)' : 'Captura rápida (Ctrl K)';
+    const t = b.querySelector('.t'); if (t) t.textContent = p2() ? 'Busca clientes, cuentas, prospectos… o captura un pendiente' : 'Escribe o dicta un pendiente…';
+  }
+  const tag = document.getElementById('p2-tag');
+  if (tag) tag.style.display = p2() && !P2_FOR_ALL ? '' : 'none';
+}
+function p2ConfigHtml() {
+  if (!isManager || P2_FOR_ALL) return '';
+  return `<div class="p2-cfg">
+    <label class="p2-sw"><input type="checkbox" id="config-p2" ${p2Pref() ? 'checked' : ''}> <b>🧪 Phase 2 preview</b> <span>solo en esta computadora y solo con tu perfil de manager</span></label>
+    <div class="form-group" style="margin:10px 0 0"><label class="form-label">Test backend URL (opcional)</label>
+      <input id="config-p2-url" class="form-input mono" style="font-size:12px" placeholder="https://script.google.com/macros/s/…/exec" value="${escHtml(p2TestUrl())}">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">La deployment de prueba que crea GitHub (backend/README.md). Vacío = usa el backend de siempre.</div></div>
+  </div>`;
+}
+function p2ConfigSave() {
+  const on = document.getElementById('config-p2'); if (!on) return;
+  const url = (document.getElementById('config-p2-url')?.value || '').trim();
+  if (url && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) { toast('El Test backend URL no se ve bien (debe terminar en /exec). No lo guardé.', 'error', 5000); }
+  else try { localStorage.setItem('mircomm_p2_url', url); } catch (e) {}
+  try { localStorage.setItem('mircomm_p2', on.checked ? '1' : '0'); } catch (e) {}
+  apiCacheClear(); hubIdx = null; p2Apply();
+}
+
+// ─── 4) CUSTOMERS: resumen calculado en el backend ──────────────────
+async function renderCustomersP2() {
+  try {
+    const r = await apiGet({ action: 'getCustomerSummary', store: currentStore });
+    customersData = (r.customers || []).map(c => ({
+      raw: c, phone: c.Phone, history: null, name: c.Name || '', email: c.Email || '', carrier: c.Carrier || '', language: c.Language || '',
+      consent: !!c.Consent, last: parseAnyDate(c.last), first: parseAnyDate(c.first), visits: +c.visits || 0, spent: +c.spent || 0, daysSince: c.daysSince ?? null }));
+    renderCustomerTable();
+    return true;
+  } catch (e) {
+    if (p2Unknown(e)) { toast('El backend todavía no tiene getCustomerSummary: uso el cálculo de antes.', 'info', 4000); return false; }
+    document.getElementById('cust-table').innerHTML = errorState(e.message);
+    return true;
+  }
+}
+async function custLoadHistory(phone) {
+  const c = customersData.find(x => x.phone === phone); if (!c || c.history) return;
+  const box = document.getElementById('cust-hist');
+  try {
+    const r = await apiGet({ action: 'getCustomerHistory', store: currentStore, phone });
+    c.history = r.sales || [];
+    if (document.getElementById('cust-hist')) openCustomerDetail(phone);
+  } catch (e) { if (box) box.innerHTML = `<div class="act-hint" style="color:var(--red)">${escHtml(e.message)}</div>`; }
+}
+
+// ─── 1) UN SOLO FORMULARIO DE LÍNEAS ────────────────────────────────
+// Lo usan Joel/administradores (Activations, caja, reportes) y las asesoras (My Lines, caja).
+// Prefijo de los campos: 'af' (administrador) o 'ml' (asesora), para que el aviso de crédito,
+// el socio que refirió y la revisión de la cuenta sigan funcionando igual que antes.
+let lf = null;   // { id, pre, msgId, P, mgr, info, merge }
+async function openLineForm(id, pre, msgId) {
+  const mgr = isManager, P = mgr ? 'af' : 'ml';
+  pre = pre || {};
+  if (mgr && !actData.length) { try { actData = await apiGet({ action: 'getActivations' }); } catch (e) {} }
+  if (!mgr && (!mlData || !mlData.me)) {
+    if (!prosAuth) { toast('Entra con tu PIN en My Lines primero.', 'error'); showPage('mylines'); return; }
+    try { mlData = await mlApi('actRepList'); } catch (e) { toast(escHtml(e.message), 'error'); return; }
+  }
+  const a = id ? actData.find(x => x.ID === id) || {} : {};
+  const e = msgId ? ((mgr ? (actEmails || []) : (mlData.emails || [])).find(x => x.MsgId === msgId) || null) : null;
+  const v = Object.assign({}, a, pre);
+  if (e && !id) { if (!v.CustomerName) v.CustomerName = mlTitle(e.FirstName); if (!v.MobileOrder) v.MobileOrder = e.OrderNumber; if (!v.OrderDate) v.OrderDate = e.OrderDate; }
+  lf = { id: id || '', pre, msgId: msgId || '', P, mgr, info: null, merge: null };
+  actFormPre = mgr ? pre : actFormPre; mlFormPre = mgr ? mlFormPre : pre;
+  const today = mgr ? ymdToday() : mlData.today;
+  const minDate = mgr ? '' : (pre.PosSaleID && pre.OrderDate ? pre.OrderDate : ymdAdd(today, -7));
+  const maxDate = mgr ? today : (pre.PosSaleID && pre.OrderDate ? [ymdAdd(pre.OrderDate, 3), today].sort()[0] : today);
+  const lines = id ? (v.MobileLines || '') : (v.MobileLines || '1');
+  const reps = mgr ? Object.entries(ACT_REPS).map(([rid, n]) => ({ id: rid, name: n }))
+    : (mlData.me.repIds || []).map(r => ({ id: r, name: mlData.me.name })).concat((mlData.reps || []).filter(r => !(mlData.me.repIds || []).includes(r.id)));
+  const curRep = String(v.RepID || (mgr ? (Object.entries(ACT_REPS).find(([, n]) => n === currentUser) || ['CMMCL4423'])[0] : (reps[0] || {}).id || '')).toUpperCase();
+  const hasMore = !!(v.InternetTier || v.VideoTier || v.Confirmation);
+  const tierOpts = ['', '100', '500', '1 Gig', '2 Gig'];
+  const f = (k, label, inner, cls) => `<div class="form-group ${cls || ''}"><label class="form-label">${label}</label>${inner}</div>`;
+  const val = k => escHtml(v[k] || '');
+  openModal(`
+    <div class="modal-title">${id ? '✏️ Editar activación' : '📱 Registrar línea'}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${pre._from ? `<div class="act-hint" style="margin-bottom:12px">${escHtml(pre._from)}</div>` : ''}
+    ${e ? `<div class="act-hint" style="margin-bottom:12px">📧 Del correo de Spectrum: <b>${escHtml(mlTitle(e.FirstName))}</b> · orden #${escHtml(e.OrderNumber)} · ${actFmtDate(e.OrderDate)}</div>` : ''}
+    ${pre.PosSaleID && !pre._from ? `<div class="act-hint" style="margin-bottom:12px">🛒 De la venta <b>${escHtml(pre.PosSaleID)}</b> en caja${pre.gift ? ' · 🎁 teléfono regalado' : ''}. Completa lo que falte.</div>` : ''}
+    <div class="lf-grid">
+      ${f('date', 'Fecha de la venta *', `<input class="form-input" type="date" id="${P}-date" ${minDate ? `min="${minDate}"` : ''} max="${maxDate}" value="${escHtml(String(v.OrderDate || today).slice(0, 10))}" onchange="lfAcct()">`)}
+      ${mgr ? f('soldby', 'Hecha por (comisión) *', `<select class="form-input form-select" id="af-soldby" onchange="credFormCheck('af')">${hubTeam().map(n => `<option ${(v.SoldBy || actRepName(a) || currentUser) === n ? 'selected' : ''}>${escHtml(n)}</option>`).join('')}</select>`) : ''}
+      ${f('acct', 'Cuenta Spectrum *', `<input class="form-input mono" id="${P}-acct" inputmode="numeric" placeholder="8260…" value="${val('AccountNumber')}" oninput="lfAcctSoon()" onblur="lfAcct()">`, mgr ? 'wide' : '')}
+    </div>
+    <div id="${P}-acct-info"></div><div id="lf-merge"></div><div id="${P}-cred-info"></div>
+    <div class="lf-grid">
+      ${f('name', 'Cliente *', `<input class="form-input" id="${P}-name" placeholder="Nombre y apellido" value="${val('CustomerName')}">`)}
+      ${f('phone', 'Teléfono de contacto', `<input class="form-input" id="${P}-phone" type="tel" placeholder="(956) 000-0000" value="${val('Phone')}" onblur="credFormCheck('${P}')">`)}
+    </div>
+    ${mgr ? '<div id="af-socio-box"></div>' : ''}
+    <div class="form-group"><label class="form-label">Líneas en esta orden${id ? '' : ' *'}</label>
+      <div class="lf-step"><button type="button" onclick="lfLines(-1)" aria-label="Menos">−</button><input class="form-input" type="number" min="${id ? 0 : 1}" max="10" id="${P}-lines" value="${escHtml(lines)}" oninput="lfHint()"><button type="button" onclick="lfLines(1)" aria-label="Más">＋</button></div></div>
+    <div class="form-group" id="lf-type-g"><label class="form-label">Tipo de la primera línea *</label>
+      <div class="ml-types lf-types" id="${P}-type">${ACT_MOBILE_TYPES.map(t => `<label class="ml-type"><input type="radio" name="${P}-type" value="${t}" ${v.MobileType === t ? 'checked' : ''} onchange="lfHint()">
+        <span><b>${escHtml(ACT_MOBILE_TYPE_INFO[t].short)}</b>${mgr ? ` <span class="lf-amt">${t === 'Incremental' ? '$250' : '$150'}</span>` : ''}<br><span style="color:var(--muted);font-size:12px">${escHtml(ACT_MOBILE_TYPE_INFO[t].long)}</span></span></label>`).join('')}</div>
+      <div id="lf-hint" style="font-size:12px;color:var(--muted);margin-top:6px"></div></div>
+    <div class="lf-grid">
+      ${f('order', 'Orden móvil (14 dígitos)', `<input class="form-input mono" id="${P}-morder" inputmode="numeric" placeholder="1238…" value="${val('MobileOrder')}">`)}
+      ${f('lp', 'Número(s) nuevo(s)', `<input class="form-input tel-list" id="${P}-linephones" inputmode="tel" placeholder="(956) 000-0000" value="${val('LinePhones')}">`)}
+      ${f('plan', 'Plan', `<select class="form-input form-select" id="${P}-plan">${['', 'Unlimited', 'Unlimited Plus', 'By the Gig'].map(p => `<option value="${p}" ${(v.MobilePlan || '') === p ? 'selected' : ''}>${p || '—'}</option>`).join('')}</select>`)}
+      ${f('rep', 'Rep ID usado en Spectrum', `<select class="form-input form-select" id="${P}-rep">${reps.map(r => `<option value="${escHtml(r.id)}" ${r.id === curRep ? 'selected' : ''}>${escHtml(r.id)} (${escHtml(r.name)})</option>`).join('')}
+        ${curRep && !reps.some(r => r.id === curRep) ? `<option selected>${escHtml(curRep)}</option>` : ''}${mgr ? '' : '<option value="">Otro / no sé</option>'}</select>`)}
+    </div>
+    ${f('imei', 'IMEI(s)', `<input class="form-input mono" id="${P}-imei" placeholder="Separados por coma" value="${val('IMEIs')}">`)}
+    ${f('notes', 'Notas', `<textarea class="form-input" id="${P}-notes" rows="2" placeholder="Ej. port-in de AT&T, teléfono regalado">${escHtml(v.Notes || '')}</textarea>`)}
+    ${mgr ? `<details class="lf-more" ${hasMore ? 'open' : ''}><summary>Internet, TV y confirmación ${hasMore ? '' : '<span>(normalmente llegan solos con el correo de Spectrum)</span>'}</summary>
+      <div class="lf-grid">
+        ${f('conf', 'Confirmación', `<input class="form-input" id="af-conf" value="${val('Confirmation')}">`)}
+        ${f('int', 'Internet', `<select class="form-input form-select" id="af-int">${tierOpts.map(t => `<option value="${t}" ${(v.InternetTier || '') === t ? 'selected' : ''}>${t || '—'}</option>`).join('')}${v.InternetTier && !tierOpts.includes(v.InternetTier) ? `<option selected>${val('InternetTier')}</option>` : ''}</select>`)}
+        ${f('tv', 'TV', `<input class="form-input" id="af-tv" placeholder="Ej. Stream TV Signature" value="${val('VideoTier')}">`)}
+      </div></details>` : ''}
+    <button class="btn btn-primary btn-full" id="lf-save" onclick="lfSave()">Guardar</button>
+    ${!mgr ? '<div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">Puedes borrar lo que registres hoy si te equivocas. Para algo más viejo, avísale a Joel.</div>' : ''}`);
+  lfHint();
+  if (mgr) socFillActSelect(id || '');
+  setTimeout(() => { const el = document.getElementById(v.AccountNumber ? `${P}-morder` : `${P}-acct`); el && el.focus(); if (v.AccountNumber) lfAcct(true); }, 60);
+}
+function lfEl(k) { return document.getElementById(lf.P + '-' + k); }
+function lfVal(k) { return (lfEl(k)?.value || '').trim(); }
+function lfLines(d) { const el = lfEl('lines'); if (!el) return; el.value = Math.max(lf.id ? 0 : 1, Math.min(10, (+el.value || 0) + d)); lfHint(); }
+let lfTimer = null;
+function lfAcctSoon() { clearTimeout(lfTimer); lf.info = null; lf.merge = null; document.getElementById('lf-merge').innerHTML = ''; if (actAcct(lfVal('acct')).length >= 16) lfTimer = setTimeout(lfAcct, 300); }
+async function lfAcct(keepType) {
+  if (!lf) return;
+  const acct = actAcct(lfVal('acct')), box = lfEl('acct-info');
+  if (!box) return;
+  if (acct.length < 9) { box.innerHTML = ''; lf.info = null; lfHint(); return; }
+  const sel = document.querySelector(`input[name="${lf.P}-type"]:checked`), before = sel ? sel.value : '';
+  let info;
+  if (lf.mgr) {
+    const cur = lf.id ? actData.find(x => x.ID === lf.id) : null;
+    const prior = actPriorMobileRows(acct, cur ? cur.OrderDate : lfVal('date'), lf.id, cur ? cur.CreatedAt : '~');
+    const others = actData.filter(x => x.ID !== lf.id && actAcct(x.AccountNumber) === acct && !(+x.MobileLines > 0));
+    info = { ok: true, account: acct, customerName: (prior[0] || others[0] || {}).CustomerName || '', priorLines: prior.reduce((n, x) => n + (+x.MobileLines || 0), 0),
+      prior: prior.map(x => ({ date: x.OrderDate, lines: +x.MobileLines, by: actRepName(x) })), otherServices: others };
+  } else {
+    if (lf.info && lf.info.account === acct) return;
+    box.innerHTML = `<div class="act-hint" style="margin-bottom:12px">Revisando la cuenta…</div>`;
+    try { info = await mlApi('actRepCheck', { cuenta: acct }); } catch (e) { box.innerHTML = `<div class="act-hint" style="margin-bottom:12px;color:var(--red)">${escHtml(e.message)}</div>`; return; }
+  }
+  lf.info = info;
+  mlShowAcctInfo(info, box, lf.P + '-name', lf.P + '-type');
+  if ((keepType || lf.id) && before) { const r = document.querySelector(`input[name="${lf.P}-type"][value="${before}"]`); if (r) r.checked = true; }
+  lfHint();
+  if (!lf.id) credFormCheck(lf.P);
+}
+function lfHint() {
+  if (!lf) return;
+  const el = document.getElementById('lf-hint'), g = document.getElementById('lf-type-g');
+  const n = +lfVal('lines') || 0;
+  if (g) g.style.display = n > 0 ? '' : 'none';
+  if (!el) return;
+  const t = document.querySelector(`input[name="${lf.P}-type"]:checked`)?.value;
+  let msg = n > 1 ? `Las otras ${n - 1} línea(s) de esta orden cuentan como incrementales.` : '';
+  if (lf.info && lf.info.ok) {
+    if (lf.info.priorLines > 0 && t && t !== 'Incremental') msg = `⚠️ Esta cuenta ya tiene línea(s) nuestra(s): debería ser Incremental. ${msg}`;
+    if (!lf.info.priorLines && t === 'Incremental') msg = `⚠️ No hay líneas nuestras registradas en esta cuenta. ¿Seguro que es incremental? ${msg}`;
+  }
+  el.innerHTML = msg;
+  el.style.color = msg.startsWith('⚠️') ? 'var(--yellow)' : 'var(--muted)';
+}
+function lfData() {
+  const n = lfVal('lines');
+  const d = { OrderDate: lfVal('date'), AccountNumber: actAcct(lfVal('acct')), CustomerName: lfVal('name'), Phone: actAcct(lfVal('phone')),
+    MobileLines: n, MobileType: +n > 0 ? (document.querySelector(`input[name="${lf.P}-type"]:checked`)?.value || '') : '',
+    MobileOrder: lf.mgr ? lfVal('morder').replace(/[^\d,]+/g, ',').replace(/^,|,$/g, '') : actAcct(lfVal('morder')), LinePhones: lfVal('linephones'), MobilePlan: lfVal('plan'),
+    RepID: lfVal('rep'), IMEIs: lfVal('imei'), Notes: lfVal('notes'), PosSaleID: lf.pre.PosSaleID || '' };
+  if (lf.mgr) {
+    Object.assign(d, { SoldBy: lfVal('soldby'), Confirmation: (document.getElementById('af-conf')?.value || '').trim(),
+      InternetTier: document.getElementById('af-int')?.value || '', VideoTier: (document.getElementById('af-tv')?.value || '').trim() });
+    d.Employee = ACT_REPS[String(d.RepID).toUpperCase()] || '';
+    if (lf.id) { d.ID = lf.id; const cur = actData.find(x => x.ID === lf.id) || {}; if (cur.PosSaleID || !d.PosSaleID) delete d.PosSaleID; }
+    else if (lf.pre._extra) Object.entries(lf.pre._extra).forEach(([k, x]) => { if (x && !d[k]) d[k] = x; });
+  }
+  return d;
+}
+async function lfSave(opt = {}) {
+  if (!lf) return;
+  const d = lfData();
+  if (d.AccountNumber.length < 9) { toast('Escribe el número de cuenta completo.', 'error'); return; }
+  if (!d.CustomerName) { toast('Escribe el nombre del cliente.', 'error'); return; }
+  if (!lf.id && !(+d.MobileLines > 0) && !d.InternetTier && !d.VideoTier) { toast('Indica cuántas líneas (o el internet/TV).', 'error'); return; }
+  if (+d.MobileLines > 0 && !d.MobileType && !lf.id) { toast('Escoge el tipo de línea.', 'error'); return; }
+  const order1 = d.MobileOrder.split(',')[0];
+  if (!opt.checked && order1 && order1.length !== 14 && !confirm(`El número de orden tiene ${order1.length} dígitos (normalmente son 14). ¿Guardar así?`)) return;
+  if (lf.mgr && !lf.id && (d.InternetTier || d.VideoTier) && !d.Confirmation && !opt.checked &&
+      !confirm('Pusiste internet/TV sin número de confirmación. Cuando llegue el correo de Spectrum, el internet quedaría dos veces.\n\n¿Guardar así de todos modos?')) return;
+  const btn = document.getElementById('lf-save');
+  if (btn) { if (btn.disabled) return; btn.disabled = true; btn.textContent = 'Guardando…'; }
+  const params = { action: 'actRepLineSave', data: JSON.stringify(d) };
+  if (opt.force) params.force = '1';
+  if (opt.merge) params.merge = opt.merge;
+  if (!lf.mgr) { params.user = prosAuth.user; params.pin = prosAuth.pin; }
+  let r;
+  try { r = await apiGet(params); }
+  catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+    if (p2Unknown(e)) return lfSaveLegacy(d, opt);
+    toast(escHtml(e.message), 'error'); return;
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+  if (r.merge) return lfShowMerge(r.merge);
+  if (r.confirm) { if (confirm(r.confirm)) lfSave(Object.assign({}, opt, { force: true, checked: true })); return; }
+  if (r.already) { toast(escHtml(r.message), 'info'); closeModal(); lfDone(null, d); return; }
+  lfDone(r, d);
+}
+function lfShowMerge(m) {
+  lf.merge = m;
+  const box = document.getElementById('lf-merge'); if (!box) return;
+  box.innerHTML = `<div class="act-hint lf-mergebox">
+    📄 Esta orden ya está registrada${m.source === 'Email' ? ' desde el correo de Spectrum' : ''}: <b>${escHtml(m.name)}</b> · ${actFmtDate(m.date)}${m.internet ? ' · 🌐 ' + escHtml(m.internet) : ''}${m.tv ? ' · 📺 TV' : ''}.
+    <div style="margin:6px 0 8px">Para que el internet no quede dos veces, la línea se agrega a ese registro (con su IMEI, orden móvil y venta de caja).</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" onclick="lfSave({merge:'${escHtml(m.id)}',checked:true})">➕ Agregar la línea a ese registro</button>
+      <button class="btn btn-ghost btn-sm" onclick="lfSave({merge:'new',checked:true})">No, es otra orden</button></div></div>`;
+  box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+// El backend de esta prueba todavía no tiene Lineas.gs: se guarda con las acciones de siempre.
+async function lfSaveLegacy(d, opt) {
+  toast('El backend todavía no tiene el formulario único (Lineas.gs). Guardo como antes.', 'info', 4000);
+  try {
+    if (lf.mgr) { const saved = await apiGet({ action: 'saveActivation', data: JSON.stringify(d) }); lfDone({ ok: true, line: saved }, d); }
+    else {
+      const r = await mlApi('actRepSave', { data: JSON.stringify(d), ...(opt.force ? { force: '1' } : {}) });
+      if (r.confirm) { if (confirm(r.confirm)) lfSaveLegacy(d, Object.assign({}, opt, { force: true })); return; }
+      lfDone(r, d);
+    }
+  } catch (e) { toast(escHtml(e.message), 'error'); }
+}
+async function lfDone(r, d) {
+  const mgr = lf.mgr, wasNew = !lf.id, pre = lf.pre, saved = r && r.line;
+  if (mgr && saved) {
+    if (wasNew) await credAfterSave({ id: saved.ID }, saved);
+    await socAfterActSave(saved);
+    const i = actData.findIndex(x => x.ID === saved.ID);
+    if (i >= 0) actData[i] = saved; else actData.push(saved);
+    if (actReco) actReconcile(actReco.groups, actReco.meta);
+    if (actMobReco) actMobReconcile(actMobReco.groups, actMobReco.meta);
+    if (actComReco) actComReconcile(actComReco.rows, actComReco.adjustments, actComReco.meta);
+    if (actEmails) actEmails = await apiGet({ action: 'getMobileEmails' }).catch(() => actEmails);
+  }
+  closeModal();
+  let cr = null;
+  if (!mgr && r) cr = await credAfterSave({ cuenta: d.AccountNumber });
+  if (r && !cr) toast(r.warning ? '⚠️ ' + escHtml(r.warning) : r.merged ? '✅ Línea agregada al registro de la orden.' : mgr ? 'Activación guardada.' : 'Línea registrada. ¡Gracias!', r.warning ? 'info' : 'success', r.warning ? 6000 : 3000);
+  lf = null; mlAcctInfo = null; hubIdx = null;
+  actFormPre = {}; mlFormPre = {};
+  if (pre.PosSaleID) { if (!mgr) mlData = null; if (!posAfterLineSaved()) { if (currentPage === 'pos') renderPOS(); else loadCurrentPage(); } return; }
+  if (currentPage === 'activations') renderActBody(); else if (currentPage === 'mylines') renderMyLines();
+}
+
+// ─── 2) ACTIVATIONS EN 3 PASOS ──────────────────────────────────────
+let actP2 = { step: '', auto: true };
+const ACT_P2_STEPS = [['upload', '1', 'Upload reports'], ['diff', '2', 'Differences'], ['dispute', '3', 'Dispute']];
+function actP2SelKey() { return 'mircomm_disp_sel'; }
+function actP2Sel() { try { return new Set(JSON.parse(localStorage.getItem(actP2SelKey()) || '[]')); } catch (e) { return new Set(); } }
+function actP2SetSel(s) { try { localStorage.setItem(actP2SelKey(), JSON.stringify([...s])); } catch (e) {} }
+function actP2Sent() { try { return JSON.parse(localStorage.getItem('mircomm_disp_sent') || '{}'); } catch (e) { return {}; } }
+function actP2MarkSent(accts) { const m = actP2Sent(); accts.forEach(a => m[a] = ymdToday()); try { localStorage.setItem('mircomm_disp_sent', JSON.stringify(m)); } catch (e) {} }
+// Todo lo que los reportes dicen que no cuadra, en una sola lista (una fila por activación y reporte)
+function actP2Diffs() {
+  const out = [];
+  actData.forEach(a => {
+    const cs = actComReco && actComReco.byId[a.ID];
+    if (cs && ['overdue', 'under', 'charged'].includes(cs.code)) {
+      const owed = cs.code === 'under' ? (cs.expected || 0) - (cs.paid || 0) : cs.code === 'charged' ? Math.abs(cs.charged || 0) : (cs.expected || 0);
+      out.push({ key: 'com:' + a.ID, src: 'com', a, st: cs, badge: actComBadge(cs), issues: cs.issues, owed: owed > 0 ? owed : 0, left: null, deadline: cs.deadline || '' });
+    }
+    const st = actReco && actReco.byId[a.ID];
+    if (st && ['missing', 'partial', 'chargeback'].includes(st.code))
+      out.push({ key: 'core:' + a.ID, src: 'core', a, st, badge: actStatusBadge(st), issues: st.issues, owed: null, left: st.disputeLeft, deadline: '' });
+    const ms = actMobReco && actMobReco.byId[a.ID];
+    if (ms && (['missing', 'partial'].includes(ms.code) || ms.typeIssue))
+      out.push({ key: 'mob:' + a.ID, src: 'mob', a, st: ms, badge: actMobBadge(ms), issues: ms.issues, owed: null, left: ms.disputeLeft, deadline: '', typeOnly: !['missing', 'partial'].includes(ms.code) });
+  });
+  // Lo más urgente arriba: menos días para disputar, luego lo que más se debe
+  return out.sort((x, y) => ((x.left ?? 999) - (y.left ?? 999)) || ((y.owed || 0) - (x.owed || 0)) || String(y.a.OrderDate).localeCompare(String(x.a.OrderDate)));
+}
+function actP2Fix() {   // cosas que se arreglan en el Hub antes de disputar (no son reclamos a Cellmart)
+  const n = { emails: (actEmails || []).filter(e => e.status === 'pending').length, dup: (typeof actDupPairs === 'function' ? actDupPairs().length : 0) + (typeof actSameSalePairs === 'function' ? actSameSalePairs().length : 0),
+    only: (actReco ? actReco.onlyReport.length : 0) + (actMobReco && actMobReco.onlyReport ? actMobReco.onlyReport.length : 0) };
+  n.total = n.emails + n.dup + n.only;
+  return n;
+}
+function actP2Bar() {
+  const bar = document.getElementById('act-p2-bar'); if (!bar) return;
+  const loaded = [actReco, actMobReco, actComReco].filter(Boolean).length;
+  const diffs = loaded ? actP2Diffs() : [], sel = actP2Sel(), nSel = diffs.filter(d => sel.has(d.key)).length;
+  const fix = loaded ? actP2Fix().total : 0;
+  const meta = { upload: loaded ? `${loaded}/3 cargados` : 'Core · Mobile · Commission', diff: loaded ? `${diffs.length} por revisar${fix ? ` · ${fix} por arreglar` : ''}` : '—', dispute: nSel ? `${nSel} escogido${nSel === 1 ? '' : 's'}` : 'escoge en el paso 2' };
+  const done = { upload: loaded === 3, diff: loaded && !diffs.length, dispute: false };
+  bar.innerHTML = `<div class="p2-steps" role="tablist">${ACT_P2_STEPS.map(([k, n, label], i) => `${i ? '<span class="p2-arrow">→</span>' : ''}
+    <button role="tab" class="p2-step ${actP2.step === k ? 'on' : ''} ${done[k] ? 'done' : ''}" onclick="actP2Go('${k}')"><span class="n">${done[k] ? '✓' : n}</span><span><b>${label}</b><small>${escHtml(meta[k])}</small></span></button>`).join('')}
+    <button class="p2-all ${actP2.step === 'all' ? 'on' : ''}" onclick="actP2Go('all')">📋 All activations</button></div>`;
+}
+function actP2Go(k) { actP2.step = k; actP2.auto = false; renderActBody(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function actP2Render() {
+  const body = document.getElementById('act-body'); if (!body) return;
+  if (actP2.step === 'upload') body.innerHTML = actP2Upload();
+  else if (actP2.step === 'diff') body.innerHTML = actP2DiffHtml();
+  else body.innerHTML = actP2DisputeHtml();
+}
+function actP2Upload() {
+  const card = (k, icon, title, r, desc) => `<div class="p2-rcard ${r ? 'ok' : ''}"><div class="h">${icon} ${title}<span>${r ? '✓ cargado' : 'falta'}</span></div>
+    <div class="s">${r ? escHtml(r.meta.file) : ''}</div><div class="s">${r ? desc(r) : 'Súbelo de Cellmart.'}</div>
+    ${actSaved && actSaved[k] ? `<div class="s" style="color:var(--muted)">guardado ${escHtml(actFmtDate(actSaved[k].guardado || ''))}</div>` : ''}</div>`;
+  const loaded = actReco || actMobReco || actComReco;
+  return `
+    <label class="p2-drop" id="p2-drop" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')"
+      ondrop="event.preventDefault();this.classList.remove('over');actP2Files(event.dataTransfer.files)">
+      <input type="file" accept=".xlsx,.xls,.csv" multiple style="display:none" onchange="actP2Files(this.files);this.value=''">
+      <div class="big">📄 Suelta aquí los reportes de Cellmart</div>
+      <div class="s">Core, Mobile y Commission — los tres juntos. El Hub reconoce cuál es cuál y los guarda solo.</div>
+      <span class="btn btn-primary btn-sm" style="margin-top:10px">Escoger archivos</span></label>
+    ${actSavedP && !actSaved ? '<div class="act-hint">⏳ Cargando los reportes guardados…</div>' : ''}
+    ${actSaveOff ? '<div class="act-hint" style="color:var(--yellow)">⚠️ Los reportes no se guardan: falta Reportes.gs en Apps Script.</div>' : ''}
+    <div class="p2-rcards">
+      ${card('core', '📄', 'Core Report', actReco, r => `${r.meta.accounts} cuentas · al ${actFmtDate(r.meta.upd)}`)}
+      ${card('mobile', '📱', 'Mobile Report', actMobReco, r => `${r.meta.lines} líneas · al ${actFmtDate(r.meta.upd)}`)}
+      ${card('commission', '💵', 'Commission Report', actComReco, r => `${r.meta.items} pagos · hasta ${actFmtDate(r.meta.maxPay)}`)}
+    </div>
+    <div class="p2-side">
+      <div class="pros-section-title" style="margin-top:0">Antes de comparar</div>
+      <div class="action-row" style="margin-bottom:0">
+        <button class="btn btn-ghost" onclick="actImportNow(false)">↻ Importar correos nuevos de Spectrum</button>
+        <button class="btn btn-ghost" onclick="openActForm()">📱 Registrar línea</button>
+        <button class="btn btn-ghost" onclick="openCredOffer()">📝 Anotar línea ofrecida</button>
+      </div>
+    </div>
+    ${loaded ? `<div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-primary" onclick="actP2Go('diff')">Ver diferencias →</button></div>` : ''}`;
+}
+async function actP2Files(files) {
+  await actLoadReports(files);
+  if (actReco || actMobReco || actComReco) { actP2.step = 'diff'; actP2.auto = false; actFilter.fm = ''; }
+  renderActBody();
+}
+const ACT_P2_SRC = { com: ['💵', 'Pago'], core: ['📄', 'Core'], mob: ['📱', 'Mobile'] };
+function actP2DiffHtml() {
+  if (!(actReco || actMobReco || actComReco)) return `<div class="act-hint">Primero sube los reportes en el paso 1. <a href="#" style="color:var(--cyan)" onclick="actP2Go('upload');return false">Ir al paso 1 →</a></div>`;
+  const diffs = actP2Diffs(), sel = actP2Sel(), sent = actP2Sent(), fix = actP2Fix();
+  const owed = diffs.filter(d => sel.has(d.key)).reduce((s, d) => s + (d.owed || 0), 0);
+  const urgent = diffs.filter(d => d.left !== null && d.left <= 7).length;
+  const row = d => {
+    const a = d.a, s = actSvcOf(a), acct = actAcct(a.AccountNumber), was = sent[acct];
+    return `<tr class="${sel.has(d.key) ? 'p2-sel' : ''}">
+      <td onclick="event.stopPropagation()"><input type="checkbox" class="p2-ck" ${sel.has(d.key) ? 'checked' : ''} ${d.typeOnly ? 'title="Tipo de línea por revisar: corrígelo en el registro si fue error nuestro"' : ''} onchange="actP2Toggle('${escHtml(d.key)}',this.checked)"></td>
+      <td onclick="openActDetail('${escHtml(a.ID)}')"><span class="p2-src">${ACT_P2_SRC[d.src][0]} ${ACT_P2_SRC[d.src][1]}</span></td>
+      <td onclick="openActDetail('${escHtml(a.ID)}')"><div style="font-weight:600">${escHtml(a.CustomerName || '—')}</div><div class="mono" style="font-size:11px;color:var(--muted)">${escHtml(a.AccountNumber || '')} · ${actFmtDate(a.OrderDate)} · ${escHtml(actRepName(a))}</div>
+        ${was ? `<div style="font-size:11px;color:var(--cyan)">✉ disputada el ${actFmtDate(was)}</div>` : ''}</td>
+      <td onclick="openActDetail('${escHtml(a.ID)}')">${actSvcChips(s)}</td>
+      <td onclick="openActDetail('${escHtml(a.ID)}')">${d.badge}<div style="font-size:11px;color:var(--muted);margin-top:3px;max-width:340px">${escHtml(d.issues.join(' · '))}</div></td>
+      <td class="mono" style="text-align:right">${d.owed ? fmtMoney(d.owed) : '—'}</td>
+      <td style="white-space:nowrap">${d.left !== null && d.left !== undefined ? `<span style="color:${d.left <= 7 ? 'var(--red)' : 'var(--yellow)'}">${Math.max(d.left, 0)} días</span>` : d.deadline ? `<span style="color:var(--muted);font-size:12px">pago ${actFmtDate(d.deadline)}</span>` : ''}</td></tr>`;
+  };
+  return `
+    <div class="report-grid">
+      <div class="stat-card red"><div class="stat-label">Diferencias</div><div class="stat-value">${diffs.length}</div>
+        ${urgent ? `<div style="font-size:11px;color:var(--red);margin-top:4px">${urgent} con 7 días o menos para disputar</div>` : ''}</div>
+      <div class="stat-card yellow"><div class="stat-label">💵 Pagos que no cuadran</div><div class="stat-value">${diffs.filter(d => d.src === 'com').length}</div></div>
+      <div class="stat-card cyan"><div class="stat-label">📄📱 Sin conectar / sin línea</div><div class="stat-value">${diffs.filter(d => d.src !== 'com').length}</div></div>
+      <div class="stat-card green"><div class="stat-label">Escogido para disputar</div><div class="stat-value">${fmtMoney(owed)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${diffs.filter(d => sel.has(d.key)).length} renglón(es)</div></div>
+    </div>
+    ${diffs.length ? `<div class="action-row" style="margin-bottom:10px">
+        <button class="btn btn-ghost btn-sm" onclick="actP2SelectAll(true)">☑ Escoger todo lo disputable</button>
+        <button class="btn btn-ghost btn-sm" onclick="actP2SelectAll(false)">☐ Quitar todo</button>
+        <button class="btn btn-ghost btn-sm" onclick="actExportClaims()">⬇ Lista completa (CSV)</button>
+        <button class="btn btn-primary" style="margin-left:auto" ${sel.size ? '' : 'disabled'} onclick="actP2Go('dispute')">Disputar lo escogido →</button></div>
+      <div class="table-wrap" style="overflow-x:auto"><table class="p2-table"><thead><tr><th></th><th>Reporte</th><th>Cliente</th><th>Servicios</th><th>Qué no cuadra</th><th style="text-align:right">Se debe</th><th>Plazo</th></tr></thead>
+        <tbody>${diffs.map(row).join('')}</tbody></table></div>`
+      : `<div class="table-wrap"><div class="empty-state" style="padding:34px"><div class="icon">✅</div><p>Todo cuadra con los reportes cargados. Nada que disputar.</p></div></div>`}
+    ${fix.total || credData ? `<details class="p2-fix" ${fix.total ? 'open' : ''}><summary>🧹 Arreglar en el Hub (no son reclamos)${fix.total ? ` <span class="nav-badge y">${fix.total}</span>` : ''}</summary>
+      <div style="font-size:12px;color:var(--muted);margin:6px 0 10px">Correos sin registrar, registros dobles y cuentas que solo vienen en el reporte. Arreglarlos primero hace que las diferencias de arriba sean reales.</div>
+      ${actP2Safe(() => actPosPanel(actPosReconcile()))}${actP2Safe(actDupPanel)}${actP2Safe(actEmailsPanel)}${actP2Safe(credPanel)}</details>` : ''}
+    <details class="p2-fix"><summary>📊 Detalle de cada reporte</summary>
+      ${actComReco ? actP2Safe(actPeriodPanel) + actP2Safe(actComRecoPanel) : ''}${actMobReco ? actP2Safe(actMobRecoPanel) : ''}${actReco ? actP2Safe(actRecoPanel) : ''}</details>`;
+}
+// Un panel viejo que falle no debe tumbar la página nueva
+function actP2Safe(fn) { try { return fn() || ''; } catch (e) { console.error(e); return ''; }
+}
+function actP2Toggle(key, on) { const s = actP2Sel(); on ? s.add(key) : s.delete(key); actP2SetSel(s); actP2Bar(); renderActP2Keep(); }
+function renderActP2Keep() { const y = window.scrollY; actP2Render(); window.scrollTo(0, y); }
+function actP2SelectAll(on) {
+  const s = actP2Sel();
+  actP2Diffs().forEach(d => { if (on && !d.typeOnly) s.add(d.key); if (!on) s.delete(d.key); });
+  actP2SetSel(s); actP2Bar(); renderActP2Keep();
+}
+function actP2Picked() {
+  const sel = actP2Sel();
+  const by = {};
+  actP2Diffs().filter(d => sel.has(d.key)).forEach(d => { const k = actAcct(d.a.AccountNumber); (by[k] = by[k] || { a: d.a, items: [] }).items.push(d); });
+  return Object.values(by);
+}
+function actP2DisputeHtml() {
+  const g = actP2Picked();
+  if (!g.length) return `<div class="act-hint">No has escogido nada. En el paso 2 marca ☑ lo que quieres disputar. <a href="#" style="color:var(--cyan)" onclick="actP2Go('diff');return false">← Ir a Differences</a></div>`;
+  const total = g.reduce((s, x) => s + x.items.reduce((t, d) => t + (d.owed || 0), 0), 0);
+  const soon = g.filter(x => x.items.some(d => d.left !== null && d.left <= 7)).length;
+  return `
+    <div class="p2-disp-head">
+      <div><div class="big">${g.length} cuenta${g.length === 1 ? '' : 's'} · ${fmtMoney(total)}${total ? ' por cobrar' : ''}</div>
+        <div class="s">Un solo correo a ${escHtml(DESK_COMMISSIONS)} con el formato oficial de disputa de Cellmart lleno (una fila por cuenta). Revisas todo antes de enviarlo.${soon ? ` <span style="color:var(--red)">${soon} vence(n) en 7 días o menos.</span>` : ''}</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="actP2Compose()">✉ Preparar correo + formato</button>
+        <button class="btn btn-ghost" onclick="actP2ExportSel()">⬇ CSV de lo escogido</button></div></div>
+    <div class="table-wrap" style="overflow-x:auto"><table><thead><tr><th>Cliente</th><th>Cuenta</th><th>Venta</th><th>Qué se reclama</th><th style="text-align:right">Se debe</th><th></th></tr></thead>
+      <tbody>${g.map(x => `<tr><td style="font-weight:600" onclick="openActDetail('${escHtml(x.a.ID)}')">${escHtml(x.a.CustomerName || '—')}</td>
+        <td class="mono">${escHtml(x.a.AccountNumber || '')}</td><td class="mono">${actFmtDate(x.a.OrderDate)}</td>
+        <td>${x.items.map(d => `<div style="margin-bottom:3px"><span class="p2-src">${ACT_P2_SRC[d.src][0]} ${ACT_P2_SRC[d.src][1]}</span> <span style="font-size:12px;color:var(--muted)">${escHtml(d.issues.join(' · '))}</span></div>`).join('')}</td>
+        <td class="mono" style="text-align:right">${fmtMoney(x.items.reduce((t, d) => t + (d.owed || 0), 0) || null)}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="actP2Unpick('${escHtml(actAcct(x.a.AccountNumber))}')" title="Quitar">✕</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function actP2Unpick(acct) { const s = actP2Sel(); actP2Diffs().forEach(d => { if (actAcct(d.a.AccountNumber) === acct) s.delete(d.key); }); actP2SetSel(s); actP2Bar(); actP2Render(); }
+// Datos para el formato de Cellmart (Disputas.gs) — misma lógica que ✉ Reclamar de una sola cuenta
+function actP2Hint(x) {
+  const a = x.a, s = actSvcOf(a);
+  const mdy = d => { const p = String(d || '').slice(0, 10).split('-'); return p.length === 3 ? `${p[1]}/${p[2]}/${p[0]}` : ''; };
+  const psus = [s.internetTier && 'Internet', s.videoTier && 'TV', s.mobileLines && 'Mobile'].filter(Boolean);
+  const conn = typeof actConnectDate === 'function' ? actConnectDate(a) : '';
+  const com = x.items.find(d => d.src === 'com'), cs = com && com.st;
+  const wrongPay = cs && ['under', 'charged'].includes(cs.code);
+  const info = cs
+    ? `Expected $${cs.expected ?? '?'}, received $${(cs.paid || 0) + (cs.charged || 0)}${cs.charged ? ` (includes $${cs.charged} charged back)` : ''}.`
+    : `Not shown as ${x.items.map(d => d.src === 'mob' ? 'activated in the Mobile Report' : 'connected in the Core Report').join(' / ')}.`;
+  return { psu: psus.join('\n'), esperado: cs ? cs.expected ?? '' : '', pagado: cs ? (cs.paid || 0) + (cs.charged || 0) : '',
+    motivo: wrongPay ? 'Incorrect payouts' : 'Expected payment not received',
+    info: `${info} Sold ${mdy(a.OrderDate)}${conn ? `, connected ${mdy(conn)}` : ''}.${s.mobileLines ? ` ${s.mobileLines} mobile line(s) ${s.mobileType || ''}.` : ''}`.replace(/\s+\./g, '.') };
+}
+function actP2Compose() {
+  const g = actP2Picked(); if (!g.length) return;
+  const hints = {}, lines = [];
+  let owed = 0;
+  g.forEach(x => {
+    const acct = actAcct(x.a.AccountNumber), s = actSvcOf(x.a);
+    hints[acct] = actP2Hint(x);
+    const o = x.items.reduce((t, d) => t + (d.owed || 0), 0); owed += o;
+    lines.push(`Cliente ${x.a.CustomerName}; cuenta ${x.a.AccountNumber}; work order ${x.a.WorkOrder || '—'}; venta ${x.a.OrderDate}; servicios: ${[s.internetTier && 'Internet ' + s.internetTier, s.mobileLines && s.mobileLines + ' línea(s) ' + (s.mobileType || ''), s.videoTier && 'TV ' + s.videoTier].filter(Boolean).join(', ')}; Rep ID ${x.a.RepID || ''}. Problema: ${x.items.map(d => d.issues.join(' · ')).join(' | ')}${o ? `. Se debe ${fmtMoney(o)}` : ''}.`);
+  });
+  const anyPay = g.some(x => x.items.some(d => d.src === 'com' && ['under', 'charged'].includes(d.st.code)));
+  const kind = g.length === 1 && anyPay ? (g[0].items.some(d => d.st.code === 'charged') ? 'cargo' : 'diferencia') : 'disputa';
+  const accts = g.map(x => actAcct(x.a.AccountNumber));
+  deskCompose({ kind, to: DESK_COMMISSIONS, cuentas: g.map(x => x.a.AccountNumber), hints, datos: lines.join('\n'),
+    espera: { titulo: g.length === 1 ? `${DESK_KIND_LABEL[kind]}: ${g[0].a.CustomerName}` : `Disputa de comisión: ${g.length} cuentas`, monto: owed > 0 ? owed : '',
+      ligaTipo: 'cuenta', ligaValor: String(g[0].a.AccountNumber || ''), categoria: 'Cellmart' },
+    onSent: () => {
+      actP2MarkSent(accts);
+      const s = actP2Sel(); actP2Diffs().forEach(d => { if (accts.includes(actAcct(d.a.AccountNumber))) s.delete(d.key); }); actP2SetSel(s);
+      if (currentPage === 'activations') { actP2.step = 'diff'; renderActBody(); }
+    } });
+}
+function actP2ExportSel() {
+  const g = actP2Picked(); if (!g.length) return;
+  const rows = [];
+  g.forEach(x => x.items.forEach(d => rows.push([x.a.OrderDate, actRepName(x.a), x.a.RepID, x.a.CustomerName, x.a.AccountNumber, x.a.Confirmation || x.a.WorkOrder || '', x.a.MobileOrder || '',
+    { com: 'Commission Report', core: 'Core Report', mob: 'Mobile Report' }[d.src], d.issues.join(' | '), d.owed ?? '', d.left ?? (d.deadline ? 'pago ' + d.deadline : '')])));
+  downloadCsv([['Fecha de venta', 'Hecha por', 'Rep ID', 'Cliente', 'Cuenta', 'Confirmación / Work order', 'Orden móvil', 'Reporte', 'Problema', 'Se debe', 'Días para disputar']].concat(rows), `disputa_cellmart_${ymdToday()}.csv`);
+}
+
+// ─── 3) BÚSQUEDA GLOBAL (Ctrl K) ────────────────────────────────────
+let hubIdx = null, hubIdxAt = 0, hubIdxP = null, hubSel = 0, hubRes = [];
+const HUB_T = {
+  customer: { icon: '👥', label: 'Customers' }, prospect: { icon: '🎯', label: 'Prospects' }, activation: { icon: '📡', label: 'Activations' },
+  concierge: { icon: '🏡', label: 'Concierge' }, contact: { icon: '📇', label: 'Contacts' }
+};
+function hubLoadIdx(force) {
+  if (!force && hubIdx && Date.now() - hubIdxAt < 5 * 60000) return Promise.resolve(hubIdx);
+  if (hubIdxP) return hubIdxP;
+  hubIdxP = apiGet({ action: 'getSearchIndex', store: currentStore })
+    .then(r => { hubIdx = hubPrep(r.items || []); hubIdxAt = Date.now(); hubIdx.errors = r.errors || {}; return hubIdx; })
+    .catch(e => { if (p2Unknown(e)) { hubIdx = hubPrep(hubLocalIdx()); hubIdx.local = true; hubIdxAt = Date.now(); return hubIdx; } throw e; })
+    .finally(() => { hubIdxP = null; });
+  return hubIdxP;
+}
+function hubNorm(x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function hubPrep(items) { items.forEach(it => { it.n = hubNorm(it.k); it.tn = hubNorm(it.ti); }); return items; }
+// Sin Buscar.gs en el backend: busca en lo que el Hub ya tiene cargado
+function hubLocalIdx() {
+  const d = v => String(v ?? '').replace(/\D/g, ''), it = [];
+  const add = (t, id, ti, s, keys, dt) => { const ks = keys.filter(Boolean).map(String); it.push({ t, id: String(id), ti: ti || '', s: s || '', d: dt || '',
+    k: (ks.join(' ').toLowerCase() + ' ' + ks.map(d).filter(x => x.length >= 3).join(' ')).trim() }); };
+  (customersData || []).forEach(c => add('customer', c.phone, c.name || c.phone, c.carrier, [c.name, c.phone, c.email]));
+  ((prosData && prosData.prospects) || []).forEach(p => add('prospect', p.ID, p.Nombre, p.Estado, [p.Nombre, d(p.Telefono), p.CuentaSpectrum], p.Creado));
+  (actData || []).forEach(a => add('activation', a.ID, a.CustomerName, a.AccountNumber, [a.CustomerName, a.AccountNumber, d(a.Phone), a.Confirmation, a.MobileOrder], a.OrderDate));
+  if (cgvData) (cgvData.clientes || []).concat(cgvData.socios || []).forEach(r => add('concierge', r.id, r.nombre, r.estatus, [r.nombre, r.empresa, d(r.telefono), r.correo], r.recibido));
+  ((deskData && deskData.contacts) || []).forEach(c => add('contact', c.ID, c.Nombre, c.Empresa, [c.Nombre, c.Empresa, c.Correo, d(c.Telefono)]));
+  return it;
+}
+function hubSearch(q) {
+  if (!hubIdx) return [];
+  const s = q.trim().toLowerCase(); if (!s) return [];
+  const qd = s.replace(/\D/g, ''), digitsOnly = qd.length >= 3 && qd.length >= s.replace(/[\s()+\-.]/g, '').length;
+  const words = hubNorm(s).split(/\s+/).filter(Boolean);
+  const out = [];
+  for (const it of hubIdx) {
+    let score = 0;
+    if (digitsOnly) { const nums = it.k.match(/\d{3,}/g) || []; if (!nums.some(n => n.includes(qd))) continue; score = nums.some(n => n.startsWith(qd)) ? 3 : 2; }
+    else {
+      if (!words.every(w => it.n.includes(w))) continue;
+      const t = it.tn;
+      score = t.startsWith(words[0]) ? 4 : words.every(w => t.includes(w)) ? 3 : 1;
+    }
+    out.push({ it, score });
+  }
+  out.sort((a, b) => b.score - a.score || String(b.it.d).localeCompare(String(a.it.d)));
+  const per = {}, res = [];
+  for (const o of out) { per[o.it.t] = (per[o.it.t] || 0) + 1; if (per[o.it.t] <= 6) res.push(o.it); if (res.length >= 30) break; }
+  return res;
+}
+function hubSearchOpen(prefill) {
+  if (!isManager) return;
+  let ov = document.getElementById('hub-search');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'hub-search'; ov.className = 'hs-ov';
+    ov.innerHTML = `<div class="hs" role="dialog" aria-label="Buscar en el Hub">
+      <div class="hs-in"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="hs-q" autocomplete="off" spellcheck="false" placeholder="Nombre, teléfono, cuenta, orden, correo…" oninput="hubSearchPaint()" onkeydown="hubSearchKey(event)">
+        <span class="kbd">Esc</span></div>
+      <div class="hs-chips" id="hs-chips"></div>
+      <div class="hs-list" id="hs-list"></div>
+      <div class="hs-foot"><span><span class="kbd">↑</span><span class="kbd">↓</span> moverse</span><span><span class="kbd">Enter</span> abrir</span><span id="hs-meta" style="margin-left:auto"></span></div></div>`;
+    ov.addEventListener('mousedown', e => { if (e.target === ov) hubSearchClose(); });
+    document.body.appendChild(ov);
+  }
+  ov.classList.add('open');
+  const q = document.getElementById('hs-q'); q.value = prefill || ''; hubSel = 0;
+  setTimeout(() => q.focus(), 20);
+  hubSearchPaint();
+  hubLoadIdx().then(() => hubSearchPaint()).catch(e => { const l = document.getElementById('hs-list'); if (l) l.innerHTML = `<div class="hs-empty" style="color:var(--red)">${escHtml(e.message)}</div>`; });
+}
+function hubSearchClose() { document.getElementById('hub-search')?.classList.remove('open'); }
+function hubSearchPaint() {
+  const list = document.getElementById('hs-list'); if (!list) return;
+  const q = document.getElementById('hs-q').value;
+  hubRes = hubSearch(q);
+  const meta = document.getElementById('hs-meta');
+  if (meta) meta.textContent = hubIdx ? `${hubIdx.length.toLocaleString()} registros${hubIdx.local ? ' · solo lo cargado' : ''}` : 'cargando…';
+  const chips = document.getElementById('hs-chips');
+  if (chips) chips.innerHTML = !q.trim() ? Object.values(HUB_T).map(t => `<span>${t.icon} ${t.label}</span>`).join('') : '';
+  const cap = q.trim() ? [{ cap: true }] : [];
+  const rows = hubRes.concat(cap);
+  if (hubSel >= rows.length) hubSel = Math.max(0, rows.length - 1);
+  if (!q.trim()) {
+    list.innerHTML = `<div class="hs-empty">${hubIdx ? 'Escribe para buscar en Customers, Prospects, Activations, Concierge y Contacts.' : '<div class="spinner" style="margin:0 auto"></div>'}</div>`;
+    return;
+  }
+  let lastT = '', i = -1;
+  list.innerHTML = (hubRes.length ? '' : `<div class="hs-empty">${hubIdx ? 'Nada con “' + escHtml(q) + '”.' : 'Cargando…'}</div>`) + rows.map(r => {
+    i++;
+    if (r.cap) return `<div class="hs-g">Acción</div><div class="hs-r ${i === hubSel ? 'on' : ''}" data-i="${i}" onmousemove="hubSearchHover(${i})" onclick="hubSearchGo(${i})">
+      <span class="ic">＋</span><span class="tx"><b>Nuevo pendiente: “${escHtml(q.trim())}”</b><small>Captura rápida en My Desk</small></span></div>`;
+    const t = HUB_T[r.t] || { icon: '•', label: r.t };
+    const head = r.t !== lastT ? `<div class="hs-g">${t.icon} ${t.label}</div>` : ''; lastT = r.t;
+    return `${head}<div class="hs-r ${i === hubSel ? 'on' : ''}" data-i="${i}" onmousemove="hubSearchHover(${i})" onclick="hubSearchGo(${i})">
+      <span class="ic">${t.icon}</span><span class="tx"><b>${hubMark(r.ti || '—', q)}</b><small>${escHtml(r.s)}${r.d ? ' · ' + escHtml(actFmtDate(r.d)) : ''}</small></span>
+      ${r.t === 'customer' || /^\d{10}$/.test(r.id) ? `<span class="hs-id mono">${escHtml(r.t === 'customer' ? fmtPhone(r.id) : '')}</span>` : ''}</div>`;
+  }).join('');
+  list.querySelector('.hs-r.on')?.scrollIntoView({ block: 'nearest' });
+}
+function hubMark(text, q) {
+  const words = q.trim().split(/\s+/).filter(w => w.length > 1 && /\D/.test(w));
+  let h = escHtml(text);
+  words.forEach(w => { const re = new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'); h = h.replace(re, '<mark>$1</mark>'); });
+  return h;
+}
+function hubSearchHover(i) { if (hubSel === i) return; hubSel = i; document.querySelectorAll('#hs-list .hs-r').forEach(el => el.classList.toggle('on', +el.dataset.i === i)); }
+function hubSearchKey(e) {
+  const n = hubRes.length + (document.getElementById('hs-q').value.trim() ? 1 : 0);
+  if (e.key === 'ArrowDown') { e.preventDefault(); hubSel = Math.min(n - 1, hubSel + 1); hubSearchPaint(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); hubSel = Math.max(0, hubSel - 1); hubSearchPaint(); }
+  else if (e.key === 'Enter') { e.preventDefault(); hubSearchGo(hubSel); }
+  else if (e.key === 'Escape') { e.preventDefault(); hubSearchClose(); }
+}
+function hubSearchGo(i) {
+  const q = document.getElementById('hs-q').value.trim();
+  if (i === hubRes.length) { hubSearchClose(); deskOpenCapture(q); return; }
+  const r = hubRes[i]; if (!r) return;
+  hubSearchClose();
+  hubOpen(r);
+}
+// Va a la página y abre el registro en cuanto sus datos están cargados
+function hubWait(ready, open, ms = 15000) {
+  const t0 = Date.now();
+  const tick = () => { let ok = false; try { ok = ready(); } catch (e) {} if (ok) { try { open(); } catch (e) { console.error(e); } return; } if (Date.now() - t0 < ms) setTimeout(tick, 150); };
+  tick();
+}
+function hubOpen(r) {
+  const go = page => { if (currentPage !== page) showPage(page); };
+  if (r.t === 'customer') { go('customers'); hubWait(() => customersData.some(c => c.phone === r.id), () => openCustomerDetail(r.id)); }
+  else if (r.t === 'activation') { go('activations'); hubWait(() => actData.some(a => a.ID === r.id) && document.getElementById('act-body'), () => openActDetail(r.id)); }
+  else if (r.t === 'prospect') { go('prospects'); hubWait(() => prosData && prosAuth && prosData.prospects.some(p => p.ID === r.id), () => openProsDetail(r.id)); }
+  else if (r.t === 'concierge') { go('concierge'); hubWait(() => cgvData && cgvFind(r.id), () => cgvOpen(r.id)); }
+  else if (r.t === 'contact') { go('deskContacts'); hubWait(() => currentPage === 'deskContacts' && deskData && (deskData.contacts || []).some(c => c.ID === r.id) && /Contacts/.test(document.querySelector('#content .page-title')?.textContent || ''), () => deskContact(r.id)); }
+}
+
 </script>
 </body>
 </html> 

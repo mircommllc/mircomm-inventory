@@ -258,7 +258,7 @@ var AUD_LABELS = {
   repLogin: 'Entró al Hub', recordSale: 'Registró venta', voidSale: 'Canceló venta', receiveStock: 'Recibió inventario',
   receiveSerializedItem: 'Recibió equipo / SIM', updateProduct: 'Editó producto', deleteProduct: 'Borró producto',
   saveActivation: 'Guardó activación', deleteActivation: 'Borró activación', importActivations: 'Importó activaciones de Gmail',
-  ignoreMobileEmail: 'Marcó correo móvil', actRepSave: 'Registró línea', actRepDelete: 'Borró línea', actRepPay: 'Cambió pago de línea',
+  ignoreMobileEmail: 'Marcó correo móvil', actRepSave: 'Registró línea', actRepLineSave: 'Registró línea', actRepDelete: 'Borró línea', actRepPay: 'Cambió pago de línea',
   actRepOffer: 'Registró línea ofrecida', actRepDismissLine: 'Descartó línea', posDismissLine: 'Descartó línea', posOffer: 'Registró oferta de línea',
   credSet: 'Cambió crédito de venta', credScan: 'Acreditó ventas automáticamente',
   escSave: 'Guardó pendiente', escDone: 'Marcó pendiente', escDelete: 'Borró pendiente', escTop3: 'Escogió sus 3 prioridades',

@@ -1,0 +1,77 @@
+# Deploys the Apps Script backend (backend/) with clasp.
+#   • Every push to main that touches backend/  → TEST deployment (only the manager's "Phase 2 preview" uses it).
+#   • Actions → "Backend deploy" → Run workflow → target: production  → the live Hub everyone uses.
+# One-time setup: backend/README.md
+name: Backend deploy
+on:
+  push:
+    branches: [main]
+    paths: ['backend/**', '.github/workflows/backend.yml']
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Where to deploy'
+        type: choice
+        options: [test, production]
+        default: test
+concurrency: { group: backend-deploy, cancel-in-progress: false }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'test' }}
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      TEST_ID: ${{ vars.TEST_DEPLOYMENT_ID }}
+      PROD_ID: ${{ vars.PROD_DEPLOYMENT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Syntax check
+        run: node tools/check-backend.mjs
+      - name: Not connected to Google yet
+        if: env.CLASPRC_JSON == ''
+        run: echo "::notice::Syntax OK. Nothing deployed — add the CLASPRC_JSON secret first (backend/README.md)."
+      - name: Google login
+        if: env.CLASPRC_JSON != ''
+        run: |
+          printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+          npm i -g @google/clasp@2.4.2 >/dev/null
+      - name: Stop if someone edited the code directly in the Apps Script editor
+        if: env.CLASPRC_JSON != ''
+        working-directory: backend
+        run: |
+          mkdir -p /tmp/live && cp .clasp.json /tmp/live/ && (cd /tmp/live && clasp pull >/dev/null)
+          mkdir -p /tmp/prev && PREV="${{ github.event.before }}"; case "$PREV" in ''|0000000*) PREV=HEAD~1;; esac
+          git archive "$PREV" backend 2>/dev/null | tar -x -C /tmp/prev || true
+          same() { diff -rq -x .clasp.json -x .claspignore -x README.md -x '*.md' "$1" "$2" >/dev/null 2>&1; }
+          if same /tmp/live . ; then echo "Live code already matches."; exit 0; fi
+          if [ -d /tmp/prev/backend ] && same /tmp/live /tmp/prev/backend ; then echo "Live code = previous commit. OK to push."; exit 0; fi
+          echo "::error::The live Apps Script code has changes that are NOT in GitHub (someone edited it in the editor). Not overwriting them."
+          diff -r -x .clasp.json /tmp/live . | head -80
+          exit 1
+      - name: Push code
+        if: env.CLASPRC_JSON != ''
+        working-directory: backend
+        run: clasp push -f
+      - name: Deploy
+        if: env.CLASPRC_JSON != ''
+        working-directory: backend
+        run: |
+          DESC="$TARGET · $(git log -1 --format=%s | cut -c1-80)"
+          if [ "$TARGET" = production ]; then
+            [ -n "$PROD_ID" ] || { echo "::error::Missing variable PROD_DEPLOYMENT_ID — see backend/README.md"; exit 1; }
+            clasp deploy -i "$PROD_ID" -d "$DESC"
+            echo "### ✅ Live Hub updated" >> $GITHUB_STEP_SUMMARY
+          elif [ -n "$TEST_ID" ]; then
+            clasp deploy -i "$TEST_ID" -d "$DESC"
+            echo "### ✅ Test backend updated" >> $GITHUB_STEP_SUMMARY
+          else
+            OUT=$(clasp deploy -d "TEST · manager preview")
+            echo "$OUT"
+            ID=$(echo "$OUT" | grep -o 'AKfy[A-Za-z0-9_-]*' | head -1)
+            { echo "### 🧪 Test deployment created"
+              echo "1. Add repository variable **TEST_DEPLOYMENT_ID** = \`$ID\`"
+              echo "2. In the Hub (manager) → ⚙️ Config → **Test backend URL** = \`https://script.google.com/macros/s/$ID/exec\`"; } >> $GITHUB_STEP_SUMMARY
+          fi

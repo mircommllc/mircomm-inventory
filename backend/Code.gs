@@ -24,7 +24,9 @@ function hubGet_(e) {
   var cg = conciergeRouter_(e); if (cg) return cg;
   var cr = creditoRouter_(e); if (cr) return cr;
   var sg = seguimientoRouter_(e); if (sg) return sg;
+  var ln = lineasRouter_(e); if (ln) return ln;           // v64 · formulario único de líneas (revisa PIN o sesión por su cuenta)
   var gate = authGate_(e); if (gate) return gate;
+  var bs = buscarRouter_(e); if (bs) return bs;           // v64 · búsqueda global (Ctrl K)
     var nom = nominaRouter_(e); if (nom) return nom;
     var soc = sociosRouter_(e); if (soc) return soc;
      var cr = clientesRouter_(e); if (cr) return cr;
