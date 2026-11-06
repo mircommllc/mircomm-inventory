@@ -43,8 +43,14 @@ var PROS_STORE_CHANNEL = 'Seguimiento de tienda';
 var PROS_CODE_CHANNEL = 'Código personal';
 // v60: personas que ya no trabajan en MirComm. Su historial se queda (prospectos, ventas, nómina),
 // pero ya no salen para asignarles prospectos ni para darles crédito de una venta. Lo usa también Credito.gs.
+// v62: las bajas y reingresos ahora se hacen en el Hub → 👥 Equipo (Equipo.gs). Esta lista solo se usa
+// si Equipo.gs no está instalado o la persona no tiene ficha en Equipo.
 var STAFF_BAJAS = { Alondra: '2026-10-31' };
-function staffEsBaja_(name) { return !!STAFF_BAJAS[String(name || '').trim()]; }
+function staffEsBaja_(name) {
+  var n = String(name || '').trim();
+  if (typeof equipoEsBaja_ === 'function') { var b = equipoEsBaja_(n); if (b !== null) return b; }
+  return !!STAFF_BAJAS[n];
+}
 
 // ─── CONFIGURACIÓN (editar y correr una vez) ─────────────────────────
 function configurarProspectos() {
@@ -57,6 +63,13 @@ function configurarProspectos() {
       Alondra: { pin: '061903', manager: false, codigo: 'ALO', repIds: ['CMMLB4898'] }
     }
   };
+  // v62: las personas que se dieron de alta desde 👥 Equipo (y no están en la lista de arriba) se conservan.
+  // OJO: para las que SÍ están arriba, gana lo de arriba (si cambiaste su PIN en el Hub, actualízalo aquí antes de correr esto).
+  var prev = PropertiesService.getScriptProperties().getProperty('PROSPECTOS_CONFIG');
+  if (prev) {
+    var old = (JSON.parse(prev) || {}).usuarios || {};
+    Object.keys(old).forEach(function (n) { if (!config.usuarios[n]) config.usuarios[n] = old[n]; });
+  }
   var seen = {};
   Object.keys(config.usuarios).forEach(function (name) {
     var pin = String(config.usuarios[name].pin);

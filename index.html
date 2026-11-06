@@ -452,6 +452,52 @@
   .sal-sig-line { font-size:11px; color:var(--muted); text-align:center; margin-top:6px; }
   @media (max-width: 1000px) { .sal-wrap { grid-template-columns:1fr; } .sal-prev { position:static; max-height:none; padding:8px; } .sal-paper { padding:20px 16px; } }
   @media (max-width: 520px) { .sal-cks, .sal-sigbtns { grid-template-columns:1fr; } .sal-doc .cols, .sal-doc .sigs { grid-template-columns:1fr !important; } }
+  /* 👥 Equipo (v62) */
+  .eq-top { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:-8px 0 16px; }
+  .eq-alerts { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:10px 14px; margin-bottom:16px; }
+  .eq-alerts h4 { font-family:var(--font-display); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:2px 0 6px; }
+  .eq-al { display:flex; gap:10px; align-items:flex-start; padding:7px 6px; border-top:1px solid var(--border); cursor:pointer; font-size:13px; line-height:1.4; border-radius:6px; }
+  .eq-alerts h4 + .eq-al, .eq-alerts > .eq-al:first-child { border-top:0; }
+  .eq-al:hover { background:var(--surface2); }
+  .eq-dot { width:8px; height:8px; border-radius:50%; margin-top:6px; flex:none; }
+  .eq-dot.r { background:var(--red); } .eq-dot.y { background:var(--yellow); } .eq-dot.c { background:var(--cyan); }
+  .eq-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; }
+  .eq-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; cursor:pointer; transition:border-color .15s, transform .15s; }
+  .eq-card:hover { border-color:var(--blue); transform:translateY(-1px); }
+  .eq-card .nm { font-weight:700; font-size:15px; }
+  .eq-card .sub { color:var(--muted); font-size:12px; margin-top:2px; line-height:1.4; }
+  .eq-pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:.2px; white-space:nowrap; vertical-align:middle; }
+  .eq-pill.g { background:rgba(0,232,135,.12); color:var(--green); } .eq-pill.y { background:rgba(255,209,102,.12); color:var(--yellow); }
+  .eq-pill.r { background:rgba(255,68,85,.12); color:var(--red); } .eq-pill.c { background:rgba(0,196,232,.12); color:var(--cyan); }
+  .eq-pill.m { background:var(--surface2); color:var(--muted); border:1px solid var(--border); }
+  .eq-bar { height:6px; background:var(--surface2); border-radius:4px; overflow:hidden; margin:10px 0 4px; }
+  .eq-bar i { display:block; height:100%; background:linear-gradient(90deg,var(--blue),var(--cyan)); border-radius:4px; }
+  .eq-mini { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; font-size:12px; }
+  .eq-mini span { opacity:.3; } .eq-mini span.on { opacity:1; }
+  .eq-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:6px; }
+  .eq-acts { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 16px; }
+  .eq-f { display:grid; grid-template-columns:minmax(280px,360px) 1fr; gap:18px; align-items:start; }
+  .eq-box { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .eq-h { font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--cyan); margin:0 0 10px; display:flex; align-items:center; gap:8px; }
+  .eq-h .sp { flex:1; }
+  .eq-sub { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:700; margin:4px 0 4px; }
+  .eq-kv { display:grid; grid-template-columns:110px 1fr; gap:7px 10px; font-size:13px; word-break:break-word; }
+  .eq-kv .k { color:var(--muted); }
+  .eq-ck { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-top:1px dashed var(--border); }
+  .eq-ck .ic { width:22px; text-align:center; flex:none; }
+  .eq-ck .tx { flex:1; min-width:0; font-size:13px; }
+  .eq-ck .tx small { display:block; color:var(--muted); font-size:12px; line-height:1.35; margin-top:1px; }
+  .eq-ck.ok b { color:var(--green); } .eq-ck.rec b { color:var(--cyan); } .eq-ck.na b { color:var(--muted); text-decoration:line-through; }
+  .eq-ck .ac { display:flex; gap:2px; flex:none; } .eq-ck .ac .btn { padding:4px 8px; }
+  .eq-docl { display:inline-block; font-size:12px; margin:3px 10px 0 0; color:var(--blue); text-decoration:none; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .eq-accs { display:flex; flex-wrap:wrap; gap:6px; }
+  .eq-acc { border:1px solid var(--border); background:transparent; color:var(--muted); border-radius:20px; padding:6px 11px; font:inherit; font-size:12px; cursor:pointer; }
+  .eq-acc:disabled { cursor:default; }
+  .eq-acc.on { border-color:rgba(0,232,135,.5); color:var(--green); background:rgba(0,232,135,.08); }
+  .eq-sal { border-left:3px solid var(--red); padding:10px 12px; margin:0 0 12px; background:rgba(255,68,85,.05); border-radius:0 10px 10px 0; font-size:13px; }
+  .eq-doc { display:flex; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--border); font-size:13px; }
+  .eq-doc .btn { padding:4px 8px; }
+  @media (max-width: 900px) { .eq-f { grid-template-columns:1fr; } }
   .store-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .dot-palmhurst { background: var(--palmhurst); }
   .date-filter { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -788,7 +834,7 @@
     <div class="login-logo">MirComm</div>
     <div class="login-sub">Palmhurst · Store Hub</div>
     <label class="login-label">Who are you?</label>
-    <div class="employee-grid">
+    <div class="employee-grid" id="emp-grid">
       <button class="emp-btn" onclick="selectEmployee('Lizbeth')">Lizbeth</button>
     </div>
     <div id="rep-pin-box" style="display:none;margin-bottom:16px">
@@ -891,8 +937,8 @@
       <span class="icon">🧾</span> Historial de cambios
     </div>
     <div class="nav-section manager-only">Equipo</div>
-    <div class="nav-item manager-only" data-page="salida" onclick="showPage('salida')">
-      <span class="icon">📄</span> Constancia de salida
+    <div class="nav-item manager-only" data-page="equipo" onclick="showPage('equipo')">
+      <span class="icon">👥</span> Equipo <span class="nav-badge" id="nb-eq"></span>
     </div>
     <div class="nav-section manager-only">Stock</div>
     <div class="nav-item manager-only" data-page="receive" onclick="showPage('receive')">
@@ -968,7 +1014,7 @@
 let mgrToken = '';
 let pinBusy = false;
 let EMPLOYEES = ['Joel', 'Lizbeth'];   // Alondra dejó MirComm el 31 oct 2026
-const HUB_BAJAS = ['Alondra'];   // ya no salen para asignar prospectos ni dar crédito (su historial se queda)
+let HUB_BAJAS = ['Alondra'];   // ya no salen para asignar prospectos ni dar crédito (su historial se queda). v62: se llena sola desde 👥 Equipo
 function hubTeam(list) { return (list || EMPLOYEES).filter(n => !HUB_BAJAS.includes(n)); }
 // Administradores (Joel, Maricela…): entran con su propio PIN; el backend (Admins.gs) dice quién es.
 let adminNames = ['Joel'];
@@ -977,8 +1023,9 @@ let adminFirma = '';
 const ADMIN_FIRMA_JOEL = 'Joel Chavez\nOwner / General Manager\nMirComm LLC · Spectrum Rep ID CMMCL4423\n956-603-6505';
 function isAdminName(n) { return adminNames.includes(n); }
 function adminSetTeam() {
-  EMPLOYEES = [...new Set(adminNames.concat(['Lizbeth']))];
-  DESK_STAFF = [...new Set(adminNames.concat(['Lizbeth']))];
+  const reps = eqTeamCache().activos;   // v62: asesoras activas según 👥 Equipo
+  EMPLOYEES = [...new Set(adminNames.concat(reps))];
+  DESK_STAFF = [...new Set(adminNames.concat(reps))];
 }
 let SHEETS_URL = localStorage.getItem('mircomm_url') || '';
 let currentStore = 'palmhurst';
@@ -1119,7 +1166,9 @@ function completeLogin() {
   if (activeNav) activeNav.classList.add('active');
 
   if (isManager) cgvStartBadge(); else cgvStop();
+  eqData = null; salCtx = null; eqView = { filtro: 'activos', id: '', const: '' };
   loadCurrentPage();
+  if (isManager) eqLoad(true, true);   // 👥 Equipo: avisos en el menú y lista de asesoras activas
   if (kitBoot) setTimeout(kitPicker, 400);
   if (presBoot) setTimeout(() => presOpen(), 600);
 }
@@ -1193,11 +1242,13 @@ function saveConfig() {
 // ─── NAVIGATION ──────────────────────────────────────────────────────
 function showPage(page) {
   // Block non-managers from manager pages
-  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','concierge','audit','desk','deskInbox','deskTasks','deskWait','deskWeek','deskNotes','deskLog','deskContacts','salida'];
+  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','concierge','audit','desk','deskInbox','deskTasks','deskWait','deskWeek','deskNotes','deskLog','deskContacts','salida','equipo'];
   if (managerPages.includes(page) && !isManager) return;
   if (page === 'nomina') nomPreviewRep = '';
   if (page === 'mylines' && isManager) page = 'activations';
   if (page === 'mipago' && isManager) page = 'nomina';
+  if (page === 'salida') page = 'equipo';   // v62: la constancia vive en la ficha de cada persona
+  if (page === 'equipo' && currentPage === 'equipo' && (eqView.id || eqView.const)) { if (salCtx) salFlush(); salCtx = null; eqView.id = ''; eqView.const = ''; }
   currentPage = page;
   repGoalRefresh();
   document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.page === page));
@@ -1219,19 +1270,19 @@ function loadCurrentPage() {
     case 'socios':       renderSocios(); break;
     case 'concierge':    renderConcierge(); break;
     case 'audit':        renderAudit(); break;
-    case 'salida':       renderSalida(); break;
+    case 'salida': case 'equipo': currentPage = 'equipo'; renderEquipo(); break;
     case 'desk': case 'deskInbox': case 'deskTasks': case 'deskWait': case 'deskWeek': case 'deskNotes': case 'deskLog': case 'deskContacts': renderDesk(); break;
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// 📄 CONSTANCIA DE SALIDA (v61) — documento de separación laboral para firmar
+// 📄 CONSTANCIA DE SALIDA (v61 → v62) — documento de separación laboral para firmar
 // Llenas los datos (tipo y motivo de salida, fechas, último pago, devolución de equipo y accesos),
 // se ve el documento al lado en inglés + español, y ambos firman en la pantalla (o en papel).
-// Se guarda en este navegador como borrador. Imprimir / Guardar PDF lo saca en tamaño carta.
-// (Cuando exista la página 👥 Equipo, esto se mueve a la ficha de cada persona y el PDF a Drive.)
+// v62: vive en la ficha de cada persona (👥 Equipo → periodo → 📄 Constancia). Se guarda sola en Equipo.gs,
+// las firmas van como imagen a su carpeta privada de Drive y "💾 Guardar PDF en su ficha" deja el PDF ahí.
 // ═══════════════════════════════════════════════════════════════════════
-const SAL_KEY = 'mircomm_salidas';
+const SAL_KEY = 'mircomm_salidas';   // v61: borradores viejos en el navegador (se pasan solos a la ficha)
 const SAL_TIPOS = {
   renuncia: ['Voluntary resignation by Employee', 'Renuncia voluntaria'],
   despido:  ['Termination by the Company', 'Terminación por parte de la Compañía'],
@@ -1260,7 +1311,7 @@ const SAL_PRESETS = {
   'Alondra Soria Baldomero': { genero: 'f', puesto: 'Sales Representative', ingreso: '2026-06-04', salida: '2026-10-31', repId: 'CMMLB4898',
     pagoFecha: '2026-10-31', pagoMetodo: 'cheque', pagoBanco: 'Chase Bank', pagoNum: '1253', pagoMonto: '224.13' }
 };
-let salAll = {}, salCur = '', salSigWho = '', salSigPad = null;
+let salCtx = null, salSigWho = '', salSigPad = null;   // salCtx = { periodoId, personaId, d, dirty, sigDirty, … }
 
 function salBlank(nombre) {
   const p = SAL_PRESETS[nombre] || {};
@@ -1271,16 +1322,33 @@ function salBlank(nombre) {
     sigE: '', sigEAt: '', sigM: '', sigMAt: '', firmaM: 'Joel Chavez', cargoM: 'Owner and General Manager', creado: new Date().toISOString()
   }, p);
 }
-function salLoad() {
-  try { salAll = JSON.parse(localStorage.getItem(SAL_KEY) || '{}') || {}; } catch (e) { salAll = {}; }
-  if (!Object.keys(salAll).length) { const n = 'Alondra Soria Baldomero'; salAll[n] = salBlank(n); }
-  if (!salCur || !salAll[salCur]) salCur = Object.keys(salAll).sort((a, b) => (salAll[b].creado || '').localeCompare(salAll[a].creado || ''))[0];
+// Se guarda sola en la ficha (Equipo.gs → eqConstSave), 0.9 s después del último cambio
+function salSave(now) {
+  if (!salCtx) return;
+  salCtx.dirty = true; salStatus('Guardando…');
+  clearTimeout(salCtx.t);
+  salCtx.t = setTimeout(salFlush, now ? 0 : 900);
 }
-function salSave() {
-  try { localStorage.setItem(SAL_KEY, JSON.stringify(salAll)); }
-  catch (e) { toast('No se pudo guardar el borrador en este navegador (¿modo privado?). Imprime o guarda el PDF antes de salir.', 'error', 6000); }
+async function salFlush() {
+  const ctx = salCtx; if (!ctx) return;
+  clearTimeout(ctx.t);
+  if (ctx.busy) { await ctx.busy; if (salCtx === ctx && ctx.dirty) return salFlush(); return; }
+  if (!ctx.dirty) return;
+  const d = ctx.d, data = { ...d }; delete data.sigE; delete data.sigM;
+  const body = { periodoId: ctx.periodoId, data }, sd = ctx.sigDirty, un = ctx.unlock;
+  ['E', 'M'].forEach(w => { if (sd[w]) body['sig' + w] = d['sig' + w] || ''; });
+  if (un) body.unlock = true;
+  ctx.dirty = false; ctx.sigDirty = {}; ctx.unlock = false;
+  ctx.busy = apiPost({ action: 'eqConstSave', data: body })
+    .then(() => { if (salCtx === ctx && !ctx.dirty) salStatus('✓ Guardado en su ficha'); })
+    .catch(e => { ctx.dirty = true; ctx.sigDirty = Object.assign({}, sd, ctx.sigDirty); ctx.unlock = ctx.unlock || un; if (salCtx === ctx) salStatus('No se guardó: ' + e.message, true); })
+    .finally(() => { ctx.busy = null; });
+  await ctx.busy;
+  if (salCtx === ctx && ctx.dirty && !ctx.t) salSave();
 }
-function salD() { return salAll[salCur]; }
+function salStatus(t, bad) { const el = document.getElementById('sal-status'); if (el) { el.textContent = t; el.style.color = bad ? 'var(--red)' : 'var(--muted)'; } }
+window.addEventListener('beforeunload', e => { if (salCtx && (salCtx.dirty || salCtx.busy)) { salFlush(); e.preventDefault(); e.returnValue = ''; } });
+function salD() { return salCtx && salCtx.d; }
 function salSigned(d) { return !!((d || salD()).sigE || (d || salD()).sigM); }
 
 // ── formato ──
@@ -1467,10 +1535,9 @@ function salDocHTML(d) {
 // ── página ──
 function renderSalida() {
   if (!isManager) { showPage('pos'); return; }
-  salLoad();
+  if (!salCtx) { eqView.const = ''; renderEquipo(); return; }
   if (!document.getElementById('sal-css')) { const st = document.createElement('style'); st.id = 'sal-css'; st.textContent = SAL_DOC_CSS; document.head.appendChild(st); }
   const d = salD(), lock = salSigned(d);
-  const names = Object.keys(salAll).sort((a, b) => (salAll[b].creado || '').localeCompare(salAll[a].creado || ''));
   const chk = (grp, list) => list.map(([k, en, es]) => {
     const v = d[grp][k];
     return `<label class="sal-ck"><input type="checkbox" ${v ? 'checked' : ''} onchange="salSetK('${grp}','${k}',this.checked)"> ${escHtml(es)}</label>`;
@@ -1478,21 +1545,17 @@ function renderSalida() {
   const opt = (obj, cur, i) => Object.keys(obj).map(k => `<option value="${k}" ${cur === k ? 'selected' : ''}>${escHtml(obj[k][i])}</option>`).join('');
   const f = (k, label, type, extra) => `<div class="form-group"><label class="form-label">${label}</label><input class="form-input" type="${type || 'text'}" value="${escHtml(d[k])}" oninput="salSet('${k}',this.value)" ${extra || ''}></div>`;
   document.getElementById('content').innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="salBack()" style="margin-bottom:12px">← Ficha de ${escHtml(salCtx.nombre)}</button>
     <div class="page-title">📄 Constancia de salida</div>
-    <div class="page-subtitle">Llena los datos, revisa el documento y fírmenlo aquí en la pantalla o imprímanlo para firmar en papel</div>
-    <div class="sal-top">
-      ${names.map(n => `<span class="desk-chip ${n === salCur ? 'on' : ''}" onclick="salPick(${names.indexOf(n)})">${salAll[n].sigE && salAll[n].sigM ? '✅' : salSigned(salAll[n]) ? '✍️' : '📝'} ${escHtml(n || 'Sin nombre')}</span>`).join('')}
-      <button class="btn btn-ghost btn-sm" onclick="salNew()">＋ Nueva</button>
-      <span style="flex:1"></span>
-      <button class="btn btn-ghost btn-sm" onclick="salDelete()" title="Borrar este borrador de este navegador">🗑</button>
-    </div>
+    <div class="page-subtitle">${escHtml(salCtx.nombre)} · periodo ${salCtx.num}. Llena los datos, revisa el documento y fírmenlo aquí en la pantalla o imprímanlo para firmar en papel.</div>
+    <div class="sal-top"><span id="sal-status" style="font-size:12px;color:var(--muted)">Se guarda sola en su ficha</span></div>
     <div class="sal-wrap">
       <div class="sal-form">
         ${lock ? `<div class="act-hint sal-lock">🔒 Ya hay firma(s): los datos quedaron bloqueados para que el documento firmado no cambie.
           <button class="btn btn-ghost btn-sm" onclick="salUnlock()">Editar (borra las firmas)</button></div>` : ''}
         <fieldset ${lock ? 'disabled' : ''} class="sal-fs">
           <div class="sal-sec">Persona</div>
-          <div class="form-row">${f('nombre', 'Nombre completo', 'text', 'onchange="salRename(this.value)"')}${f('puesto', 'Puesto')}</div>
+          <div class="form-row">${f('nombre', 'Nombre completo')}${f('puesto', 'Puesto')}</div>
           <div class="form-row">
             ${f('ingreso', 'Fecha de ingreso', 'date')}${f('salida', 'Fecha de salida (último día)', 'date')}
           </div>
@@ -1548,8 +1611,10 @@ function renderSalida() {
         <div class="sal-tip" style="margin-bottom:12px">Si prefieren firmar en papel, imprime sin firmas: salen las líneas en blanco.</div>
         <div id="sal-missing"></div>
         <div class="sal-actions">
-          <button class="btn btn-primary" style="flex:1;padding:13px" onclick="salPrint()">🖨 Imprimir / Guardar PDF</button>
+          <button class="btn btn-primary" style="flex:1;padding:13px" onclick="salPrint()">🖨 Imprimir / PDF</button>
+          <button class="btn ${d.sigE && d.sigM ? 'btn-primary' : 'btn-ghost'}" style="flex:1;padding:13px" id="sal-drive" onclick="salPdfDrive()">💾 Guardar PDF en su ficha</button>
         </div>
+        <div class="sal-tip">El PDF queda en su carpeta privada de Drive, junto con las firmas.</div>
       </div>
       <div class="sal-prev"><div class="sal-paper" id="sal-paper"></div></div>
     </div>
@@ -1601,26 +1666,9 @@ function salSetK(grp, k, v) {
   d[grp][k] = v; salSave();
   if (grp === 'acc' && k === 'spectrum') renderSalida(); else salPaint();
 }
-function salRename(v) {
-  v = (v || '').trim(); if (!v || v === salCur) return;
-  if (salAll[v]) { toast('Ya hay una constancia con ese nombre.', 'error'); return; }
-  const d = salD(); delete salAll[salCur];
-  if (SAL_PRESETS[v]) Object.keys(SAL_PRESETS[v]).forEach(k => { if (!d[k]) d[k] = SAL_PRESETS[v][k]; });
-  d.nombre = v; salAll[v] = d; salCur = v; salSave(); renderSalida();
-}
-function salPick(i) { const names = Object.keys(salAll).sort((a, b) => (salAll[b].creado || '').localeCompare(salAll[a].creado || '')); salCur = names[i]; renderSalida(); }
-function salNew() {
-  const n = (prompt('Nombre completo de la persona:') || '').trim(); if (!n) return;
-  if (!salAll[n]) salAll[n] = salBlank(n);
-  salCur = n; salSave(); renderSalida();
-}
-function salDelete() {
-  if (!confirm(`¿Borrar la constancia de ${salCur || 'este borrador'} de este navegador? Si ya la firmaron, guarda el PDF primero.`)) return;
-  delete salAll[salCur]; salCur = ''; salSave(); renderSalida();
-}
 function salUnlock() {
   if (!confirm('Para editar hay que borrar las firmas, y tendrán que volver a firmar. ¿Continuar?')) return;
-  const d = salD(); d.sigE = d.sigEAt = d.sigM = d.sigMAt = ''; salSave(); renderSalida();
+  const d = salD(); d.sigE = d.sigEAt = d.sigM = d.sigMAt = ''; salCtx.unlock = true; salCtx.sigDirty = { E: 1, M: 1 }; salSave(true); renderSalida();
 }
 
 // ── firma en pantalla ──
@@ -1666,8 +1714,8 @@ function salSigSave() {
   out.getContext('2d').drawImage(cv, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
   const d = salD(), now = new Date().toISOString();
   if (salSigWho === 'E') { d.sigE = out.toDataURL('image/png'); d.sigEAt = now; } else { d.sigM = out.toDataURL('image/png'); d.sigMAt = now; }
-  salSave(); salSigClose(); renderSalida();
-  toast(d.sigE && d.sigM ? 'Listo: firmado por ambos. Imprime o guarda el PDF y dale una copia.' : 'Firma guardada.', 'success', 4000);
+  salCtx.sigDirty[salSigWho] = 1; salSave(true); salSigClose(); renderSalida();
+  toast(d.sigE && d.sigM ? 'Listo: firmado por ambos. Toca 💾 Guardar PDF en su ficha y dale una copia impresa.' : 'Firma guardada.', 'success', 5000);
 }
 
 // ── imprimir / PDF ──
@@ -1685,6 +1733,707 @@ function salPrint() {
   if (!w) { toast('El navegador bloqueó la ventana. Permite ventanas emergentes para el Hub.', 'error', 5000); return; }
   w.document.open(); w.document.write(html); w.document.close();
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// 👥 EQUIPO (v62) — una ficha por persona (Equipo.gs)
+// Periodos (un reingreso es un periodo nuevo), checklist de entrada, accesos, documentos en Drive privado
+// (I-9 aparte), baja/reingreso que apagan o prenden el PIN, constancia de salida en la ficha,
+// link de alta para que la persona llene desde su teléfono, avisos y "elegible para recontratar".
+// ═══════════════════════════════════════════════════════════════════════
+const EQ_TEAM_KEY = 'mircomm_eq_team';
+const EQ_CHECK = [
+  ['i9', '📋', 'Formulario I-9', 'Se guarda aparte (carpeta "I-9 (aparte)"). La sección 2 se completa a más tardar al 3er día hábil.'],
+  ['w4', '🧾', 'W-4', ''],
+  ['id', '🪪', 'Identificación', 'Pon la fecha en que vence y el Hub te avisa antes.'],
+  ['oferta', '✉️', 'Carta de oferta firmada', ''],
+  ['deposito', '🏦', 'Depósito directo', 'La foto va solo a Drive. Los números de cuenta nunca se escriben en el Hub.'],
+  ['confidencialidad', '🔒', 'Confidencialidad', 'La firma en la pantalla desde su link de alta.'],
+  ['reglas', '📘', 'Reglas de la tienda', 'La firma en la pantalla desde su link de alta.']
+];
+const EQ_ACC = [['pin', '🔢', 'PIN del Hub'], ['correo', '📧', 'Correo mircommusa.com'], ['connecteam', '⏱', 'Connecteam'], ['repId', '📡', 'Rep ID de Spectrum']];
+const EQ_DOC_TIPOS = { i9: 'Formulario I-9', w4: 'W-4', id: 'Identificación', oferta: 'Carta de oferta', deposito: 'Depósito directo',
+  confidencialidad: 'Confidencialidad', reglas: 'Reglas de la tienda', constancia: 'Constancia de salida', firma: 'Firma', otro: 'Otro' };
+const EQ_EST = { activo: ['Activo', 'g'], 'por-entrar': ['Por entrar', 'c'], saliendo: ['Sale pronto', 'y'], baja: ['Baja', 'r'], pendiente: ['Sin periodo', 'm'] };
+const EQ_ROL = { rep: 'Asesora / asesor', admin: 'Administración', otro: 'Otro' };
+let eqData = null, eqView = { filtro: 'activos', id: '', const: '' }, eqLoading = null, eqMigrated = false;
+
+// ── datos ──
+function eqLoad(force, quiet) {
+  if (eqData && !force) return Promise.resolve(eqData);
+  if (eqLoading) return eqLoading;
+  eqLoading = apiPost({ action: 'eqList' })
+    .then(r => { eqData = r; eqApplyTeam(); eqBadge(); return r; })
+    .catch(e => { if (quiet) return null; throw e; })
+    .finally(() => { eqLoading = null; });
+  return eqLoading;
+}
+function eqPersona(id) { return eqData && eqData.personas.find(p => p.id === id); }
+function eqPeriodos(personaId) { return eqData ? eqData.periodos.filter(p => p.personaId === personaId).sort((a, b) => b.num - a.num) : []; }
+function eqDocsDe(personaId, periodoId) { return eqData ? eqData.docs.filter(d => d.personaId === personaId && (periodoId === undefined || d.periodoId === periodoId)) : []; }
+function eqHoy() { return (eqData && eqData.hoy) || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }); }
+function eqNorm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
+function eqFmt(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
+  return `${d} ${['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][m - 1]} ${y}`;
+}
+function eqDays(a, b) { return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5); }
+function eqBizDays(ymd, n) {   // n días hábiles (lun–vie) después de ymd
+  const d = new Date(ymd + 'T12:00:00');
+  while (n > 0) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) n--; }
+  return d.toISOString().slice(0, 10);
+}
+function eqAntig(ingreso, salida) { return ingreso ? salAntig({ ingreso, salida: salida || eqHoy() }, 'es') : ''; }
+function eqFirst(p) { return String((p && p.nombre) || '').split(' ')[0]; }
+function eqPin6() {
+  const used = new Set(); let p = '';
+  for (let i = 0; i < 50; i++) {
+    const a = new Uint32Array(1); crypto.getRandomValues(a); p = String(a[0] % 1000000).padStart(6, '0');
+    if (!/^(\d)\1{5}$/.test(p) && p !== '123456' && p !== '654321' && p !== '000000' && !used.has(p)) return p;
+  }
+  return p;
+}
+
+// ── equipo del Hub (pantalla de entrada, listas de asesoras, bajas) ──
+function eqTeamCache() {
+  try { const t = JSON.parse(localStorage.getItem(EQ_TEAM_KEY) || 'null'); if (t && Array.isArray(t.activos)) return t; } catch (e) {}
+  return { activos: ['Lizbeth'], bajas: ['Alondra'] };
+}
+function eqTeamSet(t) {
+  try { localStorage.setItem(EQ_TEAM_KEY, JSON.stringify({ activos: t.activos, bajas: t.bajas })); } catch (e) {}
+  HUB_BAJAS = [...new Set(HUB_BAJAS.concat(t.bajas))].filter(n => !t.activos.includes(n));
+  EMPLOYEES = [...new Set((isManager ? adminNames : ['Joel']).concat(t.activos))];
+  if (isManager) adminSetTeam();
+  eqPaintLogin(t.activos);
+}
+function eqApplyTeam() {
+  if (!eqData) return;
+  const activos = [], bajas = [];
+  eqData.personas.forEach(p => {
+    if (!p.usuario) return;
+    if (p.estado === 'baja') bajas.push(p.usuario);
+    else if (p.estado !== 'pendiente' && p.rol === 'rep' && p.pinSet) activos.push(p.usuario);
+  });
+  eqTeamSet({ activos, bajas });
+}
+function eqPaintLogin(names) {
+  const g = document.getElementById('emp-grid'); if (!g || !names || !names.length) return;
+  const sel = repLoginName;
+  g.innerHTML = names.slice().sort().map(n => `<button class="emp-btn${n === sel ? ' selected' : ''}" onclick="selectEmployee(${escHtml(JSON.stringify(n))})">${escHtml(n)}</button>`).join('');
+}
+async function eqBootTeam() {
+  const t = eqTeamCache();
+  HUB_BAJAS = [...new Set(HUB_BAJAS.concat(t.bajas))].filter(n => !t.activos.includes(n));
+  EMPLOYEES = [...new Set(['Joel'].concat(t.activos))];
+  eqPaintLogin(t.activos);
+  if (!SHEETS_URL) return;
+  try {
+    const u = new URL(SHEETS_URL); u.searchParams.set('action', 'eqTeam');
+    const r = await (await fetch(u.toString())).json();
+    if (r && r.listo && Array.isArray(r.activos) && r.activos.length) eqTeamSet(r);
+  } catch (e) {}
+}
+
+// ── avisos ──
+function eqAlerts() {
+  if (!eqData) return [];
+  const hoy = eqHoy(), out = [], add = (lv, id, txt) => out.push({ lv, id, txt });
+  eqData.personas.forEach(p => {
+    const pers = eqPeriodos(p.id), cur = pers[0], nm = eqFirst(p);
+    if (!cur) { add('y', p.id, `${nm} no tiene ningún periodo. Ábrelo y dale de alta.`); return; }
+    if (cur.estado !== 'Cerrado') {
+      const en = cur.entrada || {};
+      if (!cur.ingreso) add('y', p.id, `Falta la fecha de ingreso de ${nm}.`);
+      else if (!(en.i9 && (en.i9.st === 'ok' || en.i9.st === 'na'))) {
+        const lim = eqBizDays(cur.ingreso, 3);
+        if (hoy > lim) add('r', p.id, `I-9 de ${nm}: ya pasó el 3er día hábil (${eqFmt(lim)}). Completa la sección 2 y márcalo ✓.`);
+        else if (cur.ingreso <= hoy || eqDays(hoy, cur.ingreso) <= 3) add('y', p.id, `I-9 de ${nm}: complétalo a más tardar el ${eqFmt(lim)}.`);
+      }
+      const falta = EQ_CHECK.filter(([k]) => k !== 'i9' && !(en[k] && en[k].st)).map(c => c[2]);
+      if (falta.length) add('y', p.id, `${nm}: ${falta.length === 1 ? 'falta' : 'faltan'} ${falta.join(', ')}.`);
+      const rev = EQ_CHECK.filter(([k]) => en[k] && en[k].st === 'rec').length;
+      if (rev) add('c', p.id, `${nm} mandó ${rev} documento${rev > 1 ? 's' : ''} desde su link: revísalo${rev > 1 ? 's' : ''} y márcalo${rev > 1 ? 's' : ''} ✓.`);
+      if (p.rol === 'rep' && !p.pinSet) add('r', p.id, `${nm} no tiene PIN: todavía no puede entrar al Hub.`);
+      if (cur.link && !cur.link.hecho && cur.link.vence < hoy && falta.length) add('c', p.id, `El link de alta de ${nm} venció sin que lo llenara. Mándale uno nuevo.`);
+    } else {
+      if (p.estado === 'saliendo') add('c', p.id, `${nm} sale el ${eqFmt(cur.salida)}. Su PIN se apaga al día siguiente.`);
+      const reciente = !cur.salida || eqDays(cur.salida, hoy) <= 90;
+      if (reciente) {
+        if (!(cur.constancia.firmaE && cur.constancia.firmaM)) add('y', p.id, `Constancia de salida de ${nm} sin firmar.`);
+        const pend = SAL_ACC.filter(([k]) => k !== 'hub' && !cur.constancia.acc[k]).length;
+        if (cur.constancia.tiene && pend) add('c', p.id, `${nm}: en su constancia faltan ${pend} acceso(s) por marcar como desactivados.`);
+        if (!p.recontratar) add('c', p.id, `Marca si ${nm} es elegible para recontratar.`);
+      }
+    }
+    pers.forEach(x => { if (x.estado === 'Cerrado' && (!x.ingreso || !x.salida)) add('c', p.id, `Faltan fechas del periodo ${x.num} de ${nm}.`); });
+  });
+  eqData.docs.forEach(d => {
+    if (!d.vence) return;
+    const p = eqPersona(d.personaId); if (!p || p.estado === 'baja') return;
+    const dd = eqDays(eqHoy(), d.vence), t = EQ_DOC_TIPOS[d.tipo] || 'Documento';
+    if (dd < 0) add('r', p.id, `${t} de ${eqFirst(p)} venció el ${eqFmt(d.vence)}. Pídele la nueva.`);
+    else if (dd <= 30) add('y', p.id, `${t} de ${eqFirst(p)} vence el ${eqFmt(d.vence)} (en ${dd} día${dd === 1 ? '' : 's'}).`);
+  });
+  const ord = { r: 0, y: 1, c: 2 };
+  return out.sort((a, b) => ord[a.lv] - ord[b.lv]);
+}
+function eqBadge() {
+  const b = document.getElementById('nb-eq'); if (!b) return;
+  const n = eqAlerts().filter(a => a.lv !== 'c').length;
+  b.textContent = n || ''; b.classList.toggle('y', n > 0);
+}
+
+// ── página ──
+async function renderEquipo() {
+  if (!isManager) { showPage('pos'); return; }
+  if (eqView.const && salCtx) { renderSalida(); return; }
+  const c = document.getElementById('content');
+  if (!eqData) {
+    c.innerHTML = `<div class="page-title">👥 Equipo</div><div class="loading">Cargando…</div>`;
+    try { await eqLoad(true); }
+    catch (e) {
+      const sinInstalar = /desconocida|unknown|invalid action|eqList/i.test(e.message);
+      c.innerHTML = `<div class="page-title">👥 Equipo</div>
+        <div class="act-hint" style="max-width:640px">${sinInstalar
+          ? `Falta instalar <b>Equipo.gs</b> en Apps Script:<ol style="margin:8px 0 0 18px;line-height:1.6">
+              <li>＋ → Script → "Equipo" → pega el archivo → Guardar (y la versión nueva de Prospectos.gs).</li>
+              <li>En Code.gs → hubGet_(e), debajo de <code>prosSessionPin_(e);</code> pega:<br><code>var eq = equipoRouter_(e); if (eq) return eq;</code></li>
+              <li>Escoge <b>instalarEquipo</b> → ▶ Ejecutar → acepta los permisos.</li>
+              <li>Deploy → Manage deployments → ✏️ → New version → Deploy.</li></ol>`
+          : 'No se pudo cargar: ' + escHtml(e.message)}</div>`;
+      return;
+    }
+    if (currentPage !== 'equipo') return;
+  }
+  if (!eqMigrated) { eqMigrated = true; eqMigrateLocal(); }
+  if (eqView.id && eqPersona(eqView.id)) eqPaintFicha(); else { eqView.id = ''; eqPaintList(); }
+}
+function eqGo(id) { eqView.id = id || ''; eqView.const = ''; salCtx = null; renderEquipo(); window.scrollTo(0, 0); }
+async function eqRefresh() { try { await eqLoad(true); } catch (e) { toast(escHtml(e.message), 'error'); } if (currentPage === 'equipo') renderEquipo(); }
+
+function eqPaintList() {
+  const al = eqAlerts(), f = eqView.filtro, hoy = eqHoy();
+  const act = eqData.personas.filter(p => p.estado !== 'baja'), bj = eqData.personas.filter(p => p.estado === 'baja');
+  const list = (f === 'activos' ? act : f === 'bajas' ? bj : eqData.personas).slice()
+    .sort((a, b) => (a.estado === 'baja') - (b.estado === 'baja') || a.nombre.localeCompare(b.nombre));
+  const card = p => {
+    const cur = eqPeriodos(p.id)[0], est = EQ_EST[p.estado] || EQ_EST.pendiente, abierto = cur && cur.estado !== 'Cerrado';
+    const en = (cur && cur.entrada) || {}, hechos = EQ_CHECK.filter(([k]) => en[k] && (en[k].st === 'ok' || en[k].st === 'na')).length;
+    const acc = (cur && cur.accesos) || {};
+    const nAl = al.filter(a => a.id === p.id && a.lv !== 'c').length;
+    return `<div class="eq-card" onclick="eqGo('${p.id}')">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <div style="flex:1;min-width:0"><div class="nm">${escHtml(p.nombre)}</div>
+          <div class="sub">${escHtml((cur && cur.puesto) || EQ_ROL[p.rol] || '')}${p.usuario ? ` · Hub: ${escHtml(p.usuario)}` : ''}</div></div>
+        <span class="eq-pill ${est[1]}">${est[0]}</span>
+      </div>
+      <div class="sub" style="margin-top:8px">${cur ? (abierto
+        ? `Desde ${eqFmt(cur.ingreso)}${cur.ingreso && cur.ingreso <= hoy ? ' · ' + eqAntig(cur.ingreso) : ''}`
+        : `Salió ${eqFmt(cur.salida)}${cur.salida ? ' · trabajó ' + eqAntig(cur.ingreso, cur.salida) : ''}`) : 'Sin periodos'}
+        ${eqPeriodos(p.id).length > 1 ? ` · ${eqPeriodos(p.id).length} periodos` : ''}</div>
+      ${abierto ? `<div class="eq-bar"><i style="width:${Math.round(hechos / EQ_CHECK.length * 100)}%"></i></div>
+        <div class="sub">Papeles de entrada ${hechos}/${EQ_CHECK.length}</div>
+        <div class="eq-mini">${EQ_ACC.map(([k, ic, l]) => `<span class="${(k === 'pin' ? p.pinActivo : acc[k] && acc[k].ok) ? 'on' : ''}" title="${escHtml(l)}">${ic}</span>`).join('')}</div>`
+        : `<div class="eq-mini" style="margin-top:10px">${p.recontratar ? `<span class="on">${p.recontratar === 'Sí' ? '✅' : p.recontratar === 'No' ? '⛔' : '⚠️'} Recontratar: ${escHtml(p.recontratar)}</span>` : '<span class="on" style="color:var(--muted)">Recontratar: sin marcar</span>'}
+          ${cur ? `<span class="on">${cur.constancia.firmaE && cur.constancia.firmaM ? '📄 Constancia firmada' : '📝 Constancia pendiente'}</span>` : ''}</div>`}
+      ${nAl ? `<div class="sub" style="color:var(--yellow);margin-top:6px">⚠ ${nAl} aviso${nAl > 1 ? 's' : ''}</div>` : ''}
+    </div>`;
+  };
+  document.getElementById('content').innerHTML = `
+    <div class="page-title">👥 Equipo</div>
+    <div class="page-subtitle">Altas, bajas, reingresos, papeles y accesos de cada persona. Los documentos quedan en una carpeta privada de Drive.</div>
+    <div class="eq-top">
+      <button class="btn btn-primary" onclick="eqAltaOpen()">＋ Alta nueva</button>
+      <span class="desk-chip ${f === 'activos' ? 'on' : ''}" onclick="eqView.filtro='activos';eqPaintList()">Activos (${act.length})</span>
+      <span class="desk-chip ${f === 'bajas' ? 'on' : ''}" onclick="eqView.filtro='bajas';eqPaintList()">Bajas (${bj.length})</span>
+      <span class="desk-chip ${f === 'todos' ? 'on' : ''}" onclick="eqView.filtro='todos';eqPaintList()">Todos</span>
+      <span style="flex:1"></span>
+      <button class="btn btn-ghost btn-sm" onclick="eqTextosOpen()" title="Reglas y confidencialidad que firman desde el link de alta">⚙ Textos del alta</button>
+      <button class="btn btn-ghost btn-sm" onclick="eqRefresh()" title="Actualizar">↻</button>
+    </div>
+    ${al.length ? `<div class="eq-alerts"><h4>Avisos (${al.length})</h4>${al.map(a => `<div class="eq-al" onclick="eqGo('${a.id}')"><span class="eq-dot ${a.lv}"></span><span>${escHtml(a.txt)}</span></div>`).join('')}</div>` : ''}
+    ${list.length ? `<div class="eq-grid">${list.map(card).join('')}</div>`
+      : `<div class="empty-state"><div class="icon">👥</div><p>${f === 'bajas' ? 'No hay bajas.' : 'No hay nadie aquí todavía.'}</p></div>`}`;
+}
+
+function eqPaintFicha() {
+  const p = eqPersona(eqView.id), pers = eqPeriodos(p.id), cur = pers[0], est = EQ_EST[p.estado] || EQ_EST.pendiente;
+  const abierto = cur && cur.estado !== 'Cerrado', al = eqAlerts().filter(a => a.id === p.id);
+  const kv = (k, v) => `<div class="k">${k}</div><div>${v || '<span style="color:var(--muted)">—</span>'}</div>`;
+  const tel = phoneDigits(p.telefono);
+  const docsTodos = eqDocsDe(p.id).slice().sort((a, b) => String(b.subido).localeCompare(String(a.subido)));
+  document.getElementById('content').innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="eqGo('')" style="margin-bottom:12px">← Equipo</button>
+    <div class="eq-head"><div class="page-title" style="margin:0">${escHtml(p.nombre)}</div><span class="eq-pill ${est[1]}">${est[0]}</span>
+      <span class="eq-pill m">${escHtml(EQ_ROL[p.rol] || p.rol)}</span></div>
+    <div class="page-subtitle" style="margin-bottom:4px">${p.usuario ? `Entra al Hub como <b>${escHtml(p.usuario)}</b> · ` : ''}${p.id}${p.carpeta ? ` · <a href="${escHtml(p.carpeta)}" target="_blank" style="color:var(--blue)">📁 Carpeta privada</a>` : ''}</div>
+    <div class="eq-acts">
+      ${abierto ? `<button class="btn btn-ghost btn-sm" onclick="eqLinkOpen('${cur.id}')">📲 Link de alta</button>
+        <button class="btn btn-ghost btn-sm" onclick="eqBajaOpen('${p.id}')">🚪 Dar de baja</button>`
+        : `<button class="btn btn-primary btn-sm" onclick="eqAltaOpen('${p.id}')">↩ Reingreso</button>`}
+      <button class="btn btn-ghost btn-sm" onclick="eqDatosOpen('${p.id}')">✏️ Datos</button>
+      ${p.rol === 'rep' || p.usuario ? `<button class="btn btn-ghost btn-sm" onclick="eqPinOpen('${p.id}')">🔢 ${p.pinSet ? 'Cambiar PIN' : 'Poner PIN'}</button>` : ''}
+      <button class="btn btn-ghost btn-sm" onclick="eqUploadOpen('${p.id}','${cur ? cur.id : ''}','')">📎 Subir documento</button>
+      ${tel.length === 10 ? `<a class="btn btn-ghost btn-sm" href="https://wa.me/1${tel}" target="_blank">💬 WhatsApp</a>` : ''}
+    </div>
+    ${al.length ? `<div class="eq-alerts">${al.map(a => `<div class="eq-al" style="cursor:default"><span class="eq-dot ${a.lv}"></span><span>${escHtml(a.txt)}</span></div>`).join('')}</div>` : ''}
+    <div class="eq-f">
+      <div>
+        <div class="eq-box"><div class="eq-h">Datos<span class="sp"></span><button class="btn btn-ghost btn-sm" onclick="eqDatosOpen('${p.id}')">✏️</button></div>
+          <div class="eq-kv">
+            ${kv('Teléfono', tel.length === 10 ? `<a href="tel:${tel}" style="color:var(--text)">${escHtml(fmtPhone(tel))}</a>` : escHtml(p.telefono))}
+            ${kv('Correo', escHtml(p.correoPersonal))}
+            ${kv('Correo MirComm', escHtml(p.correoEmpresa))}
+            ${kv('Dirección', escHtml(p.direccion))}
+            ${kv('Emergencia', escHtml(p.emergencia))}
+            ${p.notas ? kv('Notas', `<span style="white-space:pre-wrap">${escHtml(p.notas)}</span>`) : ''}
+          </div></div>
+        <div class="eq-box"><div class="eq-h">Accesos</div>
+          <div class="eq-kv">
+            ${kv('PIN del Hub', !p.usuario && p.rol !== 'rep' ? '—' : p.pinActivo ? '<span style="color:var(--green)">● Activo</span>' : p.pinSet ? '<span style="color:var(--red)">● Apagado (baja)</span>' : '<span style="color:var(--yellow)">Sin PIN</span>')}
+            ${kv('Código', escHtml(p.codigo))}
+            ${kv('Rep IDs', p.repIds.map(escHtml).join(', '))}
+            ${kv('Connecteam', escHtml(p.connecteam))}
+          </div>
+          <div class="sal-tip">La baja apaga el PIN el día después de su salida; el reingreso lo vuelve a prender. Correo, Connecteam y Rep ID se quitan en sus portales: márcalos en la constancia.</div></div>
+        ${pers.some(x => x.estado === 'Cerrado') ? `<div class="eq-box"><div class="eq-h">¿Elegible para recontratar?</div>
+          <div class="eq-accs">${['Sí', 'Con reservas', 'No'].map(v => `<button class="eq-acc ${p.recontratar === v ? 'on' : ''}" style="${p.recontratar === v && v === 'No' ? 'color:var(--red);border-color:rgba(255,68,85,.5);background:rgba(255,68,85,.08)' : p.recontratar === v && v === 'Con reservas' ? 'color:var(--yellow);border-color:rgba(255,209,102,.5);background:rgba(255,209,102,.08)' : ''}" onclick="eqRecontratar('${p.id}','${v}')">${v === 'Sí' ? '✅' : v === 'No' ? '⛔' : '⚠️'} ${v}</button>`).join('')}</div>
+          <textarea class="form-input" rows="2" style="margin-top:10px" placeholder="Nota (solo la ves tú)" onchange="eqSaveFields('${p.id}',{recontratarNota:this.value})">${escHtml(p.recontratarNota)}</textarea></div>` : ''}
+      </div>
+      <div>
+        <div class="eq-h" style="margin-bottom:10px">Periodos en MirComm</div>
+        ${pers.length ? pers.map(x => eqPerHTML(p, x, x === cur)).join('') : `<div class="act-hint">No tiene periodos. <button class="btn btn-primary btn-sm" onclick="eqAltaOpen('${p.id}')">Dar de alta</button></div>`}
+        <div class="eq-box"><div class="eq-h">Documentos (${docsTodos.length})<span class="sp"></span><button class="btn btn-ghost btn-sm" onclick="eqUploadOpen('${p.id}','${cur ? cur.id : ''}','')">📎 Subir</button></div>
+          ${docsTodos.length ? docsTodos.map(d => eqDocRow(d)).join('') : '<div class="sal-tip">Todavía no hay documentos. Mándale su link de alta o súbelos tú.</div>'}
+          <div class="sal-tip" style="margin-top:8px">🔒 Los archivos viven en Drive, en una carpeta que solo tú puedes abrir. Los I-9 van en su carpeta aparte. No escribas números de Seguro Social ni de cuentas en el Hub.</div></div>
+      </div>
+    </div>`;
+}
+function eqDocRow(d) {
+  const pe = d.periodoId && eqData.periodos.find(x => x.id === d.periodoId), hoy = eqHoy();
+  const vz = d.vence ? eqDays(hoy, d.vence) : null;
+  return `<div class="eq-doc"><span>${d.tipo === 'i9' ? '📋' : d.tipo === 'constancia' ? '📄' : d.tipo === 'id' ? '🪪' : '📎'}</span>
+    <div style="flex:1;min-width:0"><a href="${escHtml(d.url)}" target="_blank" style="color:var(--text);font-weight:600">${escHtml(EQ_DOC_TIPOS[d.tipo] || d.tipo)}</a>
+      <small style="display:block;color:var(--muted)">${escHtml(d.nombre)}${pe ? ` · periodo ${pe.num}` : ''} · ${escHtml(String(d.subido).slice(0, 10))}${d.fuente === 'Link de alta' ? ' · desde su link' : ''}${d.nota ? ' · ' + escHtml(d.nota) : ''}</small>
+      ${d.vence ? `<small style="display:block;color:${vz < 0 ? 'var(--red)' : vz <= 30 ? 'var(--yellow)' : 'var(--muted)'}">Vence ${eqFmt(d.vence)}${vz < 0 ? ' · VENCIDO' : ''}</small>` : ''}</div>
+    <button class="btn btn-ghost btn-sm" title="Fecha de vencimiento / nota" onclick="eqDocEdit('${d.id}')">✏️</button>
+    <button class="btn btn-ghost btn-sm" title="Quitar (va a la papelera de Drive)" onclick="eqDocDel('${d.id}')">🗑</button></div>`;
+}
+function eqPerHTML(p, x, esActual) {
+  const abierto = x.estado !== 'Cerrado', hoy = eqHoy(), en = x.entrada || {}, acc = x.accesos || {};
+  const docs = eqDocsDe(p.id, x.id);
+  const pill = abierto ? (x.ingreso > hoy ? '<span class="eq-pill c">Por entrar</span>' : '<span class="eq-pill g">Activo</span>')
+    : x.salida && x.salida >= hoy ? '<span class="eq-pill y">Sale pronto</span>' : '<span class="eq-pill m">Cerrado</span>';
+  const ck = ([k, ic, label, tip]) => {
+    const s = en[k] || {}, st = s.st || '', ds = docs.filter(d => d.tipo === k);
+    const txt = st === 'ok' ? `✓ Listo ${s.f ? eqFmt(s.f) : ''}${s.por ? ' · ' + escHtml(s.por) : ''}` : st === 'rec' ? `Recibido ${s.f ? eqFmt(s.f) : ''} · por revisar` : st === 'na' ? 'No aplica' : (tip ? escHtml(tip) : 'Falta');
+    return `<div class="eq-ck ${st}"><span class="ic">${ic}</span>
+      <div class="tx"><b>${label}</b><small>${txt}</small>${s.n ? `<small>📝 ${escHtml(s.n)}</small>` : ''}
+        ${ds.map(d => `<a class="eq-docl" href="${escHtml(d.url)}" target="_blank">📎 ${escHtml(d.nombre)}</a>`).join('')}</div>
+      <div class="ac">
+        <button class="btn btn-ghost btn-sm" title="Subir" onclick="eqUploadOpen('${p.id}','${x.id}','${k}')">📎</button>
+        ${st === 'ok' || st === 'na' ? `<button class="btn btn-ghost btn-sm" title="Desmarcar" onclick="eqCheck('${x.id}','${k}','')">↺</button>`
+          : `<button class="btn btn-ghost btn-sm" title="Marcar como revisado / listo" onclick="eqCheck('${x.id}','${k}','ok')">✓</button>`}
+        <button class="btn btn-ghost btn-sm" title="Más (no aplica, nota)" onclick="eqCheckMore('${x.id}','${k}')">⋯</button>
+      </div></div>`;
+  };
+  const hechos = EQ_CHECK.filter(([k]) => en[k] && (en[k].st === 'ok' || en[k].st === 'na')).length;
+  const checklist = `<div class="eq-sub">Papeles de entrada · ${hechos}/${EQ_CHECK.length}</div>${EQ_CHECK.map(ck).join('')}`;
+  const accesos = `<div class="eq-sub" style="margin-top:12px">Accesos de entrada</div><div class="eq-accs">${EQ_ACC.map(([k, ic, l]) => {
+      const on = k === 'pin' ? (abierto ? p.pinActivo : acc.pin && acc.pin.ok) : acc[k] && acc[k].ok;
+      const click = k === 'pin' && abierto ? `eqPinOpen('${p.id}')` : abierto ? `eqAcc('${x.id}','${k}',${!on})` : '';
+      return `<button class="eq-acc ${on ? 'on' : ''}" ${click ? `onclick="${click}"` : 'disabled'} title="${on && acc[k] && acc[k].f ? 'Desde ' + eqFmt(acc[k].f) : ''}">${ic} ${l}${on ? ' ✓' : ''}</button>`;
+    }).join('')}</div>`;
+  const link = abierto && x.link ? `<div class="sal-tip">📲 Link de alta: ${x.link.hecho ? `lo llenó el ${eqFmt(x.link.hecho.slice(0, 10))}` : x.link.vence < hoy ? 'venció sin llenarse' : `enviado, vence ${eqFmt(x.link.vence)}`}</div>` : '';
+  const c = x.constancia || {}, tipo = SAL_TIPOS[x.tipoSalida];
+  const salida = !abierto ? `<div class="eq-sal"><b>Salida:</b> ${eqFmt(x.salida)}${tipo ? ' · ' + escHtml(tipo[1]) : ''}
+      ${x.motivo ? `<div style="white-space:pre-wrap;color:#C9D3E5;margin-top:4px">${escHtml(x.motivo)}</div>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
+        <button class="btn ${c.firmaE && c.firmaM ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="eqConstOpen('${x.id}')">📄 Constancia de salida</button>
+        <span style="font-size:12px;color:var(--muted)">${c.firmaE && c.firmaM ? '✅ Firmada por ambos' : c.firmaE || c.firmaM ? '✍️ Falta una firma' : c.tiene ? '📝 Borrador' : 'Sin empezar'}</span>
+      </div>
+      ${c.tiene ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">Accesos desactivados: ${SAL_ACC.filter(([k]) => c.acc[k]).map(a => escHtml(a[2])).join(', ') || 'ninguno marcado'}</div>` : ''}</div>` : '';
+  const body = abierto || esActual ? `${checklist}${abierto ? accesos : ''}${link}` : `<details><summary class="eq-sub" style="cursor:pointer">Papeles de entrada · ${hechos}/${EQ_CHECK.length}</summary>${EQ_CHECK.map(ck).join('')}</details>`;
+  return `<div class="eq-box eq-per">
+    <div class="eq-h" style="color:var(--text);text-transform:none;letter-spacing:0;font-size:15px">Periodo ${x.num} ${pill}<span class="sp"></span>
+      ${x.carpeta ? `<a class="btn btn-ghost btn-sm" href="${escHtml(x.carpeta)}" target="_blank" title="Carpeta del periodo">📁</a>` : ''}
+      <button class="btn btn-ghost btn-sm" onclick="eqPerEdit('${x.id}')" title="Editar fechas y datos del periodo">✏️</button></div>
+    <div class="sal-tip" style="margin:-4px 0 10px">${escHtml(x.puesto || '')} · ${eqFmt(x.ingreso)} → ${abierto ? 'hoy' : eqFmt(x.salida)}${x.ingreso && (abierto ? x.ingreso <= hoy : x.salida) ? ' · ' + eqAntig(x.ingreso, abierto ? '' : x.salida) : ''}${x.pago ? ' · ' + escHtml(x.pago) : ''}</div>
+    ${x.notas ? `<div class="sal-tip" style="margin:-4px 0 10px">📝 ${escHtml(x.notas)}</div>` : ''}
+    ${salida}${body}</div>`;
+}
+
+// ── acciones rápidas ──
+async function eqPost(action, data, okMsg) {
+  try { const r = await apiPost({ action, data }); if (okMsg) toast(okMsg, 'success'); return r; }
+  catch (e) { toast(escHtml(e.message), 'error', 5000); return null; }
+}
+async function eqCheck(periodoId, k, st) {
+  const r = await eqPost('eqPeriodo', { periodoId, entrada: { [k]: { st, f: st ? eqHoy() : '' } } });
+  if (r) { eqPatchPer(r.periodo); }
+}
+function eqCheckMore(periodoId, k) {
+  const pe = eqData.periodos.find(x => x.id === periodoId), s = (pe.entrada || {})[k] || {}, lab = EQ_CHECK.find(c => c[0] === k)[2];
+  openModal(`<div class="modal-title">${lab}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-group"><label class="form-label">Estado</label>
+      <select class="form-input form-select" id="eqm-st">${[['', 'Falta'], ['rec', 'Recibido · por revisar'], ['ok', '✓ Listo / revisado'], ['na', 'No aplica']].map(([v, l]) => `<option value="${v}" ${s.st === v || (!s.st && !v) ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="eqm-f" value="${escHtml(s.f || eqHoy())}"></div></div>
+    <div class="form-group"><label class="form-label">Nota (sin números de Seguro Social ni de cuentas)</label><input class="form-input" id="eqm-n" value="${escHtml(s.n || '')}" placeholder="${k === 'i9' ? 'Ej.: Lista A: pasaporte, revisado en persona' : ''}"></div>
+    <button class="btn btn-primary btn-full" onclick="eqCheckMoreSave('${periodoId}','${k}')">Guardar</button>`);
+}
+async function eqCheckMoreSave(periodoId, k) {
+  const v = { st: document.getElementById('eqm-st').value, f: document.getElementById('eqm-f').value, n: document.getElementById('eqm-n').value };
+  const r = await eqPost('eqPeriodo', { periodoId, entrada: { [k]: v } });
+  if (r) { closeModal(); eqPatchPer(r.periodo); }
+}
+async function eqAcc(periodoId, k, on) {
+  const r = await eqPost('eqPeriodo', { periodoId, accesos: { [k]: { ok: on, f: eqHoy() } } });
+  if (r) eqPatchPer(r.periodo);
+}
+function eqPatchPer(per) {
+  if (!per || !eqData) return;
+  const i = eqData.periodos.findIndex(x => x.id === per.id); if (i >= 0) eqData.periodos[i] = per;
+  eqBadge(); if (currentPage === 'equipo') renderEquipo();
+}
+async function eqSaveFields(id, fields, msg) {
+  const r = await eqPost('eqSave', { id, fields }, msg);
+  if (r) await eqRefresh();
+  return r;
+}
+function eqRecontratar(id, v) { const p = eqPersona(id); eqSaveFields(id, { recontratar: p.recontratar === v ? '' : v }, 'Guardado.'); }
+
+// ── alta / reingreso ──
+function eqAltaOpen(personaId) {
+  const p = personaId ? eqPersona(personaId) : null, last = p ? eqPeriodos(p.id)[0] : null;
+  const g = (id, label, val, type, extra) => `<div class="form-group"><label class="form-label">${label}</label><input class="form-input" id="${id}" type="${type || 'text'}" value="${escHtml(val || '')}" ${extra || ''}></div>`;
+  openModal(`<div class="modal-title">${p ? `↩ Reingreso de ${escHtml(eqFirst(p))}` : '＋ Alta nueva'}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${p ? `<div class="act-hint" style="margin-bottom:14px;font-size:13px">Se abre el <b>periodo ${(last ? last.num : 0) + 1}</b>. Lo de antes se queda en su ficha.
+      ${last ? `<br>Último periodo: ${eqFmt(last.ingreso)} → ${eqFmt(last.salida)}${SAL_TIPOS[last.tipoSalida] ? ' · ' + escHtml(SAL_TIPOS[last.tipoSalida][1]) : ''}` : ''}
+      ${p.recontratar ? `<br>Recontratar: <b style="color:${p.recontratar === 'No' ? 'var(--red)' : p.recontratar === 'Sí' ? 'var(--green)' : 'var(--yellow)'}">${escHtml(p.recontratar)}</b>${p.recontratarNota ? ' · ' + escHtml(p.recontratarNota) : ''}` : ''}</div>`
+    : `<div class="form-row">${g('eqa-nombre', 'Nombre completo *', '', 'text', 'autocomplete="off"')}${g('eqa-usuario', 'Nombre corto para el Hub *', '', 'text', 'placeholder="Ej.: Lizbeth"')}</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Rol</label><select class="form-input form-select" id="eqa-rol">${Object.keys(EQ_ROL).map(k => `<option value="${k}">${EQ_ROL[k]}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="form-label">En español</label><select class="form-input form-select" id="eqa-genero"><option value="f">"la Empleada"</option><option value="m">"el Empleado"</option></select></div></div>
+      <div class="form-row">${g('eqa-tel', 'Teléfono', '', 'tel')}${g('eqa-correo', 'Correo personal', '', 'email')}</div>`}
+    <div class="form-row">${g('eqa-ingreso', 'Fecha de ingreso (primer día) *', eqHoy(), 'date')}${g('eqa-puesto', 'Puesto', (last && last.puesto) || 'Sales Representative')}</div>
+    ${g('eqa-pago', 'Pago (opcional, solo lo ves tú)', (last && last.pago) || '', 'text', 'placeholder="Ej.: $11/hora + comisión"')}
+    <div class="eq-sub" style="margin-top:6px">Accesos</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">PIN de 6 dígitos ${p && p.pinSet ? '(vacío = sigue con el de antes)' : ''}</label>
+        <div style="display:flex;gap:6px"><input class="form-input" id="eqa-pin" inputmode="numeric" maxlength="6" placeholder="••••••" style="font-family:var(--font-mono);letter-spacing:3px">
+        <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('eqa-pin').value=eqPin6()" title="Generar">🎲</button></div></div>
+      ${g('eqa-codigo', 'Código (prospectos)', p ? p.codigo : '', 'text', 'placeholder="Ej.: LIZ" style="text-transform:uppercase"')}</div>
+    <div class="form-row">${g('eqa-rep', 'Rep ID(s) de Spectrum', p ? p.repIds.join(', ') : '', 'text', 'placeholder="CMMXX0000"')}${g('eqa-ce', 'Correo mircommusa.com', p ? p.correoEmpresa : '', 'email')}</div>
+    ${p && p.recontratar === 'No' ? `<label class="sal-ck"><input type="checkbox" id="eqa-forzar"> Sé que quedó como NO elegible y la/lo recontrato de todos modos</label>` : ''}
+    <div id="eqa-err" class="pin-error" style="margin-top:6px"></div>
+    <button class="btn btn-primary btn-full" id="eqa-go" onclick="eqAltaSave('${p ? p.id : ''}')">${p ? 'Abrir periodo nuevo' : 'Dar de alta'}</button>
+    <div class="sal-tip" style="margin-top:8px">Al terminar te doy su link de alta para que llene sus datos, suba sus papeles y firme las reglas desde su teléfono.</div>`);
+  setTimeout(() => { const el = document.getElementById(p ? 'eqa-ingreso' : 'eqa-nombre'); if (el) el.focus(); }, 60);
+}
+async function eqAltaSave(personaId) {
+  const v = id => { const el = document.getElementById(id); return el ? el.value.trim() : undefined; };
+  const err = document.getElementById('eqa-err'), btn = document.getElementById('eqa-go');
+  const pin = v('eqa-pin');
+  if (pin && !/^\d{6}$/.test(pin)) { err.textContent = 'El PIN tiene 6 dígitos.'; return; }
+  const fields = { codigo: v('eqa-codigo'), repIds: v('eqa-rep'), correoEmpresa: v('eqa-ce') };
+  if (!personaId) Object.assign(fields, { nombre: v('eqa-nombre'), usuario: v('eqa-usuario'), rol: v('eqa-rol'), genero: v('eqa-genero'), telefono: v('eqa-tel'), correoPersonal: v('eqa-correo') });
+  if (!personaId && !fields.nombre) { err.textContent = 'Pon el nombre completo.'; return; }
+  if (!personaId && fields.rol === 'rep' && !fields.usuario) { err.textContent = 'Pon el nombre corto con el que va a entrar al Hub.'; return; }
+  if (!personaId && fields.rol === 'rep' && !pin) { err.textContent = 'Ponle un PIN (o toca 🎲) para que pueda entrar al Hub.'; return; }
+  const fz = document.getElementById('eqa-forzar');
+  btn.disabled = true; btn.textContent = 'Guardando…'; err.textContent = '';
+  try {
+    const r = await apiPost({ action: 'eqAlta', data: { personaId: personaId || undefined, fields, periodo: { ingreso: v('eqa-ingreso'), puesto: v('eqa-puesto'), pago: v('eqa-pago') }, pin: pin || undefined, forzar: !!(fz && fz.checked) } });
+    closeModal();
+    (r.warn || []).forEach(w => toast(escHtml(w), 'error', 7000));
+    await eqLoad(true); eqView.id = r.personaId; eqView.filtro = 'activos'; renderEquipo();
+    toast(personaId ? 'Reingreso listo: periodo nuevo abierto y PIN activo.' : 'Alta lista.', 'success', 4000);
+    if (pin) setTimeout(() => toast(`PIN de ${escHtml(fields.usuario || eqFirst(eqPersona(r.personaId)))}: <b style="font-family:var(--font-mono);letter-spacing:2px">${pin}</b> · dáselo en persona`, 'info', 12000), 300);
+    if (r.link) eqLinkShow(r.periodoId, r.link);
+  } catch (e) { err.textContent = e.message; btn.disabled = false; btn.textContent = personaId ? 'Abrir periodo nuevo' : 'Dar de alta'; }
+}
+
+// ── baja ──
+function eqBajaOpen(personaId) {
+  const p = eqPersona(personaId), cur = eqPeriodos(p.id)[0];
+  openModal(`<div class="modal-title">🚪 Baja de ${escHtml(eqFirst(p))}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="sal-tip" style="margin:-4px 0 12px">Periodo ${cur.num} · desde ${eqFmt(cur.ingreso)}. Su historial (ventas, prospectos, nómina) se queda.</div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Fecha de salida (último día) *</label><input class="form-input" type="date" id="eqb-salida" value="${eqHoy()}" onchange="eqBajaHint()"></div>
+      <div class="form-group"><label class="form-label">Tipo de salida</label><select class="form-input form-select" id="eqb-tipo" onchange="eqBajaHint()"><option value="">— Elige —</option>${Object.keys(SAL_TIPOS).map(k => `<option value="${k}">${escHtml(SAL_TIPOS[k][1])}</option>`).join('')}</select></div></div>
+    <div class="form-group"><label class="form-label">Motivo (sale en la constancia tal cual)</label><textarea class="form-input" rows="3" id="eqb-motivo" placeholder="Neutral y con hechos: qué pasó y cuándo."></textarea></div>
+    <div class="form-group"><label class="form-label">¿Elegible para recontratar?</label>
+      <select class="form-input form-select" id="eqb-rec"><option value="">Decidir después</option><option>Sí</option><option>Con reservas</option><option>No</option></select></div>
+    <div class="form-group"><input class="form-input" id="eqb-recn" placeholder="Nota sobre recontratar (solo la ves tú)"></div>
+    <div id="eqb-hint"></div>
+    <label class="sal-ck"><input type="checkbox" id="eqb-const" checked> Abrir su constancia de salida al terminar</label>
+    <div id="eqb-err" class="pin-error"></div>
+    <button class="btn btn-danger btn-full" id="eqb-go" onclick="eqBajaSave('${p.id}')">Dar de baja</button>`);
+  eqBajaHint();
+}
+function eqBajaHint() {
+  const s = document.getElementById('eqb-salida'), t = document.getElementById('eqb-tipo'), h = document.getElementById('eqb-hint'); if (!h) return;
+  const hoy = eqHoy(), msg = [];
+  if (s.value) msg.push(s.value >= hoy ? `Su PIN sigue activo hasta el ${eqFmt(s.value)} y se apaga solo al día siguiente.` : 'Su PIN se apaga al guardar.');
+  if (t.value === 'despido') msg.push('En Texas, si la Compañía termina el empleo, el último pago se debe dar dentro de 6 días calendario.');
+  if (t.value === 'renuncia') msg.push('Si renunció, su último pago vence el siguiente día de pago normal.');
+  h.innerHTML = msg.length ? `<div class="sal-warn">${msg.join('<br>')}</div>` : '';
+}
+async function eqBajaSave(personaId) {
+  const g = id => document.getElementById(id).value.trim(), err = document.getElementById('eqb-err'), btn = document.getElementById('eqb-go');
+  if (!g('eqb-salida')) { err.textContent = 'Pon la fecha de salida.'; return; }
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    const r = await apiPost({ action: 'eqBaja', data: { personaId, salida: g('eqb-salida'), tipo: g('eqb-tipo'), motivo: g('eqb-motivo'), recontratar: g('eqb-rec'), recontratarNota: g('eqb-recn') } });
+    const abrir = document.getElementById('eqb-const').checked;
+    closeModal(); await eqLoad(true);
+    toast('Baja guardada.', 'success');
+    if (abrir) eqConstOpen(r.periodoId); else renderEquipo();
+  } catch (e) { err.textContent = e.message; btn.disabled = false; btn.textContent = 'Dar de baja'; }
+}
+
+// ── datos, PIN, periodo ──
+function eqDatosOpen(id) {
+  const p = eqPersona(id);
+  const g = (k, label, type, extra) => `<div class="form-group"><label class="form-label">${label}</label><input class="form-input" id="eqd-${k}" type="${type || 'text'}" value="${escHtml(Array.isArray(p[k]) ? p[k].join(', ') : p[k] || '')}" ${extra || ''}></div>`;
+  openModal(`<div class="modal-title">✏️ Datos de ${escHtml(eqFirst(p))}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-row">${g('nombre', 'Nombre completo')}${p.pinSet ? `<div class="form-group"><label class="form-label">Nombre corto (Hub)</label><input class="form-input" value="${escHtml(p.usuario)}" disabled title="Ya tiene PIN e historial con este nombre"></div>` : g('usuario', 'Nombre corto (Hub)')}</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Rol</label><select class="form-input form-select" id="eqd-rol">${Object.keys(EQ_ROL).map(k => `<option value="${k}" ${p.rol === k ? 'selected' : ''}>${EQ_ROL[k]}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">En español</label><select class="form-input form-select" id="eqd-genero"><option value="f" ${p.genero !== 'm' ? 'selected' : ''}>"la Empleada"</option><option value="m" ${p.genero === 'm' ? 'selected' : ''}>"el Empleado"</option></select></div></div>
+    <div class="form-row">${g('telefono', 'Teléfono', 'tel')}${g('correoPersonal', 'Correo personal', 'email')}</div>
+    ${g('direccion', 'Dirección')}
+    ${g('emergencia', 'Contacto de emergencia', 'text', 'placeholder="Nombre · teléfono · parentesco"')}
+    <div class="form-row">${g('correoEmpresa', 'Correo mircommusa.com', 'email')}${g('connecteam', 'Connecteam (usuario)')}</div>
+    <div class="form-row">${g('codigo', 'Código (prospectos)', 'text', 'style="text-transform:uppercase"')}${g('repIds', 'Rep ID(s) de Spectrum')}</div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" rows="2" id="eqd-notas">${escHtml(p.notas || '')}</textarea></div>
+    <div class="sal-tip" style="margin-bottom:10px">Nada de números de Seguro Social ni de cuentas aquí: esos solo van en los documentos de Drive.</div>
+    <button class="btn btn-primary btn-full" id="eqd-go" onclick="eqDatosSave('${p.id}')">Guardar</button>`);
+}
+async function eqDatosSave(id) {
+  const f = {};
+  ['nombre', 'usuario', 'rol', 'genero', 'telefono', 'correoPersonal', 'direccion', 'emergencia', 'correoEmpresa', 'connecteam', 'codigo', 'repIds', 'notas']
+    .forEach(k => { const el = document.getElementById('eqd-' + k); if (el && !el.disabled) f[k] = el.value.trim(); });
+  const b = document.getElementById('eqd-go'); b.disabled = true;
+  const r = await eqSaveFields(id, f, 'Datos guardados.');
+  if (r) closeModal(); else b.disabled = false;
+}
+function eqPinOpen(id) {
+  const p = eqPersona(id);
+  openModal(`<div class="modal-title">🔢 PIN de ${escHtml(eqFirst(p))}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${!p.usuario ? `<div class="form-group"><label class="form-label">Nombre corto para el Hub</label><input class="form-input" id="eqp-u" placeholder="Ej.: Lizbeth"></div>` : ''}
+    <div class="form-group"><label class="form-label">PIN nuevo de 6 dígitos</label>
+      <div style="display:flex;gap:6px"><input class="form-input" id="eqp-pin" inputmode="numeric" maxlength="6" style="font-family:var(--font-mono);font-size:22px;letter-spacing:6px;text-align:center" value="${eqPin6()}">
+      <button class="btn btn-ghost" type="button" onclick="document.getElementById('eqp-pin').value=eqPin6()" title="Otro">🎲</button></div></div>
+    <div class="sal-tip" style="margin-bottom:12px">Es el mismo PIN para el Hub, Prospectos, Mis líneas y Mi pago. Dáselo en persona: el Hub no lo vuelve a mostrar.${p.estado === 'baja' ? '<br><b>Está dada de baja:</b> el PIN queda guardado pero apagado hasta un reingreso.' : ''}</div>
+    <div id="eqp-err" class="pin-error"></div>
+    <button class="btn btn-primary btn-full" onclick="eqPinSave('${p.id}')">Guardar PIN</button>`);
+}
+async function eqPinSave(id) {
+  const pin = document.getElementById('eqp-pin').value.trim(), u = document.getElementById('eqp-u'), err = document.getElementById('eqp-err');
+  if (!/^\d{6}$/.test(pin)) { err.textContent = 'El PIN tiene 6 dígitos.'; return; }
+  try {
+    await apiPost({ action: 'eqPin', data: { personaId: id, pin, usuario: u ? u.value.trim() : undefined } });
+    closeModal(); toast(`PIN guardado: <b style="font-family:var(--font-mono);letter-spacing:2px">${pin}</b>`, 'success', 10000); eqRefresh();
+  } catch (e) { err.textContent = e.message; }
+}
+function eqPerEdit(periodoId) {
+  const x = eqData.periodos.find(p => p.id === periodoId), pers = eqPeriodos(x.personaId), esUltimo = pers[0] && pers[0].id === x.id, cerrado = x.estado === 'Cerrado';
+  openModal(`<div class="modal-title">✏️ Periodo ${x.num}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Ingreso</label><input class="form-input" type="date" id="eqe-ingreso" value="${escHtml(x.ingreso)}"></div>
+      ${cerrado ? `<div class="form-group"><label class="form-label">Salida</label><input class="form-input" type="date" id="eqe-salida" value="${escHtml(x.salida)}"></div>` : ''}</div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Puesto</label><input class="form-input" id="eqe-puesto" value="${escHtml(x.puesto)}"></div>
+      <div class="form-group"><label class="form-label">Pago</label><input class="form-input" id="eqe-pago" value="${escHtml(x.pago)}"></div></div>
+    ${cerrado ? `<div class="form-group"><label class="form-label">Tipo de salida</label><select class="form-input form-select" id="eqe-tipo"><option value="">—</option>${Object.keys(SAL_TIPOS).map(k => `<option value="${k}" ${x.tipoSalida === k ? 'selected' : ''}>${escHtml(SAL_TIPOS[k][1])}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Motivo</label><textarea class="form-input" rows="2" id="eqe-motivo">${escHtml(x.motivo)}</textarea></div>` : ''}
+    <div class="form-group"><label class="form-label">Notas</label><input class="form-input" id="eqe-notas" value="${escHtml(x.notas)}"></div>
+    <div id="eqe-err" class="pin-error"></div>
+    <button class="btn btn-primary btn-full" onclick="eqPerSave('${x.id}')">Guardar</button>
+    ${cerrado && esUltimo ? `<button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="eqPerReabrir('${x.id}')">↩ Deshacer la baja (reabrir este periodo)</button>` : ''}`);
+}
+async function eqPerSave(periodoId) {
+  const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : undefined; };
+  try {
+    await apiPost({ action: 'eqPeriodo', data: { periodoId, fields: { ingreso: g('eqe-ingreso'), salida: g('eqe-salida'), puesto: g('eqe-puesto'), pago: g('eqe-pago'), tipoSalida: g('eqe-tipo'), motivo: g('eqe-motivo'), notas: g('eqe-notas') } } });
+    closeModal(); toast('Periodo guardado.', 'success'); eqRefresh();
+  } catch (e) { document.getElementById('eqe-err').textContent = e.message; }
+}
+async function eqPerReabrir(periodoId) {
+  if (!confirm('¿Deshacer la baja? El periodo vuelve a quedar abierto y su PIN se prende otra vez. La constancia se queda guardada.')) return;
+  const r = await eqPost('eqPeriodo', { periodoId, reabrir: true }, 'Listo: periodo reabierto.');
+  if (r) { closeModal(); eqRefresh(); }
+}
+
+// ── documentos ──
+function eqUploadOpen(personaId, periodoId, tipo) {
+  const p = eqPersona(personaId), pers = eqPeriodos(personaId);
+  openModal(`<div class="modal-title">📎 Subir documento · ${escHtml(eqFirst(p))}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Tipo</label><select class="form-input form-select" id="equ-tipo" onchange="document.getElementById('equ-vbox').style.display=['id','otro','i9'].includes(this.value)?'':'none'">
+      ${Object.keys(EQ_DOC_TIPOS).filter(k => k !== 'firma').map(k => `<option value="${k}" ${k === (tipo || 'otro') ? 'selected' : ''}>${EQ_DOC_TIPOS[k]}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Periodo</label><select class="form-input form-select" id="equ-per">${pers.map(x => `<option value="${x.id}" ${x.id === periodoId ? 'selected' : ''}>Periodo ${x.num} · ${eqFmt(x.ingreso)}</option>`).join('')}<option value="">Ninguno (general)</option></select></div></div>
+    <div class="form-group"><label class="form-label">Archivo (foto o PDF)</label><input class="form-input" type="file" id="equ-file" accept="image/*,application/pdf"></div>
+    <div class="form-group" id="equ-vbox" style="${['id', 'otro', 'i9'].includes(tipo || 'otro') ? '' : 'display:none'}"><label class="form-label">Vence (opcional — para que el Hub avise)</label><input class="form-input" type="date" id="equ-vence"></div>
+    <div class="form-group"><label class="form-label">Nota (opcional)</label><input class="form-input" id="equ-nota"></div>
+    <div class="sal-tip" style="margin-bottom:10px">Se guarda en su carpeta privada de Drive${tipo === 'i9' ? ' (el I-9 va en la carpeta aparte)' : ''}. Subirlo aquí lo marca como ✓ listo en su checklist.</div>
+    <div id="equ-err" class="pin-error"></div>
+    <button class="btn btn-primary btn-full" id="equ-go" onclick="eqUploadSave('${personaId}')">Subir</button>`);
+}
+function eqFileB64(file) {
+  return new Promise((res, rej) => {
+    const rd = new FileReader();
+    rd.onerror = () => rej(new Error('No se pudo leer el archivo.'));
+    rd.onload = () => {
+      const url = rd.result;
+      if (!/^image\//.test(file.type) || /gif|svg/.test(file.type)) return res({ b64: url, mime: file.type || 'application/octet-stream' });
+      const im = new Image();
+      im.onload = () => {   // fotos del teléfono: máx. 1800 px, JPEG
+        const s = Math.min(1, 1800 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+        c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+        res({ b64: c.toDataURL('image/jpeg', 0.85), mime: 'image/jpeg' });
+      };
+      im.onerror = () => res({ b64: url, mime: file.type });
+      im.src = url;
+    };
+    rd.readAsDataURL(file);
+  });
+}
+async function eqUploadSave(personaId) {
+  const f = document.getElementById('equ-file').files[0], err = document.getElementById('equ-err'), b = document.getElementById('equ-go');
+  if (!f) { err.textContent = 'Escoge el archivo.'; return; }
+  if (f.size > 12 * 1024 * 1024 && !/^image\//.test(f.type)) { err.textContent = 'El archivo pesa más de 12 MB.'; return; }
+  b.disabled = true; b.textContent = 'Subiendo…'; err.textContent = '';
+  try {
+    const { b64, mime } = await eqFileB64(f);
+    await apiPost({ action: 'eqDocUp', data: { personaId, periodoId: document.getElementById('equ-per').value, tipo: document.getElementById('equ-tipo').value,
+      nombre: f.name, mime, b64, vence: document.getElementById('equ-vence').value, nota: document.getElementById('equ-nota').value.trim() } });
+    closeModal(); toast('Documento guardado en Drive.', 'success'); eqRefresh();
+  } catch (e) { err.textContent = e.message; b.disabled = false; b.textContent = 'Subir'; }
+}
+function eqDocEdit(id) {
+  const d = eqData.docs.find(x => x.id === id);
+  openModal(`<div class="modal-title">${escHtml(EQ_DOC_TIPOS[d.tipo] || d.tipo)}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-group"><label class="form-label">Vence</label><input class="form-input" type="date" id="eqx-v" value="${escHtml(d.vence)}"></div>
+    <div class="form-group"><label class="form-label">Nota</label><input class="form-input" id="eqx-n" value="${escHtml(d.nota)}"></div>
+    <button class="btn btn-primary btn-full" onclick="eqDocEditSave('${id}')">Guardar</button>`);
+}
+async function eqDocEditSave(id) {
+  const r = await eqPost('eqDocEdit', { id, vence: document.getElementById('eqx-v').value, nota: document.getElementById('eqx-n').value.trim() }, 'Guardado.');
+  if (r) { closeModal(); eqRefresh(); }
+}
+async function eqDocDel(id) {
+  const d = eqData.docs.find(x => x.id === id);
+  if (!confirm(`¿Quitar "${d.nombre}"? El archivo va a la papelera de Drive (se puede recuperar 30 días).`)) return;
+  if (await eqPost('eqDocDel', { id }, 'Documento quitado.')) eqRefresh();
+}
+
+// ── link de alta ──
+async function eqLinkOpen(periodoId) {
+  const pe = eqData.periodos.find(x => x.id === periodoId);
+  if (pe.link && !pe.link.hecho && pe.link.vence >= eqHoy() && !confirm('Ya hay un link vigente. Si haces uno nuevo, el anterior deja de servir. ¿Hacer uno nuevo?')) return;
+  const r = await eqPost('eqLink', { periodoId });
+  if (r) { eqLinkShow(periodoId, r.link); eqLoad(true, true).then(() => { if (currentPage === 'equipo' && !document.getElementById('modal-overlay').classList.contains('open')) renderEquipo(); }); }
+}
+function eqLinkShow(periodoId, link) {
+  const pe = eqData.periodos.find(x => x.id === periodoId), p = eqPersona(pe.personaId);
+  const u = new URL(SHEETS_URL); u.search = ''; u.searchParams.set('action', 'eqForm'); u.searchParams.set('t', link.t);
+  const url = u.toString(), tel = phoneDigits(p.telefono);
+  const msg = `Hola ${eqFirst(p)}, te mando el link para tus papeles de entrada de MirComm. Ahí pones tus datos, subes fotos de tus documentos y firmas las reglas de la tienda. Te toma unos 10 minutos y sirve hasta el ${eqFmt(link.vence)}.\n\n${url}`;
+  window._eqLinkMsg = msg;
+  openModal(`<div class="modal-title">📲 Link de alta · ${escHtml(eqFirst(p))}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="sal-tip" style="margin:-4px 0 10px">Lo abre en su teléfono, llena sus datos, sube fotos (ID, W-4, I-9, depósito directo, carta de oferta) y firma reglas y confidencialidad. Te llega un correo cuando lo manda. Vence el ${eqFmt(link.vence)}.</div>
+    <textarea class="form-input" rows="6" readonly id="eql-msg" onclick="this.select()">${escHtml(msg)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      ${tel.length === 10 ? `<a class="btn btn-primary" style="flex:1;text-align:center" href="https://wa.me/1${tel}?text=${encodeURIComponent(msg)}" target="_blank">💬 Mandar por WhatsApp</a>` : ''}
+      <button class="btn btn-ghost" style="flex:1" onclick="navigator.clipboard.writeText(window._eqLinkMsg).then(()=>toast('Copiado.','success')).catch(()=>toast('No se pudo copiar.','error'))">📋 Copiar</button>
+      <a class="btn btn-ghost" href="${escHtml(url)}" target="_blank" title="Ver cómo lo ve">👁</a>
+    </div>
+    ${tel.length === 10 ? '' : '<div class="sal-tip" style="margin-top:8px">No tiene teléfono en su ficha: copia el mensaje y mándaselo.</div>'}`);
+}
+
+// ── textos del alta ──
+async function eqTextosOpen() {
+  let r; try { r = await apiPost({ action: 'eqTextos' }); } catch (e) { toast(escHtml(e.message), 'error'); return; }
+  const t = r.textos, ta = (k, l) => `<div class="form-group"><label class="form-label">${l}</label><textarea class="form-input" rows="7" id="eqt-${k}">${escHtml(t[k])}</textarea></div>`;
+  openModal(`<div class="modal-title">⚙ Textos del alta<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="sal-tip" style="margin:-4px 0 10px">Lo que la persona lee y firma desde su link. Cada firma queda como PDF en su carpeta. Si borras un texto, vuelve el de fábrica.</div>
+    ${ta('reglasEs', 'Reglas de la tienda (español)')}${ta('reglasEn', 'Store rules (English)')}${ta('confEs', 'Confidencialidad (español)')}${ta('confEn', 'Confidentiality (English)')}
+    <button class="btn btn-primary btn-full" onclick="eqTextosSave()">Guardar</button>`, true);
+}
+async function eqTextosSave() {
+  const d = {}; ['reglasEs', 'reglasEn', 'confEs', 'confEn'].forEach(k => { d[k] = document.getElementById('eqt-' + k).value; });
+  if (await eqPost('eqTextosSave', d, 'Textos guardados.')) closeModal();
+}
+
+// ── constancia de salida en la ficha ──
+async function eqConstOpen(periodoId) {
+  if (!eqData) await eqLoad(true);
+  const pe = eqData.periodos.find(x => x.id === periodoId), per = eqPersona(pe.personaId);
+  toast('Abriendo la constancia…', 'info', 1500);
+  let r; try { r = await apiPost({ action: 'eqConstGet', data: { periodoId } }); } catch (e) { toast(escHtml(e.message), 'error'); return; }
+  const pre = { nombre: per.nombre, genero: per.genero, puesto: pe.puesto || 'Sales Representative', ingreso: pe.ingreso, salida: pe.salida,
+    tipo: pe.tipoSalida || '', motivo: pe.motivo || '', repId: per.repIds[0] || '' };
+  const d = Object.assign(salBlank(per.nombre), pre, r.data || {});
+  d.prop = d.prop || {}; d.acc = d.acc || {}; d.sigE = r.sigE || ''; d.sigM = r.sigM || '';
+  if (d.sigE && !d.sigEAt) d.sigEAt = new Date().toISOString(); if (d.sigM && !d.sigMAt) d.sigMAt = new Date().toISOString();
+  if (!d.firmaM || d.firmaM === 'Joel Chavez') { d.firmaM = currentUser === 'Joel' ? 'Joel Chavez' : (adminFirma.split('\n')[0] || currentUser); }
+  salCtx = { periodoId, personaId: per.id, nombre: per.nombre, num: pe.num, d, dirty: false, sigDirty: {}, t: null, busy: false, unlock: false };
+  eqView.id = per.id; eqView.const = periodoId;
+  if (currentPage !== 'equipo') { currentPage = 'equipo'; document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.page === 'equipo')); }
+  renderSalida(); window.scrollTo(0, 0);
+  if (!r.data) salSave();   // primera vez: queda guardada en la ficha
+}
+async function salBack() {
+  await salFlush();
+  salCtx = null; eqView.const = '';
+  await eqLoad(true).catch(() => {});
+  renderEquipo();
+}
+// Borradores que se quedaron en este navegador (v61) → a la ficha de cada persona
+async function eqMigrateLocal() {
+  let all; try { all = JSON.parse(localStorage.getItem(SAL_KEY) || '{}') || {}; } catch (e) { return; }
+  const names = Object.keys(all); if (!names.length) return;
+  let moved = 0;
+  for (const n of names) {
+    const d = all[n] || {}, per = eqData.personas.find(p => eqNorm(p.nombre) === eqNorm(d.nombre || n));
+    if (!per) continue;
+    const pe = eqPeriodos(per.id).find(x => x.estado === 'Cerrado');
+    if (!pe) continue;
+    if (pe.constancia.firmaE || pe.constancia.firmaM) { delete all[n]; continue; }   // la de la ficha ya tiene firmas: gana esa
+    const data = { ...d }; delete data.sigE; delete data.sigM;
+    try {
+      await apiPost({ action: 'eqConstSave', data: { periodoId: pe.id, data, sigE: d.sigE || undefined, sigM: d.sigM || undefined } });
+      delete all[n]; moved++;
+    } catch (e) {}
+  }
+  try { Object.keys(all).length ? localStorage.setItem(SAL_KEY, JSON.stringify(all)) : localStorage.removeItem(SAL_KEY); } catch (e) {}
+  if (moved) {
+    toast(`Pasé ${moved === 1 ? 'la constancia que estaba' : moved + ' constancias que estaban'} en este navegador a su ficha.`, 'success', 5000);
+    await eqLoad(true).catch(() => {});
+    if (currentPage === 'equipo' && !eqView.const) renderEquipo();
+  }
+}
+async function salPdfDrive() {
+  const d = salD(); if (!d || !salCtx) return;
+  if (!(d.sigE && d.sigM) && !confirm('El documento todavía no tiene las dos firmas. ¿Guardar el PDF así en su carpeta?')) return;
+  const btn = document.getElementById('sal-drive'); if (btn) { btn.disabled = true; btn.textContent = 'Generando PDF…'; }
+  let box = null;
+  try {
+    await salFlush();
+    if (!window.html2pdf) await actLoadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+    box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:-12000px;top:0;width:7.3in;background:#fff';
+    box.innerHTML = salDocHTML(d); document.body.appendChild(box);
+    const uri = await html2pdf().set({ margin: [0.5, 0.55, 0.5, 0.55], image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, backgroundColor: '#ffffff' }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'], avoid: ['.sigs', 'table.dt', '.mot'] } }).from(box.firstElementChild).outputPdf('datauristring');
+    await apiPost({ action: 'eqDocUp', data: { personaId: salCtx.personaId, periodoId: salCtx.periodoId, tipo: 'constancia',
+      nombre: `${salFolio(d)} · ${d.nombre}${d.sigE && d.sigM ? ' (firmada)' : ' (sin firmas)'}.pdf`, mime: 'application/pdf', b64: uri } });
+    toast('PDF guardado en su carpeta privada de Drive.', 'success', 4000);
+    eqLoad(true, true);
+  } catch (e) { toast('No se pudo guardar el PDF: ' + escHtml(e.message), 'error', 6000); }
+  finally { if (box) box.remove(); if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar PDF en su ficha'; } }
+}
+eqBootTeam();
 
 // ─── 🧾 HISTORIAL DE CAMBIOS (Admins.gs → hoja Auditoria) ─────────────
 // Cada cambio hecho desde el Hub queda con fecha, quién, módulo, acción, registro y detalle.
