@@ -430,6 +430,28 @@
   }
   .page-title { font-family: var(--font-display); font-size: 24px; font-weight: 800; margin-bottom: 6px; }
   .page-subtitle { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+  /* 📄 Constancia de salida */
+  .sal-top { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:-8px 0 16px; }
+  .sal-wrap { display:grid; grid-template-columns:minmax(320px,430px) 1fr; gap:22px; align-items:start; }
+  .sal-form { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; }
+  .sal-fs { border:0; min-width:0; } .sal-fs:disabled { opacity:.55; }
+  .sal-sec { font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--cyan); margin:18px 0 10px; }
+  .sal-sec:first-child { margin-top:0; }
+  .sal-cks { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; margin-bottom:10px; }
+  .sal-ck { display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--text); cursor:pointer; margin-bottom:6px; line-height:1.35; }
+  .sal-ck input { margin-top:2px; accent-color:var(--blue); }
+  .sal-tip { font-size:12px; color:var(--muted); margin-top:6px; line-height:1.4; }
+  .sal-warn { font-size:12px; line-height:1.45; color:#FFE3A0; background:rgba(255,209,102,.08); border:1px solid rgba(255,209,102,.35); border-radius:10px; padding:9px 11px; margin:4px 0 12px; }
+  .sal-lock { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px; font-size:13px; }
+  .sal-sigbtns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .sal-actions { display:flex; gap:8px; }
+  .sal-prev { position:sticky; top:12px; max-height:calc(100vh - 110px); overflow:auto; border-radius:12px; background:#1a2234; padding:18px; }
+  .sal-paper { background:#fff; border-radius:4px; box-shadow:0 8px 30px rgba(0,0,0,.4); padding:40px 44px; max-width:816px; margin:0 auto; }
+  .sal-sig-modal { max-width:640px; width:calc(100vw - 24px); }
+  .sal-sig-cv { width:100%; height:220px; background:#fff linear-gradient(#C9CCD3,#C9CCD3) no-repeat 24px calc(100% - 50px) / calc(100% - 48px) 1.5px; border-radius:10px; touch-action:none; cursor:crosshair; display:block; }
+  .sal-sig-line { font-size:11px; color:var(--muted); text-align:center; margin-top:6px; }
+  @media (max-width: 1000px) { .sal-wrap { grid-template-columns:1fr; } .sal-prev { position:static; max-height:none; padding:8px; } .sal-paper { padding:20px 16px; } }
+  @media (max-width: 520px) { .sal-cks, .sal-sigbtns { grid-template-columns:1fr; } .sal-doc .cols, .sal-doc .sigs { grid-template-columns:1fr !important; } }
   .store-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .dot-palmhurst { background: var(--palmhurst); }
   .date-filter { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -868,6 +890,10 @@
     <div class="nav-item manager-only" data-page="audit" onclick="showPage('audit')">
       <span class="icon">🧾</span> Historial de cambios
     </div>
+    <div class="nav-section manager-only">Equipo</div>
+    <div class="nav-item manager-only" data-page="salida" onclick="showPage('salida')">
+      <span class="icon">📄</span> Constancia de salida
+    </div>
     <div class="nav-section manager-only">Stock</div>
     <div class="nav-item manager-only" data-page="receive" onclick="showPage('receive')">
       <span class="icon">📥</span> Receive Stock
@@ -1167,7 +1193,7 @@ function saveConfig() {
 // ─── NAVIGATION ──────────────────────────────────────────────────────
 function showPage(page) {
   // Block non-managers from manager pages
-  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','concierge','audit','desk','deskInbox','deskTasks','deskWait','deskWeek','deskNotes','deskLog','deskContacts'];
+  const managerPages = ['inventory','transactions','report','receive','customers','activations','nomina','socios','concierge','audit','desk','deskInbox','deskTasks','deskWait','deskWeek','deskNotes','deskLog','deskContacts','salida'];
   if (managerPages.includes(page) && !isManager) return;
   if (page === 'nomina') nomPreviewRep = '';
   if (page === 'mylines' && isManager) page = 'activations';
@@ -1193,8 +1219,471 @@ function loadCurrentPage() {
     case 'socios':       renderSocios(); break;
     case 'concierge':    renderConcierge(); break;
     case 'audit':        renderAudit(); break;
+    case 'salida':       renderSalida(); break;
     case 'desk': case 'deskInbox': case 'deskTasks': case 'deskWait': case 'deskWeek': case 'deskNotes': case 'deskLog': case 'deskContacts': renderDesk(); break;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 📄 CONSTANCIA DE SALIDA (v61) — documento de separación laboral para firmar
+// Llenas los datos (tipo y motivo de salida, fechas, último pago, devolución de equipo y accesos),
+// se ve el documento al lado en inglés + español, y ambos firman en la pantalla (o en papel).
+// Se guarda en este navegador como borrador. Imprimir / Guardar PDF lo saca en tamaño carta.
+// (Cuando exista la página 👥 Equipo, esto se mueve a la ficha de cada persona y el PDF a Drive.)
+// ═══════════════════════════════════════════════════════════════════════
+const SAL_KEY = 'mircomm_salidas';
+const SAL_TIPOS = {
+  renuncia: ['Voluntary resignation by Employee', 'Renuncia voluntaria'],
+  despido:  ['Termination by the Company', 'Terminación por parte de la Compañía'],
+  mutuo:    ['Mutual agreement', 'Mutuo acuerdo'],
+  abandono: ['Job abandonment (stopped reporting to work without notice)', 'Abandono de empleo (dejó de presentarse sin avisar)'],
+  temporal: ['End of temporary or seasonal work', 'Fin de trabajo temporal o de temporada']
+};
+const SAL_METODOS = { cheque: ['check', 'cheque'], deposito: ['direct deposit', 'depósito directo'], efectivo: ['cash', 'efectivo'], otro: ['other', 'otro'] };
+const SAL_PROP = [
+  ['llaves', 'Store keys and alarm code', 'Llaves de la tienda y código de alarma'],
+  ['equipo', 'Devices, tablets, phones and equipment', 'Dispositivos, tabletas, teléfonos y equipo'],
+  ['inventario', 'Inventory, SIM cards and demo units', 'Inventario, tarjetas SIM y equipos de muestra'],
+  ['efectivo', 'Cash, receipts and customer paperwork', 'Efectivo, recibos y papeles de clientes'],
+  ['uniforme', 'Uniform and name badge', 'Uniforme y gafete'],
+  ['docs', 'Company documents and materials (paper or electronic)', 'Documentos y materiales de la Compañía (en papel o digitales)']
+];
+const SAL_ACC = [
+  ['hub', 'MirComm Hub / POS PIN', 'PIN del Hub / punto de venta de MirComm'],
+  ['correo', 'Company email (mircommusa.com)', 'Correo de la Compañía (mircommusa.com)'],
+  ['spectrum', 'Spectrum sales Rep ID', 'Rep ID de ventas de Spectrum'],
+  ['att', 'AT&T and other carrier sales portals', 'Portales de ventas de AT&T y otras compañías'],
+  ['cellmart', 'Cellmart dealer portal', 'Portal de Cellmart'],
+  ['connecteam', 'Connecteam (time clock)', 'Connecteam (reloj checador)']
+];
+const SAL_PRESETS = {
+  'Alondra Soria Baldomero': { genero: 'f', puesto: 'Sales Representative', ingreso: '2026-06-04', salida: '2026-10-31', repId: 'CMMLB4898',
+    pagoFecha: '2026-10-31', pagoMetodo: 'cheque', pagoBanco: 'Chase Bank', pagoNum: '1253', pagoMonto: '224.13' }
+};
+let salAll = {}, salCur = '', salSigWho = '', salSigPad = null;
+
+function salBlank(nombre) {
+  const p = SAL_PRESETS[nombre] || {};
+  return Object.assign({
+    nombre: nombre || '', genero: 'f', puesto: 'Sales Representative', ingreso: '', salida: '', tipo: '', motivo: '',
+    pagoFecha: '', pagoMetodo: 'cheque', pagoBanco: '', pagoNum: '', pagoMonto: '', sepMonto: '', sepNota: '',
+    prop: {}, propOtro: '', acc: {}, repId: '', liberacion: true, referencia: false, notas: '', idioma: 'bi',
+    sigE: '', sigEAt: '', sigM: '', sigMAt: '', firmaM: 'Joel Chavez', cargoM: 'Owner and General Manager', creado: new Date().toISOString()
+  }, p);
+}
+function salLoad() {
+  try { salAll = JSON.parse(localStorage.getItem(SAL_KEY) || '{}') || {}; } catch (e) { salAll = {}; }
+  if (!Object.keys(salAll).length) { const n = 'Alondra Soria Baldomero'; salAll[n] = salBlank(n); }
+  if (!salCur || !salAll[salCur]) salCur = Object.keys(salAll).sort((a, b) => (salAll[b].creado || '').localeCompare(salAll[a].creado || ''))[0];
+}
+function salSave() {
+  try { localStorage.setItem(SAL_KEY, JSON.stringify(salAll)); }
+  catch (e) { toast('No se pudo guardar el borrador en este navegador (¿modo privado?). Imprime o guarda el PDF antes de salir.', 'error', 6000); }
+}
+function salD() { return salAll[salCur]; }
+function salSigned(d) { return !!((d || salD()).sigE || (d || salD()).sigM); }
+
+// ── formato ──
+function salFecha(iso, L) {
+  if (!iso) return L === 'es' ? '____ de ____________ de ______' : '______________, ______';
+  const [y, m, d] = iso.split('-').map(Number);
+  const en = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const es = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return L === 'es' ? `${d} de ${es[m - 1]} de ${y}` : `${en[m - 1]} ${d}, ${y}`;
+}
+function salMoney(v) { const n = parseFloat(String(v).replace(/[^0-9.]/g, '')); return isNaN(n) ? '' : '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function salAntig(d, L) {
+  if (!d.ingreso || !d.salida) return '';
+  const a = new Date(d.ingreso + 'T12:00:00'), b = new Date(d.salida + 'T12:00:00');
+  let m = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth(); if (b.getDate() < a.getDate()) m--;
+  if (m < 0) return '';
+  const y = Math.floor(m / 12), r = m % 12;
+  if (L === 'es') return [y ? `${y} año${y > 1 ? 's' : ''}` : '', r ? `${r} mes${r > 1 ? 'es' : ''}` : ''].filter(Boolean).join(' y ') || 'menos de un mes';
+  return [y ? `${y} year${y > 1 ? 's' : ''}` : '', r ? `${r} month${r > 1 ? 's' : ''}` : ''].filter(Boolean).join(' and ') || 'less than one month';
+}
+function salFolio(d) {
+  const ini = (d.nombre || '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase()).join('').slice(0, 3) || 'XX';
+  return `SAL-${(d.salida || '').replace(/-/g, '') || '00000000'}-${ini}`;
+}
+function salStamp(iso) {
+  if (!iso) return '';
+  const t = new Date(iso);
+  return `${String(t.getMonth() + 1).padStart(2, '0')}/${String(t.getDate()).padStart(2, '0')}/${t.getFullYear()} ${t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+}
+
+// ── texto del documento (una función por idioma; misma estructura) ──
+function salText(d, L) {
+  const es = L === 'es', E = es ? (d.genero === 'm' ? 'el Empleado' : 'la Empleada') : 'Employee';
+  const Ecap = es ? (d.genero === 'm' ? 'El Empleado' : 'La Empleada') : 'Employee';
+  const sep = parseFloat(String(d.sepMonto).replace(/[^0-9.]/g, '')) > 0;
+  const met = SAL_METODOS[d.pagoMetodo] || SAL_METODOS.otro;
+  const s = []; let n = 0; const h = t => `<h3>${++n}. ${t}</h3>`;
+
+  // 1. Separación
+  s.push(h(es ? 'Separación' : 'Separation'));
+  s.push(`<p>${es
+    ? `La relación laboral entre ${E} y MirComm LLC ("la Compañía") termina con fecha <b>${salFecha(d.salida, 'es')}</b>. A partir de esa fecha, ${E} ya no está autorizad${d.genero === 'm' ? 'o' : 'a'} para representar a la Compañía ni para hacer ventas, activaciones o compromisos a su nombre, incluido cualquier Rep ID de Spectrum, AT&amp;T u otra compañía.`
+    : `Employee's employment with MirComm LLC (the "Company") ends effective <b>${salFecha(d.salida, 'en')}</b>. After that date, Employee is no longer authorized to represent the Company or to make sales, activations, or commitments on its behalf, including under any Spectrum, AT&amp;T, or other carrier Rep ID.`}</p>`);
+
+  // 2. Último pago
+  s.push(h(es ? 'Último pago' : 'Final pay'));
+  const via = d.pagoMetodo === 'cheque'
+    ? (es ? `con cheque${d.pagoBanco ? ' de ' + escHtml(d.pagoBanco) : ''}${d.pagoNum ? ' No. ' + escHtml(d.pagoNum) : ''}` : `by ${d.pagoBanco ? escHtml(d.pagoBanco) + ' ' : ''}check${d.pagoNum ? ' No. ' + escHtml(d.pagoNum) : ''}`)
+    : (es ? `por ${met[1]}${d.pagoNum ? ' (referencia ' + escHtml(d.pagoNum) + ')' : ''}` : `by ${met[0]}${d.pagoNum ? ' (reference ' + escHtml(d.pagoNum) + ')' : ''}`);
+  s.push(`<p>${es
+    ? `La Compañía pagó a ${E} su último sueldo y las comisiones ganadas hasta la fecha de separación, menos las retenciones de ley, el ${salFecha(d.pagoFecha, 'es')} ${via} por <b>${salMoney(d.pagoMonto) || '$________'}</b>. ${Ecap} recibe este pago firme o no firme este documento.`
+    : `The Company paid Employee all final wages and earned commissions through the separation date, less lawful withholdings, on ${salFecha(d.pagoFecha, 'en')} ${via} in the amount of <b>${salMoney(d.pagoMonto) || '$________'}</b>. Employee receives this pay whether or not Employee signs this document.`}</p>`);
+  if (sep) s.push(`<p>${es
+    ? `<b>Pago de separación.</b> Además, a cambio de firmar este documento, la Compañía paga a ${E} un pago único de separación de <b>${salMoney(d.sepMonto)}</b>${d.sepNota ? ' (' + escHtml(d.sepNota) + ')' : ''}, que ${E} reconoce que no le correspondía de otra forma.`
+    : `<b>Separation payment.</b> In addition, in exchange for signing this document, the Company pays Employee a one-time separation payment of <b>${salMoney(d.sepMonto)}</b>${d.sepNota ? ' (' + escHtml(d.sepNota) + ')' : ''}, which Employee acknowledges Employee would not otherwise be entitled to receive.`}</p>`);
+  s.push(`<p>${es
+    ? `${Ecap} confirma que reportó todas las horas que trabajó y que, aparte de lo descrito en esta sección, la Compañía no le debe sueldos, comisiones ni bonos.`
+    : `Employee confirms that Employee has reported all hours worked and that, other than the amounts described in this section, the Company owes Employee no wages, commissions, or bonuses.`}</p>`);
+
+  // 3. Propiedad
+  const devueltos = SAL_PROP.filter(p => d.prop[p[0]]);
+  s.push(h(es ? 'Propiedad de la Compañía' : 'Company property'));
+  s.push(`<p>${es ? `${Ecap} devolvió a la Compañía:` : 'Employee has returned to the Company:'}</p>`);
+  s.push(`<ul class="ck">${devueltos.map(p => `<li>☑ ${escHtml(es ? p[2] : p[1])}</li>`).join('')}${d.propOtro ? `<li>☑ ${escHtml(d.propOtro)}</li>` : ''}${!devueltos.length && !d.propOtro ? `<li>☐ ${es ? 'Nada que devolver' : 'Nothing to return'}</li>` : ''}</ul>`);
+
+  // 4. Accesos
+  const accs = SAL_ACC.filter(a => d.acc[a[0]]);
+  s.push(h(es ? 'Accesos a sistemas' : 'System access'));
+  s.push(`<p>${es
+    ? `${Ecap} no entrará ni intentará entrar a ningún sistema de la Compañía después de la fecha de separación, y autoriza que se desactiven sus accesos. Se desactivaron:`
+    : `Employee will not access or attempt to access any Company system after the separation date and authorizes the Company to deactivate all of Employee's access. The following were deactivated:`}</p>`);
+  s.push(`<ul class="ck">${accs.length ? accs.map(a => `<li>☑ ${escHtml(es ? a[2] : a[1])}${a[0] === 'spectrum' && d.repId ? ` (${escHtml(d.repId)})` : ''}</li>`).join('') : `<li>☐ ${es ? 'Ninguno registrado' : 'None recorded'}</li>`}</ul>`);
+
+  // 5. Confidencialidad
+  s.push(h(es ? 'Confidencialidad' : 'Confidentiality'));
+  s.push(`<p>${es
+    ? `${Ecap} no usará ni compartirá información confidencial que obtuvo trabajando en la Compañía: nombres, teléfonos, direcciones y datos de cuentas de clientes; precios, comisiones y promociones; reportes de ventas; y planes y procedimientos de la Compañía. Tampoco usará información de clientes de la Compañía para contactarlos para otro negocio. Esta obligación continúa después de la separación.`
+    : `Employee will not use or disclose confidential information obtained while working for the Company, including customer names, phone numbers, addresses, and account details; carrier pricing, commissions, and promotions; sales reports; and Company plans and procedures. Employee will not use Company customer information to contact customers for any other business. These obligations continue after the separation date.`}</p>`);
+
+  // 6. Referencia neutral (opcional)
+  let refN = 0;
+  if (d.referencia) {
+    refN = n + 1;
+    s.push(h(es ? 'Referencias' : 'References'));
+    s.push(`<p>${es
+      ? `Si un posible empleador pide referencias de ${E}, la Compañía solo confirmará sus fechas de empleo y su puesto, y no dará comentarios negativos.`
+      : `If a prospective employer asks about Employee, the Company will confirm only Employee's dates of employment and position, and will make no negative comments.`}</p>`);
+  }
+
+  // 7. Liberación (opcional)
+  if (d.liberacion) {
+    const porque = sep ? (es ? 'A cambio del pago de separación de la sección 2' : 'In exchange for the separation payment in Section 2')
+      : refN ? (es ? `A cambio del compromiso de la Compañía en la sección ${refN}` : `In exchange for the Company's commitment in Section ${refN}`)
+      : (es ? 'A cambio de las promesas mutuas de este documento' : 'In exchange for the mutual promises in this document');
+    s.push(h(es ? 'Liberación de reclamos' : 'Release of claims'));
+    s.push(`<p>${es
+      ? `${porque}, ${E} libera a MirComm LLC y a sus dueños, gerentes, empleados y agentes de cualquier reclamo, conocido o no, relacionado con su empleo o con el fin del mismo, hasta la fecha en que firma, en la medida que la ley lo permita.`
+      : `${porque}, Employee releases MirComm LLC and its owners, managers, employees, and agents from any claims, known or unknown, arising from Employee's employment or its end, up to the date Employee signs, to the fullest extent allowed by law.`}</p>`);
+    s.push(`<p class="sm">${es
+      ? `Esto no incluye: el último pago de la sección 2; beneficios de desempleo o de compensación al trabajador; reclamos que la ley no permite renunciar; reclamos que surjan después de firmar; ni el derecho de presentar una queja ante la EEOC, la Comisión de la Fuerza Laboral de Texas (TWC) u otra agencia de gobierno. Este documento no es una admisión de culpa de ninguna de las partes.`
+      : `This does not include: the final pay in Section 2; unemployment or workers' compensation benefits; claims that cannot be waived by law; claims arising after signing; or the right to file a charge with the EEOC, the Texas Workforce Commission, or any other government agency. This document is not an admission of wrongdoing by either party.`}</p>`);
+  }
+
+  // 8. Notas
+  if (d.notas && d.notas.trim()) {
+    s.push(h(es ? 'Notas adicionales' : 'Additional notes'));
+    s.push(`<p>${escHtml(d.notas).replace(/\n/g, '<br>')}</p>`);
+  }
+
+  // Reconocimiento
+  s.push(h(es ? 'Reconocimiento' : 'Acknowledgment'));
+  s.push(`<p>${es
+    ? `Al firmar, ${E} confirma que leyó este documento, que se le ofreció en inglés y en español, que tuvo tiempo de revisarlo (y de consultarlo con un abogado si así lo quería), que lo firma de forma voluntaria, y que recibe una copia. Este documento se rige por las leyes del Estado de Texas. La versión en inglés y la versión en español dicen lo mismo.`
+    : `By signing, Employee confirms that Employee has read this document, was offered it in English and in Spanish, had time to review it (and to consult an attorney if Employee wished), is signing voluntarily, and receives a copy. This document is governed by the laws of the State of Texas. The English and Spanish versions have the same meaning.`}</p>`);
+  return s.join('');
+}
+
+const SAL_DOC_CSS = `
+.sal-doc{background:#fff;color:#141820;font-family:Georgia,'Times New Roman',serif;font-size:9.4pt;line-height:1.38}
+.sal-doc *{box-sizing:border-box}
+.sal-doc .hd{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:2px solid #141820;padding-bottom:10px}
+.sal-doc .hd img{height:38px;width:auto}
+.sal-doc .co{font:9pt/1.35 Arial,sans-serif;color:#454b57;text-align:right}
+.sal-doc h1{font:700 14pt/1.2 Arial,sans-serif;margin:12px 0 2px;letter-spacing:.01em}
+.sal-doc .sub{font:9.5pt Arial,sans-serif;color:#555b66;margin:0 0 12px}
+.sal-doc table.dt{width:100%;border-collapse:collapse;font:9pt/1.3 Arial,sans-serif;margin:6px 0 4px}
+.sal-doc table.dt td{border:1px solid #c9ccd3;padding:4px 8px;vertical-align:top}
+.sal-doc table.dt td.k{width:30%;background:#f3f4f7;color:#3c424d;font-weight:600}
+.sal-doc .mot{border:1px solid #c9ccd3;border-left:4px solid #141820;padding:6px 10px;margin:8px 0 2px;font:9.3pt/1.4 Arial,sans-serif;white-space:pre-wrap}
+.sal-doc .mot b{display:block;font-size:8pt;letter-spacing:.08em;text-transform:uppercase;color:#555b66;margin-bottom:3px}
+.sal-doc .cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:6px}
+.sal-doc .cols .lang{font:700 8pt Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#6a707b;border-bottom:1px solid #c9ccd3;padding-bottom:3px;margin:10px 0 2px}
+.sal-doc .one .lang{display:none}
+.sal-doc h3{font:700 9.4pt Arial,sans-serif;margin:9px 0 2px}
+.sal-doc p{margin:0 0 5px}
+.sal-doc p.sm{font-size:8.4pt;color:#3c424d}
+.sal-doc ul.ck{list-style:none;margin:0 0 6px 6px;padding:0}
+.sal-doc ul.ck li{margin:0 0 2px}
+.sal-doc .sigs{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:16px;page-break-inside:avoid;break-inside:avoid}
+.sal-doc .sig .who{font:700 8.5pt Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#3c424d;margin-bottom:4px}
+.sal-doc .sig .box{height:58px;border-bottom:1.5px solid #141820;display:flex;align-items:flex-end}
+.sal-doc .sig .box img{max-height:56px;max-width:100%}
+.sal-doc .sig .ln{font:9pt/1.4 Arial,sans-serif;margin-top:4px}
+.sal-doc .sig .st{font:8pt Arial,sans-serif;color:#6a707b}
+.sal-doc .ft{margin-top:18px;border-top:1px solid #c9ccd3;padding-top:6px;font:8pt Arial,sans-serif;color:#6a707b;display:flex;justify-content:space-between}
+`;
+
+function salDocHTML(d) {
+  const L = d.idioma, bi = L === 'bi', tipo = SAL_TIPOS[d.tipo];
+  const lab = (en, es) => bi ? `${en} / ${es}` : (L === 'es' ? es : en);
+  const tipoTxt = tipo ? (bi ? `${tipo[0]} / ${tipo[1]}` : (L === 'es' ? tipo[1] : tipo[0])) : '☐ ________________';
+  const antig = bi ? [salAntig(d, 'en'), salAntig(d, 'es')].filter(Boolean).join(' / ') : salAntig(d, L === 'es' ? 'es' : 'en');
+  const fecha = iso => bi ? `${salFecha(iso, 'en')} / ${salFecha(iso, 'es')}` : salFecha(iso, L === 'es' ? 'es' : 'en');
+  const sig = (who, name, role, img, at) => `<div class="sig"><div class="who">${who}</div>
+    <div class="box">${img ? `<img src="${img}" alt="">` : ''}</div>
+    <div class="ln"><b>${escHtml(name) || '______________________'}</b>${role ? `<br>${escHtml(role)}` : ''}</div>
+    <div class="ln">${lab('Date', 'Fecha')}: ${at ? salStamp(at).split(' ')[0] : '____________'}</div>
+    ${img ? `<div class="st">${lab('Signed electronically', 'Firmado electrónicamente')} · ${salStamp(at)}</div>` : ''}</div>`;
+  return `<div class="sal-doc">
+    <div class="hd"><img src="${RECEIPT_LOGO}" alt="MirComm"><div class="co"><b>MirComm LLC</b><br>4415 N. Conway Ave., Ste. 180<br>Palmhurst, TX 78573 · (956) 603-6505</div></div>
+    <h1>${bi ? 'Separation Notice and Acknowledgment' : (L === 'es' ? 'Constancia de separación laboral' : 'Separation Notice and Acknowledgment')}</h1>
+    <div class="sub">${bi ? 'Constancia de separación laboral · ' : ''}Folio: ${salFolio(d)}</div>
+    <table class="dt">
+      <tr><td class="k">${lab('Employee', 'Empleado(a)')}</td><td><b>${escHtml(d.nombre) || '______________________'}</b></td></tr>
+      <tr><td class="k">${lab('Position', 'Puesto')}</td><td>${escHtml(d.puesto) || '—'}</td></tr>
+      <tr><td class="k">${lab('Hire date', 'Fecha de ingreso')}</td><td>${fecha(d.ingreso)}</td></tr>
+      <tr><td class="k">${lab('Separation date (last day)', 'Fecha de salida (último día)')}</td><td>${fecha(d.salida)}</td></tr>
+      ${antig ? `<tr><td class="k">${lab('Length of employment', 'Tiempo trabajado')}</td><td>${antig}</td></tr>` : ''}
+      <tr><td class="k">${lab('Type of separation', 'Tipo de salida')}</td><td>${tipoTxt}</td></tr>
+    </table>
+    <div class="mot"><b>${lab('Reason for separation', 'Motivo de la salida')}</b>${escHtml(d.motivo) || '&nbsp;'}</div>
+    <div class="cols ${bi ? '' : 'one'}" style="${bi ? '' : 'grid-template-columns:1fr'}">
+      ${L !== 'es' ? `<div lang="en"><div class="lang">English</div>${salText(d, 'en')}</div>` : ''}
+      ${L !== 'en' ? `<div lang="es"><div class="lang">Español</div>${salText(d, 'es')}</div>` : ''}
+    </div>
+    <div class="sigs">
+      ${sig(lab('Employee', 'Empleado(a)'), d.nombre, '', d.sigE, d.sigEAt)}
+      ${sig('MirComm LLC', d.firmaM, d.cargoM, d.sigM, d.sigMAt)}
+    </div>
+    <div class="ft"><span>MirComm LLC · ${salFolio(d)}</span><span>${lab('Each party keeps a signed copy', 'Cada parte conserva una copia firmada')}</span></div>
+  </div>`;
+}
+
+// ── página ──
+function renderSalida() {
+  if (!isManager) { showPage('pos'); return; }
+  salLoad();
+  if (!document.getElementById('sal-css')) { const st = document.createElement('style'); st.id = 'sal-css'; st.textContent = SAL_DOC_CSS; document.head.appendChild(st); }
+  const d = salD(), lock = salSigned(d);
+  const names = Object.keys(salAll).sort((a, b) => (salAll[b].creado || '').localeCompare(salAll[a].creado || ''));
+  const chk = (grp, list) => list.map(([k, en, es]) => {
+    const v = d[grp][k];
+    return `<label class="sal-ck"><input type="checkbox" ${v ? 'checked' : ''} onchange="salSetK('${grp}','${k}',this.checked)"> ${escHtml(es)}</label>`;
+  }).join('');
+  const opt = (obj, cur, i) => Object.keys(obj).map(k => `<option value="${k}" ${cur === k ? 'selected' : ''}>${escHtml(obj[k][i])}</option>`).join('');
+  const f = (k, label, type, extra) => `<div class="form-group"><label class="form-label">${label}</label><input class="form-input" type="${type || 'text'}" value="${escHtml(d[k])}" oninput="salSet('${k}',this.value)" ${extra || ''}></div>`;
+  document.getElementById('content').innerHTML = `
+    <div class="page-title">📄 Constancia de salida</div>
+    <div class="page-subtitle">Llena los datos, revisa el documento y fírmenlo aquí en la pantalla o imprímanlo para firmar en papel</div>
+    <div class="sal-top">
+      ${names.map(n => `<span class="desk-chip ${n === salCur ? 'on' : ''}" onclick="salPick(${names.indexOf(n)})">${salAll[n].sigE && salAll[n].sigM ? '✅' : salSigned(salAll[n]) ? '✍️' : '📝'} ${escHtml(n || 'Sin nombre')}</span>`).join('')}
+      <button class="btn btn-ghost btn-sm" onclick="salNew()">＋ Nueva</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-ghost btn-sm" onclick="salDelete()" title="Borrar este borrador de este navegador">🗑</button>
+    </div>
+    <div class="sal-wrap">
+      <div class="sal-form">
+        ${lock ? `<div class="act-hint sal-lock">🔒 Ya hay firma(s): los datos quedaron bloqueados para que el documento firmado no cambie.
+          <button class="btn btn-ghost btn-sm" onclick="salUnlock()">Editar (borra las firmas)</button></div>` : ''}
+        <fieldset ${lock ? 'disabled' : ''} class="sal-fs">
+          <div class="sal-sec">Persona</div>
+          <div class="form-row">${f('nombre', 'Nombre completo', 'text', 'onchange="salRename(this.value)"')}${f('puesto', 'Puesto')}</div>
+          <div class="form-row">
+            ${f('ingreso', 'Fecha de ingreso', 'date')}${f('salida', 'Fecha de salida (último día)', 'date')}
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Texto en español</label>
+              <select class="form-input form-select" onchange="salSet('genero',this.value)"><option value="f" ${d.genero !== 'm' ? 'selected' : ''}>"la Empleada"</option><option value="m" ${d.genero === 'm' ? 'selected' : ''}>"el Empleado"</option></select></div>
+            <div class="form-group"><label class="form-label">Idioma del documento</label>
+              <select class="form-input form-select" onchange="salSet('idioma',this.value)">
+                ${[['bi', 'Inglés + español (lado a lado)'], ['en', 'Solo inglés'], ['es', 'Solo español']].map(([v, l]) => `<option value="${v}" ${d.idioma === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+          </div>
+
+          <div class="sal-sec">Salida</div>
+          <div class="form-group"><label class="form-label">Tipo de salida</label>
+            <select class="form-input form-select" onchange="salSet('tipo',this.value)"><option value="">— Elige —</option>${opt(SAL_TIPOS, d.tipo, 1)}</select></div>
+          <div class="form-group"><label class="form-label">Motivo (sale tal cual en el documento)</label>
+            <textarea class="form-input" rows="3" oninput="salSet('motivo',this.value)" placeholder="Ej.: La empleada presentó su renuncia para dedicarse a sus estudios.">${escHtml(d.motivo)}</textarea>
+            <div class="sal-tip">Escríbelo neutral y con hechos (qué pasó y cuándo). Evita opiniones o calificativos.</div></div>
+
+          <div class="sal-sec">Último pago</div>
+          <div class="form-row">${f('pagoFecha', 'Fecha del pago', 'date')}
+            <div class="form-group"><label class="form-label">Forma de pago</label>
+              <select class="form-input form-select" onchange="salSet('pagoMetodo',this.value);renderSalida()">${opt(SAL_METODOS, d.pagoMetodo, 1)}</select></div></div>
+          <div class="form-row">
+            ${d.pagoMetodo === 'cheque' ? f('pagoBanco', 'Banco') : ''}
+            ${f('pagoNum', d.pagoMetodo === 'cheque' ? 'Número de cheque' : 'Referencia (opcional)')}
+          </div>
+          ${f('pagoMonto', 'Monto ($)', 'text', 'inputmode="decimal"')}
+          <div id="sal-paywarn"></div>
+          <div class="form-row">${f('sepMonto', 'Pago de separación extra ($, opcional)', 'text', 'inputmode="decimal" placeholder="0"')}${f('sepNota', 'Detalle del pago extra (opcional)', 'text', 'placeholder="Ej.: cheque No. 1260"')}</div>
+
+          <div class="sal-sec">Devolvió</div>
+          <div class="sal-cks">${chk('prop', SAL_PROP)}</div>
+          ${f('propOtro', 'Otra cosa que devolvió (opcional)')}
+
+          <div class="sal-sec">Accesos desactivados</div>
+          <div class="sal-cks">${chk('acc', SAL_ACC)}</div>
+          ${d.acc.spectrum ? f('repId', 'Rep ID de Spectrum') : ''}
+
+          <div class="sal-sec">Cláusulas</div>
+          <label class="sal-ck"><input type="checkbox" ${d.liberacion ? 'checked' : ''} onchange="salSet('liberacion',this.checked)"> Incluir liberación de reclamos</label>
+          <label class="sal-ck"><input type="checkbox" ${d.referencia ? 'checked' : ''} onchange="salSet('referencia',this.checked)"> La Compañía solo confirmará fechas y puesto si piden referencias</label>
+          <div id="sal-relwarn"></div>
+          <div class="form-group" style="margin-top:10px"><label class="form-label">Notas adicionales (opcional, salen en el documento)</label>
+            <textarea class="form-input" rows="2" oninput="salSet('notas',this.value)">${escHtml(d.notas)}</textarea></div>
+          <div class="form-row">${f('firmaM', 'Firma por MirComm')}${f('cargoM', 'Cargo')}</div>
+        </fieldset>
+
+        <div class="sal-sec">Firmas</div>
+        <div class="sal-sigbtns">
+          <button class="btn ${d.sigE ? 'btn-ghost' : 'btn-primary'}" onclick="salSigOpen('E')">${d.sigE ? '✅ Firmó ' + escHtml((d.nombre || '').split(' ')[0]) + ' · cambiar' : '✍️ Firma de ' + escHtml((d.nombre || 'el empleado').split(' ')[0])}</button>
+          <button class="btn ${d.sigM ? 'btn-ghost' : 'btn-primary'}" onclick="salSigOpen('M')">${d.sigM ? '✅ Firmó ' + escHtml((d.firmaM || '').split(' ')[0]) + ' · cambiar' : '✍️ Firma de ' + escHtml((d.firmaM || 'MirComm').split(' ')[0])}</button>
+        </div>
+        <div class="sal-tip" style="margin-bottom:12px">Si prefieren firmar en papel, imprime sin firmas: salen las líneas en blanco.</div>
+        <div id="sal-missing"></div>
+        <div class="sal-actions">
+          <button class="btn btn-primary" style="flex:1;padding:13px" onclick="salPrint()">🖨 Imprimir / Guardar PDF</button>
+        </div>
+      </div>
+      <div class="sal-prev"><div class="sal-paper" id="sal-paper"></div></div>
+    </div>
+    <div class="modal-overlay" id="sal-sig-ov" onclick="if(event.target===this)salSigClose()">
+      <div class="modal sal-sig-modal">
+        <div class="modal-title" id="sal-sig-t">Firma</div>
+        <div class="sal-tip" id="sal-sig-s" style="margin:4px 0 10px"></div>
+        <canvas id="sal-sig-cv" class="sal-sig-cv"></canvas>
+        <div class="sal-sig-line">Firme sobre la línea · Sign above the line</div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn btn-ghost" onclick="salSigClear()">Borrar</button><span style="flex:1"></span>
+          <button class="btn btn-ghost" onclick="salSigClose()">Cancelar</button>
+          <button class="btn btn-primary" onclick="salSigSave()">Guardar firma</button>
+        </div>
+      </div>
+    </div>`;
+  salPaint();
+}
+function salPaint() {
+  const d = salD(), paper = document.getElementById('sal-paper'); if (!paper) return;
+  paper.innerHTML = salDocHTML(d);
+  // avisos
+  const pw = document.getElementById('sal-paywarn');
+  if (pw) {
+    let msg = '';
+    if (d.tipo === 'despido' && d.salida && d.pagoFecha) {
+      const dias = Math.round((new Date(d.pagoFecha + 'T12:00:00') - new Date(d.salida + 'T12:00:00')) / 864e5);
+      if (dias > 6) msg = `En Texas, si la Compañía terminó el empleo, el último pago se debe dar dentro de 6 días calendario (aquí van ${dias}).`;
+    } else if (d.tipo === 'renuncia' && !d.pagoFecha) msg = 'Si renunció, el último pago vence el siguiente día de pago normal.';
+    pw.innerHTML = msg ? `<div class="sal-warn">${msg}</div>` : '';
+  }
+  const rw = document.getElementById('sal-relwarn');
+  if (rw) rw.innerHTML = d.liberacion && !(parseFloat(String(d.sepMonto).replace(/[^0-9.]/g, '')) > 0) && !d.referencia
+    ? `<div class="sal-warn">Sin pago extra ni compromiso de referencias, la liberación de reclamos tiene poca fuerza (su último sueldo ya se le debía). Marcar la opción de referencias le da algo a cambio.</div>` : '';
+  const miss = [];
+  if (!d.nombre) miss.push('nombre'); if (!d.salida) miss.push('fecha de salida'); if (!d.tipo) miss.push('tipo de salida');
+  if (!d.motivo.trim()) miss.push('motivo'); if (!d.pagoMonto) miss.push('monto del último pago');
+  const m = document.getElementById('sal-missing');
+  if (m) m.innerHTML = miss.length ? `<div class="sal-tip" style="color:var(--yellow);margin-bottom:10px">Falta: ${miss.join(', ')}.</div>` : '';
+}
+function salSet(k, v) {
+  const d = salD(); if (salSigned(d) && !['sigE', 'sigM'].includes(k)) return;
+  d[k] = v; salSave();
+  clearTimeout(window._salT); window._salT = setTimeout(salPaint, 120);
+  if (k === 'liberacion' || k === 'referencia' || (k === 'acc')) salPaint();
+}
+function salSetK(grp, k, v) {
+  const d = salD(); if (salSigned(d)) return;
+  d[grp][k] = v; salSave();
+  if (grp === 'acc' && k === 'spectrum') renderSalida(); else salPaint();
+}
+function salRename(v) {
+  v = (v || '').trim(); if (!v || v === salCur) return;
+  if (salAll[v]) { toast('Ya hay una constancia con ese nombre.', 'error'); return; }
+  const d = salD(); delete salAll[salCur];
+  if (SAL_PRESETS[v]) Object.keys(SAL_PRESETS[v]).forEach(k => { if (!d[k]) d[k] = SAL_PRESETS[v][k]; });
+  d.nombre = v; salAll[v] = d; salCur = v; salSave(); renderSalida();
+}
+function salPick(i) { const names = Object.keys(salAll).sort((a, b) => (salAll[b].creado || '').localeCompare(salAll[a].creado || '')); salCur = names[i]; renderSalida(); }
+function salNew() {
+  const n = (prompt('Nombre completo de la persona:') || '').trim(); if (!n) return;
+  if (!salAll[n]) salAll[n] = salBlank(n);
+  salCur = n; salSave(); renderSalida();
+}
+function salDelete() {
+  if (!confirm(`¿Borrar la constancia de ${salCur || 'este borrador'} de este navegador? Si ya la firmaron, guarda el PDF primero.`)) return;
+  delete salAll[salCur]; salCur = ''; salSave(); renderSalida();
+}
+function salUnlock() {
+  if (!confirm('Para editar hay que borrar las firmas, y tendrán que volver a firmar. ¿Continuar?')) return;
+  const d = salD(); d.sigE = d.sigEAt = d.sigM = d.sigMAt = ''; salSave(); renderSalida();
+}
+
+// ── firma en pantalla ──
+function salSigOpen(who) {
+  const d = salD();
+  if (who === 'E' && !d.sigM && !d.sigE) {
+    const miss = !d.nombre || !d.salida || !d.tipo || !d.motivo.trim() || !d.pagoMonto;
+    if (miss && !confirm('Faltan datos en el documento. Al firmar se bloquea la edición. ¿Firmar de todos modos?')) return;
+  }
+  salSigWho = who;
+  document.getElementById('sal-sig-t').textContent = who === 'E' ? `Firma de ${d.nombre || 'la persona'}` : `Firma de ${d.firmaM || 'MirComm'}`;
+  document.getElementById('sal-sig-s').textContent = who === 'E'
+    ? 'Antes de firmar, que lea el documento completo (puede leerlo impreso o en la pantalla).'
+    : 'Firma por MirComm LLC.';
+  document.getElementById('sal-sig-ov').classList.add('open');
+  setTimeout(salSigInit, 60);
+}
+function salSigInit() {
+  const cv = document.getElementById('sal-sig-cv'); if (!cv) return;
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0B1B3A'; ctx.lineWidth = 2.4;
+  salSigPad = { cv, ctx, down: false, ink: 0, last: null };
+  const pos = e => { const b = cv.getBoundingClientRect(); return { x: e.clientX - b.left, y: e.clientY - b.top }; };
+  cv.onpointerdown = e => { e.preventDefault(); cv.setPointerCapture(e.pointerId); salSigPad.down = true; salSigPad.last = pos(e);
+    ctx.beginPath(); ctx.arc(salSigPad.last.x, salSigPad.last.y, 1.1, 0, Math.PI * 2); ctx.fillStyle = '#0B1B3A'; ctx.fill(); };
+  cv.onpointermove = e => { if (!salSigPad.down) return; e.preventDefault(); const p = pos(e), l = salSigPad.last;
+    ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.quadraticCurveTo(l.x, l.y, (l.x + p.x) / 2, (l.y + p.y) / 2); ctx.lineTo(p.x, p.y); ctx.stroke();
+    salSigPad.ink += Math.abs(p.x - l.x) + Math.abs(p.y - l.y); salSigPad.last = p; };
+  cv.onpointerup = cv.onpointercancel = () => { salSigPad.down = false; };
+}
+function salSigClear() { if (!salSigPad) return; const { cv, ctx } = salSigPad; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.restore(); salSigPad.ink = 0; }
+function salSigClose() { document.getElementById('sal-sig-ov').classList.remove('open'); salSigPad = null; }
+function salSigSave() {
+  if (!salSigPad || salSigPad.ink < 40) { toast('Falta la firma.', 'error'); return; }
+  // recorta el espacio en blanco para que la firma quede bien en el documento
+  const { cv } = salSigPad, ctx = cv.getContext('2d'), w = cv.width, h = cv.height, px = ctx.getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = 0, y1 = 0;
+  for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) if (px[(y * w + x) * 4 + 3] > 10) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const pad = 8; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w, x1 + pad); y1 = Math.min(h, y1 + pad);
+  const out = document.createElement('canvas'); out.width = x1 - x0; out.height = y1 - y0;
+  out.getContext('2d').drawImage(cv, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+  const d = salD(), now = new Date().toISOString();
+  if (salSigWho === 'E') { d.sigE = out.toDataURL('image/png'); d.sigEAt = now; } else { d.sigM = out.toDataURL('image/png'); d.sigMAt = now; }
+  salSave(); salSigClose(); renderSalida();
+  toast(d.sigE && d.sigM ? 'Listo: firmado por ambos. Imprime o guarda el PDF y dale una copia.' : 'Firma guardada.', 'success', 4000);
+}
+
+// ── imprimir / PDF ──
+function salPrint() {
+  const d = salD();
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escHtml(salFolio(d))} · ${escHtml(d.nombre)}</title>
+<style>@page{size:letter;margin:.55in .6in}body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.tip{font:13px Arial;padding:12px;background:#FFF7E0;border-bottom:1px solid #E8D9A8;text-align:center}@media print{.tip{display:none}}
+.wrap{max-width:7.3in;margin:0 auto;padding:16px 0}@media print{.wrap{padding:0}}${SAL_DOC_CSS}</style></head><body>
+<div class="tip">Para guardar el PDF, en la ventana de impresión elige <b>Guardar como PDF</b> como impresora.</div>
+<div class="wrap">${salDocHTML(d)}</div>
+<script>Promise.all([document.fonts.ready].concat([].map.call(document.images,function(i){return i.complete?0:new Promise(function(r){i.onload=i.onerror=r;})}))).then(function(){setTimeout(function(){window.print();},300);});<\/script>
+</body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { toast('El navegador bloqueó la ventana. Permite ventanas emergentes para el Hub.', 'error', 5000); return; }
+  w.document.open(); w.document.write(html); w.document.close();
 }
 
 // ─── 🧾 HISTORIAL DE CAMBIOS (Admins.gs → hoja Auditoria) ─────────────
