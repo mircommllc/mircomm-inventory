@@ -41,6 +41,10 @@ var PROS_MAX_DAYS = 60;      // plazo máximo con seguimientos
 var PROS_CONTACT_EXTENDS = 30; // cada contacto extiende el plazo hasta X días después del contacto
 var PROS_STORE_CHANNEL = 'Seguimiento de tienda';
 var PROS_CODE_CHANNEL = 'Código personal';
+// v60: personas que ya no trabajan en MirComm. Su historial se queda (prospectos, ventas, nómina),
+// pero ya no salen para asignarles prospectos ni para darles crédito de una venta. Lo usa también Credito.gs.
+var STAFF_BAJAS = { Alondra: '2026-10-31' };
+function staffEsBaja_(name) { return !!STAFF_BAJAS[String(name || '').trim()]; }
 
 // ─── CONFIGURACIÓN (editar y correr una vez) ─────────────────────────
 function configurarProspectos() {
@@ -284,7 +288,7 @@ function prosList_(me) {
   });
   var prospects = mine.map(function (r) { return prosClient_(r, now, me); });
   var users = me.manager ? Object.keys(me.cfg.usuarios).map(function (n) {
-    var u = me.cfg.usuarios[n]; return { name: n, code: u.codigo || '', manager: !!u.manager, repIds: u.repIds || [] };
+    var u = me.cfg.usuarios[n]; return { name: n, code: u.codigo || '', manager: !!u.manager, repIds: u.repIds || [], baja: staffEsBaja_(n) };
   }) : [];
   return {
     me: prosPublicUser_(me),
@@ -367,6 +371,7 @@ function prosAdd_(me, p) {
   } else if (me.manager && p.asesora && me.cfg.usuarios[p.asesora]) {
     owner = String(p.asesora);
   }
+  if (staffEsBaja_(owner)) throw new Error(owner + ' ya no trabaja en MirComm. Ponlo a nombre de alguien más.');
 
   var check = prosDupCheck_(me, phone, owner);
   if (!check.ok) throw new Error(check.message);
@@ -446,6 +451,8 @@ function prosUpdate_(me, p) {
   prosOwnerOrManager_(me, r);
   var prevOwner = r.Asesora;
   if (me.manager && p.Asesora !== undefined && !me.cfg.usuarios[String(p.Asesora).trim()]) throw new Error('Ese usuario no existe en Prospectos.');
+  if (me.manager && p.Asesora !== undefined && String(p.Asesora).trim() !== prevOwner && staffEsBaja_(p.Asesora))
+    throw new Error(String(p.Asesora).trim() + ' ya no trabaja en MirComm.');
   var repFields = ['Direccion', 'Zip', 'Interes', 'Notas', 'ProximoSeguimiento'];
   var mgrFields = repFields.concat(['Nombre', 'Telefono', 'Canal', 'Detalle', 'Asesora', 'Estado', 'VenceEl']);
   (me.manager ? mgrFields : repFields).forEach(function (f) {

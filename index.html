@@ -942,6 +942,8 @@
 let mgrToken = '';
 let pinBusy = false;
 let EMPLOYEES = ['Joel', 'Lizbeth'];   // Alondra dejó MirComm el 31 oct 2026
+const HUB_BAJAS = ['Alondra'];   // ya no salen para asignar prospectos ni dar crédito (su historial se queda)
+function hubTeam(list) { return (list || EMPLOYEES).filter(n => !HUB_BAJAS.includes(n)); }
 // Administradores (Joel, Maricela…): entran con su propio PIN; el backend (Admins.gs) dice quién es.
 let adminNames = ['Joel'];
 let adminOwner = false;
@@ -2607,8 +2609,10 @@ function prosChannelLabel(c) { const x = PROS_CHANNELS.find(y => y.id === c); re
 // v59: Joel (y cualquier admin) también puede ser dueño del prospecto. Él va primero y viene seleccionado.
 function prosOwnerOptions(cur) {
   const me = prosAuth.user;
-  const names = [...new Set([me].concat((prosData.users || []).map(u => u.name)))];
-  return names.map(n => `<option value="${escHtml(n)}" ${n === (cur || me) ? 'selected' : ''}>${escHtml(n)}${n === me ? ' (yo)' : ''}</option>`).join('');
+  // v60: las bajas (Alondra) ya no salen; solo se ven si el prospecto ya estaba a su nombre.
+  const baja = n => (prosData.users || []).some(u => u.name === n && u.baja) || HUB_BAJAS.includes(n);
+  const names = [...new Set([me].concat((prosData.users || []).map(u => u.name)))].filter(n => !baja(n) || n === cur);
+  return names.map(n => `<option value="${escHtml(n)}" ${n === (cur || me) ? 'selected' : ''}>${escHtml(n)}${n === me ? ' (yo)' : ''}${baja(n) ? ' (ya no está)' : ''}</option>`).join('');
 }
 const PROS_PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'WhatsApp', 'Facebook Marketplace', 'Grupo de Facebook', 'Otra'];
 const PROS_RELATIONS = ['Familiar', 'Amigo(a)', 'Vecino(a)', 'Compañero(a) de trabajo', 'Otro'];
@@ -5470,7 +5474,7 @@ function credRefresh() {
 }
 function openCredOffer() {
   if (credData && credData.missing) { toast('Falta instalar Credito.gs en Apps Script.', 'error'); return; }
-  const team = (credData && credData.equipo) || EMPLOYEES;
+  const team = hubTeam(credData && credData.equipo);
   openModal(`
     <div class="modal-title">📝 Anotar línea ofrecida <button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="act-hint" style="margin-bottom:12px">Para el cliente que vino a pagar (o a preguntar) y no quiso la línea ahorita. Si regresa en los próximos ${(credData && credData.dias) || 60} días, la venta es de quien la anotó, aunque se la active otra persona.</div>
@@ -5509,7 +5513,7 @@ async function credCloseOffer(id) {
 function credDetailBox(a) {
   if (!credData) return '';
   if (credData.missing) return `<div class="act-reco-box" style="font-size:12px">🔁 Para cambiar el crédito con motivo falta instalar <b>Credito.gs</b>. Mientras, usa ✏️ Editar → "Hecha por".</div>`;
-  const who = actRepName(a), hist = credChangesFor(a.ID), team = credData.equipo || EMPLOYEES;
+  const who = actRepName(a), hist = credChangesFor(a.ID), team = hubTeam(credData.equipo);
   return `<div class="act-reco-box">
     <div style="font-weight:600;margin-bottom:6px">🔁 Crédito de la venta: ${escHtml(who)}</div>
     ${hist.map(h => `<div style="font-size:12px">• ${actFmtDate(String(h.Fecha).slice(0, 10))}: ${escHtml(h.De || '—')} → <b>${escHtml(h.A)}</b> (${h.Tipo === 'Auto' ? 'automático' : 'a mano'}) — ${escHtml(h.Motivo)}</div>`).join('')}
