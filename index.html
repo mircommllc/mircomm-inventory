@@ -392,6 +392,20 @@
   .act-hint { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 14px 18px;
     color: var(--muted); font-size: 13px; margin-bottom: 16px; }
   .act-reco { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+  /* 💵 Próximos pagos de Cellmart */
+  .act-up-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 10px; }
+  .act-up-tile { text-align: left; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+    color: var(--text); font: inherit; cursor: pointer; transition: border-color .15s, background .15s;
+    display: flex; flex-direction: column; justify-content: flex-start; }
+  .act-up-tile .v.zero { color: var(--muted); }
+  .act-up-tile:hover { border-color: var(--cyan); }
+  .act-up-tile.on { border-color: var(--green); background: rgba(0,232,135,.06); }
+  .act-up-tile .d { font-size: 12px; color: var(--muted); text-transform: capitalize; display: flex; justify-content: space-between; gap: 8px; }
+  .act-up-tile .d span { text-transform: none; color: var(--cyan); }
+  .act-up-tile .v { font-size: 26px; font-weight: 800; color: var(--green); margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+  .act-up-tile .s { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .act-up-tile .s b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .act-up-tile .s.maybe { color: var(--yellow); }
   .act-reco-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin: 12px 0; font-size: 13px; line-height: 1.6; }
 
   .ml-mail { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 7px 0; border-top: 1px solid var(--border); font-size: 13px; }
@@ -5781,13 +5795,14 @@ function renderActBody() {
         <option value="m:ok" ${actFilter.status==='m:ok'?'selected':''}>📱 ✅ Activadas</option>
       </select>` : ''}
     </div>
+    ${actP2Safe(actUpcomingPanel)}
     <div class="report-grid">
       <div class="stat-card blue"><div class="stat-label">Órdenes</div><div class="stat-value">${list.length}</div></div>
       <div class="stat-card cyan"><div class="stat-label">🌐 Internet</div><div class="stat-value">${nInt}</div></div>
       <div class="stat-card green"><div class="stat-label">📱 Líneas móviles</div><div class="stat-value">${nMob}</div>
         ${nMob ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${nIncr} incremental(es)</div>` : ''}</div>
       <div class="stat-card yellow"><div class="stat-label">📺 TV</div><div class="stat-value">${nTv}</div></div>
-      <div class="stat-card green"><div class="stat-label">Comisión estimada</div><div class="stat-value">${fmtMoney(est)}</div>
+      <div class="stat-card green"><div class="stat-label">Comisión estimada (ventas)</div><div class="stat-value">${fmtMoney(est)}</div>
         ${estUnknown ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${estUnknown} sin calcular</div>` : ''}</div>
     </div>
     ${p2All ? `<div class="action-row"><button class="btn btn-ghost" onclick="openActForm()">📱 Registrar línea</button><button class="btn btn-ghost" onclick="actImportNow(false)">↻ Importar correos nuevos</button><button class="btn btn-ghost" onclick="actExportCSV()">⬇ Exportar CSV</button></div>` : `
@@ -7382,6 +7397,145 @@ function actPeriodPanel() {
     ${sec('ℹ️', 'Conectaron en el periodo pero se pagaron en otra fecha', g.elsewhere.length, tbl(H, g.elsewhere.map(i => regRow(i, i.other.map(r => `${fmtMoney(r.amt)} el ${actShortDate(r.pay)}`).join(' · ')))), false)}
     ${sec('ℹ️', 'Vinieron en este pago pero conectaron fuera del periodo', g.outside.length, tbl(H, g.outside.map(i => regRow(i, i.base ? `Conectó ${actShortDate(i.base)}${(dl => dl ? ` → le tocaba el pago del ${actShortDate(dl.pay)}` : '')(actPayDeadline(i.base))}` : 'Sin fecha de conexión'))), false)}
     ${sec('✅', 'Pagadas', g.ok.length, tbl(H, g.ok.map(i => regRow(i, (i.exp && i.paid > i.exp + 1 ? `<span style="color:var(--green)">${fmtMoney(i.paid - i.exp)} más de lo esperado</span> · ` : '') + bundles(i)))), false)}
+  </div>`;
+}
+
+// ─── 💵 Próximos pagos de Cellmart: cuánto llega en cada fecha (no lo ganado en el mes) ──────
+// Cada pago cubre lo que CONECTÓ en sus semanas del calendario (actPayPeriods, la misma regla del cotejo por periodo).
+//   Seguro  = conectado en esa ventana según el Core/Mobile Report (registrado o no en el Hub) y todavía sin pagar.
+//   Posible = vendido sin conexión confirmada: cae en el pago de lo más pronto que podría conectar ("si conecta a tiempo").
+//   Neto    = seguro − chargebacks que ya se ven venir (desconectadas antes de 90 días, pagadas y sin descuento todavía).
+// Las facturas de teléfonos no se conocen hasta que salen en el Commission Report.
+let actUpOpen = '';   // fecha de pago abierta en el detalle
+function actUpcoming(n) {
+  const today = ymdToday(), C = actComReco;
+  const P = actPayPeriods().filter(p => p.pay >= today).slice(0, n || 3).map(p => ({ pay: p.pay, start: p.start, end: p.end, weeks: p.weeks,
+    sure: [], maybe: [], cb: [], nocalc: [], gross: 0, maybeAmt: 0, cbAmt: 0, done: C ? C.byPay.find(x => x.pay === p.pay) || null : null }));
+  if (!P.length) return null;
+  const inP = d => d ? P.find(p => d >= p.start && d <= p.end) || null : null;
+  const upd = [actReco && actReco.meta.upd, actMobReco && actMobReco.meta.upd].filter(Boolean).sort()[0] || '';
+  const put = (p, it, sure) => {
+    if (it.exp === null || it.exp === undefined) { p.nocalc.push(it); return; }
+    if (sure) { p.sure.push(it); p.gross += it.exp; } else { p.maybe.push(it); p.maybeAmt += it.exp; }
+  };
+  actData.forEach(a => {
+    const cs = C && C.byId[a.ID];
+    if (cs && cs.rows.some(r => r.amt > 0)) return;                       // ya se pagó
+    if (cs && ['canceled', 'charged'].includes(cs.code)) return;
+    const st = actReco && actReco.byId[a.ID], ms = actMobReco && actMobReco.byId[a.ID], s = actSvcOf(a);
+    const hasInt = !!(s.internetTier || s.videoTier), hasMob = s.mobileLines > 0;
+    // Lo que el reporte ya dio por perdido (cancelado, desconectado antes de pagarse, no aparece) no se va a pagar
+    const intAlive = hasInt && !(st && ['canceled', 'chargeback', 'missing'].includes(st.code));
+    const mobAlive = hasMob && !(ms && ['canceled', 'missing', 'pkg'].includes(ms.code));
+    if (!intAlive && !mobAlive) return;
+    let sv = { ...s, pkgLines: 0 };
+    if (!intAlive) sv = { ...sv, internetTier: '', videoTier: '', voice: false, xumo: 0 };
+    if (!mobAlive) sv = { ...sv, mobileLines: 0 };
+    const x = cs && (intAlive || !hasInt) && (mobAlive || !hasMob) ? cs.expected : actExpected(sv, a.OrderDate).total;
+    if (x === 0) return;
+    const it = { a, name: a.CustomerName, acct: a.AccountNumber, svc: sv, exp: x, conn: actFirstConnect(a) };
+    if (it.conn) { const p = inP(it.conn); if (p) put(p, it, true); return; }  // conectó: su pago ya está fijo (si ya pasó, es para reclamar)
+    const inRep = !!((st && st.reportAcct) || (ms && ms.wos && ms.wos.length));
+    let from = a.OrderDate || today;
+    if (inRep && upd && upd >= from) from = ymdAdd(upd, 1);                // seguía pendiente al corte del reporte
+    if (from < P[0].start) from = P[0].start;
+    const p = inP(from); if (!p) return;
+    it.why = inRep ? `Pendiente de conexión al ${actShortDate(upd)}` : upd ? 'Venta más nueva que el reporte' : 'Sin Core ni Mobile Report';
+    put(p, it, false);
+  });
+  // Conexiones que Spectrum reporta y que no están en el Hub ni se han pagado (igual que en el cotejo por periodo)
+  const paidAccts = new Set(C ? C.rows.filter(r => r.amt > 0).map(r => r.acct) : []);
+  const regAccts = new Set(actData.map(a => actAcct(a.AccountNumber)).filter(Boolean));
+  const lineAccts = new Set(actData.filter(a => +a.MobileLines > 0).map(a => actAcct(a.AccountNumber)).filter(Boolean));
+  if (actReco) actReco.onlyReport.forEach(r => {
+    const live = r.psus.filter(q => q.connected && !(q.disconnected && (q.surv === '0' || (q.conn && q.disc && ymdDiff(q.conn, q.disc) < 90))));
+    const c = live.map(q => q.conn).filter(Boolean).sort()[0], p = inP(c);
+    if (!p || paidAccts.has(r.acct) || regAccts.has(r.acct)) return;
+    put(p, { name: mlTitle(actReportName(r.name)), acct: r.acct, conn: c, what: live.map(q => q.type).join(' + '), exp: actExpected(actReportSvc({ ...r, psus: live }), c).total, unreg: true }, true);
+  });
+  if (actMobReco) actMobReco.unregistered.forEach(r => {
+    const ls = (r.lines || []).filter(l => l.connected && !l.canceled), c = ls.map(l => l.conn).filter(Boolean).sort()[0], p = inP(c);
+    if (!p || paidAccts.has(r.acct) || lineAccts.has(actAcct(r.acct))) return;
+    put(p, { name: mlTitle(actReportName(r.name)), acct: r.acct, conn: c, what: `${ls.length} línea(s)`, approx: true,
+      exp: actExpected({ mobileLines: ls.length, mobileType: 'Primera' }, c).total, unreg: true }, true);
+  });
+  // Chargebacks por venir: Cellmart ya pagó, el Core la marca desconectada antes de 90 días y no ha llegado el descuento.
+  // Fecha del descuento desconocida: va contra el pago más cercano (lo más prudente).
+  if (actReco && C) actData.forEach(a => {
+    const st = actReco.byId[a.ID], cs = C.byId[a.ID];
+    if (!st || st.code !== 'chargeback' || !cs || !(cs.paid > 0) || cs.charged < 0) return;
+    const g = actReco.groups[actAcct(a.AccountNumber)];
+    const disc = g ? g.psus.filter(q => q.disconnected && q.disc && q.conn && q.conn >= (a.OrderDate || '') && (ymdDiff(q.conn, q.disc) < 90 || q.surv === '0'))
+      .map(q => q.disc).sort().pop() : '';
+    if (!disc || disc < ymdAdd(today, -120)) return;
+    const s = actSvcOf(a);
+    const part = actExpected({ internetTier: s.internetTier, videoTier: s.videoTier, voice: s.voice, xumo: s.xumo, mobileLines: 0,
+      pairMob: s.mobileLines > 0 || s.pairMob, pairVid: s.pairVid }, a.OrderDate).total;
+    const amt = Math.min(cs.paid, part || cs.paid);
+    P[0].cb.push({ a, name: a.CustomerName, acct: a.AccountNumber, disc, exp: amt, paid: cs.paid }); P[0].cbAmt += amt;
+  });
+  P.forEach(p => { p.net = p.gross - p.cbAmt; });
+  return { P, upd, noRep: !actReco && !actMobReco };
+}
+function actUpToggle(pay) {
+  actUpOpen = actUpOpen === pay ? '' : pay;
+  const y = window.scrollY; renderActBody(); window.scrollTo(0, y);
+}
+function actUpcomingPanel() {
+  const U = actUpcoming(3);
+  if (!U) return '';
+  const today = ymdToday(), wd = ymd => ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][new Date(ymd + 'T12:00:00').getDay()];
+  const when = d => d === 0 ? 'hoy' : d === 1 ? 'mañana' : `en ${d} días`;
+  const tile = p => {
+    const real = p.done ? p.done.gross + p.done.charge + p.done.adj : null;
+    return `<button class="act-up-tile ${actUpOpen === p.pay ? 'on' : ''}" onclick="actUpToggle('${p.pay}')" aria-expanded="${actUpOpen === p.pay}">
+      <div class="d">${wd(p.pay)} ${actShortDate(p.pay)}<span>${when(ymdDiff(today, p.pay))}</span></div>
+      <div class="v ${(real !== null ? real : p.gross) ? '' : 'zero'}">${fmtMoney(real !== null ? real : p.gross)}</div>
+      ${real !== null ? '<div class="s">✓ Ya viene en el Commission Report (neto)</div>' : `
+      <div class="s">Neto estimado <b>${fmtMoney(p.net)}</b>${p.cbAmt ? ` · −${fmtMoney(p.cbAmt)} chargeback` : ''}</div>
+      <div class="s">${p.sure.length} cuenta${p.sure.length === 1 ? '' : 's'} · conexiones ${actShortDate(p.start)} – ${actShortDate(p.end)}</div>`}
+      ${p.maybe.length ? `<div class="s maybe">+ ${fmtMoney(p.maybeAmt)} si conecta${p.maybe.length === 1 ? '' : 'n'} a tiempo (${p.maybe.length})</div>` : ''}
+      ${p.nocalc.length ? `<div class="s">${p.nocalc.length} sin calcular</div>` : ''}
+    </button>`;
+  };
+  const open = U.P.find(p => p.pay === actUpOpen);
+  return `<div class="act-reco" id="act-upcoming">
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <div style="font-weight:700">💵 Próximos pagos de Cellmart</div>
+      <div style="font-size:12px;color:var(--muted)">Lo que debe llegar en cada fecha: lo que conectó en las semanas que cubre ese pago y no se ha pagado.${U.upd ? ` Conexiones al ${actFmtDate(U.upd)}.` : ''}</div>
+    </div>
+    ${U.noRep ? '<div style="font-size:12px;color:var(--yellow);margin-top:6px">⚠️ Sin Core ni Mobile Report no puedo confirmar conexiones: todo sale como "si conecta a tiempo", contado desde la fecha de venta.</div>' : ''}
+    <div class="act-up-tiles">${U.P.map(tile).join('')}</div>
+    ${open ? actUpDetail(open) : ''}
+  </div>`;
+}
+function actUpDetail(p) {
+  const nm = i => i.a ? `<a href="#" onclick="openActDetail('${escHtml(i.a.ID)}');return false" style="color:var(--text);font-weight:600">${escHtml(i.name || '—')}</a>`
+    : `<span style="font-weight:600">${escHtml(i.name || '—')}</span>`;
+  const what = i => i.svc ? actSvcChips(i.svc) : escHtml(i.what || '');
+  const money = v => v === null || v === undefined ? '—' : fmtMoney(v);
+  const tbl = (head, rows) => `<div class="table-wrap" style="margin-top:8px;overflow-x:auto"><table><thead><tr>${head.map((h, k) => `<th${k === 3 ? ' style="text-align:right"' : ''}>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+  const sum = l => l.reduce((n, i) => n + (i.exp || 0), 0);
+  const sec = (icon, title, list, head, row, open, note) => list.length ? `<details style="margin-top:10px"${open ? ' open' : ''}>
+    <summary style="cursor:pointer;font-weight:600">${icon} ${title} (${list.length}${sum(list) ? ` · ${fmtMoney(sum(list))}` : ''})</summary>
+    ${note ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">${note}</div>` : ''}${tbl(head, list.map(row))}</details>` : '';
+  const reg = p.sure.filter(i => !i.unreg), unreg = p.sure.filter(i => i.unreg);
+  const H = ['Cliente', 'Conectó', 'Servicios', 'Esperado', 'Cuenta'];
+  const row = i => `<tr><td>${nm(i)}</td><td class="mono">${actShortDate(i.conn)}</td><td>${what(i)}</td><td class="mono" style="text-align:right">${money(i.exp)}${i.approx ? ' <span title="Tipo de línea sin confirmar: cuento primera línea" style="color:var(--yellow)">≈</span>' : ''}</td><td class="mono" style="font-size:12px;color:var(--muted)">${escHtml(i.acct || '')}</td></tr>`;
+  return `<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+    <div style="font-size:12px;color:var(--muted)">Pago del <b>${actFmtDate(p.pay)}</b>: lo que conectó del ${actFmtDate(p.start)} al ${actFmtDate(p.end)} (${p.weeks.map(w => `${actShortDate(w.start)}–${actShortDate(w.end)}, due ${actShortDate(w.due)}`).join(' · ')}).</div>
+    ${p.done ? `<div style="font-size:12px;color:var(--green);margin-top:6px">✓ Este pago ya está en el Commission Report: ${fmtMoney(p.done.gross)} de comisiones${p.done.charge ? `, ${fmtMoney(p.done.charge)} de chargebacks` : ''}${p.done.adj ? `, ${fmtMoney(p.done.adj)} de facturas` : ''}. El cotejo por periodo trae el detalle.</div>` : ''}
+    ${sec('✅', 'Conectadas en el periodo', reg, H, row, true)}
+    ${sec('⚠️', 'Conectadas pero sin registrar en el Hub', unreg, H, row, true, 'Spectrum las reporta conectadas y Cellmart no las ha pagado. Cuentan en el monto; regístralas para que queden ligadas a su vendedor.')}
+    ${sec('↩️', 'Chargebacks que pueden descontar', p.cb, ['Cliente', 'Desconectó', 'Pagado', 'Descuento', 'Cuenta'], i =>
+      `<tr><td>${nm(i)}</td><td class="mono">${actShortDate(i.disc)}</td><td class="mono">${fmtMoney(i.paid)}</td><td class="mono" style="text-align:right;color:var(--red)">−${fmtMoney(i.exp)}</td><td class="mono" style="font-size:12px;color:var(--muted)">${escHtml(i.acct || '')}</td></tr>`, true,
+      'Se desconectaron antes de 90 días y Cellmart no ha hecho el descuento. No se sabe en qué pago lo hará: lo resto del más cercano.')}
+    ${sec('⏳', 'Si conectan a tiempo (no suman al monto)', p.maybe, ['Cliente', 'Venta', 'Servicios', 'Esperado', 'Por qué'], i =>
+      `<tr><td>${nm(i)}</td><td class="mono">${actShortDate(i.a.OrderDate)}</td><td>${what(i)}</td><td class="mono" style="text-align:right">${money(i.exp)}</td><td style="font-size:12px;color:var(--muted)">${escHtml(i.why)}</td></tr>`, false,
+      'Sin conexión confirmada en los reportes. Entran en este pago solo si conectan dentro de su ventana; si conectan después, se van al siguiente.')}
+    ${sec('❔', 'Sin calcular', p.nocalc, H, row, false, 'Les falta el tier o el tipo de servicio para saber cuánto pagan. Revisa el registro.')}
+    ${!p.sure.length && !p.maybe.length && !p.cb.length && !p.nocalc.length ? '<div class="act-hint" style="margin:10px 0 0">Nada pendiente para este pago.</div>' : ''}
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">Las facturas de teléfonos que Cellmart descuenta no se conocen hasta que salen en el Commission Report.</div>
   </div>`;
 }
 
@@ -12454,9 +12608,10 @@ function actP2Bar() {
 function actP2Go(k) { actP2.step = k; actP2.auto = false; renderActBody(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function actP2Render() {
   const body = document.getElementById('act-body'); if (!body) return;
-  if (actP2.step === 'upload') body.innerHTML = actP2Upload();
-  else if (actP2.step === 'diff') body.innerHTML = actP2DiffHtml();
-  else body.innerHTML = actP2DisputeHtml();
+  const up = actP2Safe(actUpcomingPanel);
+  if (actP2.step === 'upload') body.innerHTML = up + actP2Upload();
+  else if (actP2.step === 'diff') body.innerHTML = up + actP2DiffHtml();
+  else body.innerHTML = up + actP2DisputeHtml();
 }
 function actP2Upload() {
   const card = (k, icon, title, r, desc) => `<div class="p2-rcard ${r ? 'ok' : ''}"><div class="h">${icon} ${title}<span>${r ? '✓ cargado' : 'falta'}</span></div>
