@@ -223,6 +223,9 @@ function importSpectrumOrders() {
   var r = actImport_(ACT_GMAIL_QUERY + ' newer_than:10d', 200);
   try { r.mobileEmails = actImportMobileEmails_(ACT_MOBILE_GMAIL_QUERY + ' newer_than:10d', 200).added; }
   catch (err) { r.errors = (r.errors || []).concat(['Correos móviles: ' + err.message]); }
+  // v65 · depósitos de Cellmart (avisos de QuickBooks + correos que los explican), PagosCellmart.gs
+  try { if (typeof pagScan_ === 'function') r.pagos = pagScan_().added; }
+  catch (err) { r.errors = (r.errors || []).concat(['Pagos Cellmart: ' + err.message]); }
   return r;
 }
 /** Run once by hand to load the whole email history. Safe to re-run (skips duplicates). */

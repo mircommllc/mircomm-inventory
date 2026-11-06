@@ -5654,6 +5654,7 @@ async function renderActivations() {
       apiGet({ action: 'getMobileEmails' }).catch(() => null), apiGet({ action: 'getRepMap' }).catch(() => null),
       apiGet({ action: 'getTransactions', store: currentStore, startDate: ymdAdd(ymdToday(), -75), endDate: ymdToday() }).catch(() => null),
       (socLinksCache = null, socLoadLinks())]);
+    actPagosLoad();
     actPosTx = Array.isArray(txs) ? txs : null;
     if (repMap && typeof repMap === 'object' && !Array.isArray(repMap)) Object.assign(ACT_REPS, repMap);
     actData = Array.isArray(rows) ? rows : [];
@@ -7474,8 +7475,73 @@ function actUpcoming(n) {
     const amt = Math.min(cs.paid, part || cs.paid);
     P[0].cb.push({ a, name: a.CustomerName, acct: a.AccountNumber, disc, exp: amt, paid: cs.paid }); P[0].cbAmt += amt;
   });
-  P.forEach(p => { p.net = p.gross - p.cbAmt; });
+  P.forEach(p => {
+    p.net = p.gross - p.cbAmt;
+    p.dep = actPagos ? actPagos.deposits.find(d => d.type === 'commission' && d.cycle === p.pay) || null : null;
+  });
   return { P, upd, noRep: !actReco && !actMobReco };
+}
+// ─── 🏦 Depósitos de Cellmart (PagosCellmart.gs lee los avisos de QuickBooks y los correos que los explican) ───
+let actPagos = null, actPagosErr = '';
+const PAG_TYPES = {
+  commission: ['💵', 'Comisiones'], residual: ['🔁', 'Residual'], incentive: ['🎯', 'Incentivo / ayuda'], smb: ['🏢', 'SMB'],
+  spiff: ['⭐', 'Spiff'], unknown: ['⚠️', 'Sin explicar'], spiff_credit: ['⭐', 'Spiff aplicado a factura'], invoice: ['🧾', 'Comisión aplicada a factura']
+};
+async function actPagosLoad(rescan) {
+  try {
+    const r = await apiGet({ action: rescan ? 'pagRescan' : 'getCellmartPayments' });
+    if (r && Array.isArray(r.deposits)) { actPagos = r; actPagosErr = ''; }
+  } catch (e) { actPagosErr = /unknown action/i.test(e.message) ? 'old' : e.message; }
+  if (currentPage === 'activations' && document.getElementById('act-body')) { const y = window.scrollY; renderActBody(); window.scrollTo(0, y); }
+}
+async function actPagosRescan(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Revisando…'; }
+  if (typeof apiCacheClear === 'function') apiCacheClear();
+  await actPagosLoad(true);
+  toast(actPagosErr ? 'No pude revisar el correo: ' + actPagosErr : 'Correo revisado.', actPagosErr ? 'error' : 'success');
+}
+function actGmailLink(id) { return `https://mail.google.com/mail/?authuser=mircommllc@gmail.com#all/${encodeURIComponent(id)}`; }
+function actPagosPanel() {
+  if (!actPagos) return actPagosErr === 'old'
+    ? '<div style="font-size:12px;color:var(--muted);margin-top:12px">🏦 Los depósitos de Cellmart se ven cuando publiques el backend nuevo (GitHub → Actions → Backend deploy → production). En tu vista previa 🧪 ya salen.</div>' : '';
+  const today = ymdToday(), from = ymdAdd(today, -90);
+  const list = actPagos.deposits.filter(d => d.deposit >= from);
+  const unk = list.filter(d => d.type === 'unknown');
+  const C = actComReco;
+  const check = d => {
+    if (d.type !== 'commission') return d.note ? `<a href="${actGmailLink(d.note.id)}" target="_blank" rel="noopener" style="color:var(--cyan)">ver correo</a>${d.how === 'fecha' ? ' <span title="El correo no trae el monto en el texto (viene en el Excel adjunto): lo ligué por la fecha" style="color:var(--yellow)">≈</span>' : ''}` : '<span style="color:var(--yellow)">No llegó correo que lo explique</span>';
+    const b = C && C.byPay.find(x => x.pay === d.cycle);
+    if (!b) return `<span style="color:var(--muted)">${C && d.cycle > (C.meta.maxPay || '') ? 'El Commission Report todavía no lo trae' : 'Sin Commission Report de esa fecha'}</span>`;
+    const net = b.gross + b.charge + b.adj, cut = d.cuts.reduce((n, c) => n + (+c.amount || 0), 0), diff = d.amount + cut - net;
+    return Math.abs(diff) < 1 ? '<span style="color:var(--green)">✓ cuadra con el Commission Report</span>'
+      : `<span style="color:var(--red)">Reporte ${fmtMoney(net)}${cut ? ` − ${fmtMoney(cut)} factura` : ''} · diferencia ${fmtMoney(diff)}</span>`;
+  };
+  const what = d => {
+    const t = PAG_TYPES[d.type] || [ '', d.type ];
+    const sub = d.type === 'commission' ? `ciclo del ${actShortDate(d.cycle)}${d.cuts.length ? ` · −${fmtMoney(d.cuts.reduce((n, c) => n + (+c.amount || 0), 0))} a ${escHtml(d.cuts.map(c => c.invoice).join(', '))}` : ''}`
+      : d.note ? escHtml(d.note.subject) : 'Fuera del ciclo de comisiones';
+    return `<div style="font-weight:600">${t[0]} ${t[1]}</div><div style="font-size:11px;color:var(--muted);max-width:340px">${sub}</div>`;
+  };
+  const month = today.slice(0, 7), inMonth = actPagos.deposits.filter(d => d.deposit.slice(0, 7) === month && d.deposit <= today);
+  const byType = {}; inMonth.forEach(d => { byType[d.type] = (byType[d.type] || 0) + d.amount; });
+  const coming = actPagos.deposits.filter(d => d.deposit > today);
+  const rows = list.map(d => `<tr${d.type === 'unknown' ? ' style="background:rgba(255,209,102,.06)"' : ''}><td class="mono">${actShortDate(d.deposit)}${d.deposit > today ? ' <span style="font-size:11px;color:var(--cyan)">viene</span>' : ''}</td>
+    <td class="mono" style="text-align:right;font-weight:700">${fmtMoney(d.amount)}</td><td>${what(d)}</td><td style="font-size:12px">${check(d)}</td></tr>`).join('');
+  const credits = (actPagos.credits || []).filter(c => c.date >= from);
+  return `<details style="margin-top:14px"${unk.length ? ' open' : ''}>
+    <summary style="cursor:pointer;font-weight:600">🏦 Depósitos de Cellmart · últimos 90 días (${list.length})${unk.length ? ` <span class="nav-badge yellow" style="margin-left:6px">${unk.length} sin explicar</span>` : ''}</summary>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px">
+      <span>Depositado este mes: <b style="color:var(--text)">${fmtMoney(inMonth.reduce((n, d) => n + d.amount, 0))}</b>${Object.keys(byType).length > 1 ? ' (' + Object.entries(byType).map(([k, v]) => `${(PAG_TYPES[k] || [k, k])[1]} ${fmtMoney(v)}`).join(' · ') + ')' : ''}</span>
+      ${coming.length ? `<span>· Por llegar: <b style="color:var(--cyan)">${fmtMoney(coming.reduce((n, d) => n + d.amount, 0))}</b></span>` : ''}
+      <span style="margin-left:auto">Se revisa el correo solo cada 15 min</span>
+      <button class="btn btn-ghost btn-sm" onclick="actPagosRescan(this)">↻ Revisar ahora</button>
+    </div>
+    ${list.length ? `<div class="table-wrap" style="margin-top:8px;overflow-x:auto"><table><thead><tr><th>Depósito</th><th style="text-align:right">Monto</th><th>Qué es</th><th>Cotejo</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : '<div class="act-hint" style="margin:10px 0 0">Todavía no hay depósitos leídos del correo.</div>'}
+    ${unk.length ? '<div style="font-size:12px;color:var(--yellow);margin-top:6px">⚠️ Los depósitos sin explicar llegaron fuera del ciclo de comisiones y ningún correo de Cellmart trae ese monto. Pide el detalle a Cellmart si no sabes qué son.</div>' : ''}
+    ${credits.length ? `<div style="font-size:12px;color:var(--muted);margin-top:10px">Créditos que no llegan al banco: ${credits.map(c => `${(PAG_TYPES[c.type] || ['', c.type])[1]} ${c.amount ? fmtMoney(c.amount) : ''} ${escHtml(c.invoice || '')} (${actShortDate(c.date)}) <a href="${actGmailLink(c.id)}" target="_blank" rel="noopener" style="color:var(--cyan)">correo</a>`).join(' · ')}</div>` : ''}
+    ${(actPagos.pendingNotes || []).length ? `<div style="font-size:12px;color:var(--cyan);margin-top:6px">📨 Cellmart avisó de pagos que todavía no aparecen depositados: ${actPagos.pendingNotes.map(n => `${(PAG_TYPES[n.type] || ['', n.type])[1]}${n.deposit ? ' para el ' + actShortDate(n.deposit) : ''} <a href="${actGmailLink(n.id)}" target="_blank" rel="noopener" style="color:var(--cyan)">correo</a>`).join(' · ')}</div>` : ''}
+  </details>`;
 }
 function actUpToggle(pay) {
   actUpOpen = actUpOpen === pay ? '' : pay;
@@ -7488,12 +7554,20 @@ function actUpcomingPanel() {
   const when = d => d === 0 ? 'hoy' : d === 1 ? 'mañana' : `en ${d} días`;
   const tile = p => {
     const real = p.done ? p.done.gross + p.done.charge + p.done.adj : null;
+    const dep = p.dep, day = dep ? dep.deposit : ymdAdd(p.pay, 1);
+    const cut = dep ? dep.cuts.reduce((n, c) => n + (+c.amount || 0), 0) : 0;
+    const diff = dep ? dep.amount + cut - (real !== null ? real : p.net) : 0;
+    const shown = dep ? dep.amount : real !== null ? real : p.gross;
     return `<button class="act-up-tile ${actUpOpen === p.pay ? 'on' : ''}" onclick="actUpToggle('${p.pay}')" aria-expanded="${actUpOpen === p.pay}">
       <div class="d">${wd(p.pay)} ${actShortDate(p.pay)}<span>${when(ymdDiff(today, p.pay))}</span></div>
-      <div class="v ${(real !== null ? real : p.gross) ? '' : 'zero'}">${fmtMoney(real !== null ? real : p.gross)}</div>
-      ${real !== null ? '<div class="s">✓ Ya viene en el Commission Report (neto)</div>' : `
+      <div class="v ${shown ? '' : 'zero'}">${fmtMoney(shown)}</div>
+      ${dep ? `<div class="s" style="color:var(--green)">✓ Cellmart confirmó · depósito ${wd(day)} ${actShortDate(day)}</div>
+      ${cut ? `<div class="s">−${fmtMoney(cut)} aplicado a ${escHtml(dep.cuts.map(c => c.invoice).filter(Boolean).join(', ') || 'factura')}</div>` : ''}
+      <div class="s">${real !== null ? 'Commission Report' : 'El Hub esperaba'} <b>${fmtMoney(real !== null ? real : p.net)}</b> · ${Math.abs(diff) < 1 ? '<span style="color:var(--green)">cuadra</span>' : `<span style="color:${diff < 0 ? 'var(--red)' : 'var(--cyan)'}">${diff < 0 ? 'faltan' : 'sobran'} ${fmtMoney(Math.abs(diff))}</span>`}</div>`
+      : real !== null ? '<div class="s">✓ Ya viene en el Commission Report (neto)</div>' : `
       <div class="s">Neto estimado <b>${fmtMoney(p.net)}</b>${p.cbAmt ? ` · −${fmtMoney(p.cbAmt)} chargeback` : ''}</div>
-      <div class="s">${p.sure.length} cuenta${p.sure.length === 1 ? '' : 's'} · conexiones ${actShortDate(p.start)} – ${actShortDate(p.end)}</div>`}
+      <div class="s">${p.sure.length} cuenta${p.sure.length === 1 ? '' : 's'} · conexiones ${actShortDate(p.start)} – ${actShortDate(p.end)}</div>
+      <div class="s">Depósito ~${wd(day)} ${actShortDate(day)}</div>`}
       ${p.maybe.length ? `<div class="s maybe">+ ${fmtMoney(p.maybeAmt)} si conecta${p.maybe.length === 1 ? '' : 'n'} a tiempo (${p.maybe.length})</div>` : ''}
       ${p.nocalc.length ? `<div class="s">${p.nocalc.length} sin calcular</div>` : ''}
     </button>`;
@@ -7507,6 +7581,7 @@ function actUpcomingPanel() {
     ${U.noRep ? '<div style="font-size:12px;color:var(--yellow);margin-top:6px">⚠️ Sin Core ni Mobile Report no puedo confirmar conexiones: todo sale como "si conecta a tiempo", contado desde la fecha de venta.</div>' : ''}
     <div class="act-up-tiles">${U.P.map(tile).join('')}</div>
     ${open ? actUpDetail(open) : ''}
+    ${actPagosPanel()}
   </div>`;
 }
 function actUpDetail(p) {

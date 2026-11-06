@@ -27,6 +27,7 @@ function hubGet_(e) {
   var ln = lineasRouter_(e); if (ln) return ln;           // v64 · formulario único de líneas (revisa PIN o sesión por su cuenta)
   var gate = authGate_(e); if (gate) return gate;
   var bs = buscarRouter_(e); if (bs) return bs;           // v64 · búsqueda global (Ctrl K)
+  var pg = pagosRouter_(e); if (pg) return pg;            // v65 · depósitos de Cellmart leídos del correo (PagosCellmart.gs)
     var nom = nominaRouter_(e); if (nom) return nom;
     var soc = sociosRouter_(e); if (soc) return soc;
      var cr = clientesRouter_(e); if (cr) return cr;
