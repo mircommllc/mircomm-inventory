@@ -117,6 +117,7 @@ function prosAuth_(p) {
   var name = String(p.user || '');
   var u = cfg.usuarios[name];
   if (!u) throw new Error('Usuario no válido.');
+  if (staffEsBaja_(name)) throw new Error('Este acceso ya no está activo. Habla con Joel.');   // v60: bajas (STAFF_BAJAS)
   var cache = CacheService.getScriptCache();
   var key = 'prosfail_' + name;
   var fails = Number(cache.get(key) || 0);
