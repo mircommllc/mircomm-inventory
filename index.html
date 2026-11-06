@@ -1897,7 +1897,7 @@ async function renderEquipo() {
         <div class="act-hint" style="max-width:640px">${sinInstalar
           ? `Falta instalar <b>Equipo.gs</b> en Apps Script:<ol style="margin:8px 0 0 18px;line-height:1.6">
               <li>＋ → Script → "Equipo" → pega el archivo → Guardar (y la versión nueva de Prospectos.gs).</li>
-              <li>En Code.gs → hubGet_(e), debajo de <code>prosSessionPin_(e);</code> pega:<br><code>var eq = equipoRouter_(e); if (eq) return eq;</code></li>
+              <li>En Code.gs pega <code>var eq = equipoRouter_(e); if (eq) return eq;</code> en dos lugares: en hubGet_(e) debajo de <code>prosSessionPin_(e);</code> y como <b>primera línea de doPost(e)</b>.</li>
               <li>Escoge <b>instalarEquipo</b> → ▶ Ejecutar → acepta los permisos.</li>
               <li>Deploy → Manage deployments → ✏️ → New version → Deploy.</li></ol>`
           : 'No se pudo cargar: ' + escHtml(e.message)}</div>`;
