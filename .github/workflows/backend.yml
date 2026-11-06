@@ -62,6 +62,8 @@ jobs:
         if: env.CLASPRC_JSON != ''
         working-directory: backend
         run: |
+          # Los IDs pegados en GitHub a veces traen espacios: se limpian aquí
+          TEST_ID="$(printf '%s' "$TEST_ID" | tr -d '[:space:]')"; PROD_ID="$(printf '%s' "$PROD_ID" | tr -d '[:space:]')"
           DESC="$TARGET · $(git log -1 --format=%s | cut -c1-80)"
           if [ "$TARGET" = production ]; then
             [ -n "$PROD_ID" ] || { echo "::error::Missing variable PROD_DEPLOYMENT_ID — see backend/README.md"; exit 1; }
