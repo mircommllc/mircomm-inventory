@@ -39,3 +39,7 @@ GitHub lo sube y lo despliega solo con `clasp`.
 - `Lineas.gs` — un solo formulario de líneas (`actRepLineSave`): asesoras y administradores, y une la línea al registro del correo de Spectrum para que el internet no quede doble.
 - `Buscar.gs` — índice de la búsqueda global Ctrl K (`getSearchIndex`).
 - `Clientes.gs` — `getCustomerSummary` y `getCustomerHistory` (el resumen de clientes ya no se calcula en el navegador).
+
+## Archivos nuevos en v65
+
+- `PagosCellmart.gs` — lee los avisos de QuickBooks ("CellMart, LLC has scheduled a payment") y los correos de Cellmart que explican cada pago (residual, incentivo, SMB, spiff, comisión aplicada a factura), los guarda en la hoja `PagosCellmart` y los liga. Se revisa solo cada 15 min desde `importSpectrumOrders`; la primera vez carga desde junio 2026. Acciones: `getCellmartPayments`, `pagRescan`.
