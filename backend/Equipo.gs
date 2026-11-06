@@ -25,11 +25,8 @@
  * INSTALAR (una vez):
  *  1. Apps Script del Hub: ＋ → Script → nómbralo "Equipo" → pega todo este archivo → Guardar.
  *     Pega también la versión nueva de Prospectos.gs (staffEsBaja_ ya pregunta a Equipo).
- *  2. En Code.gs pega esta línea en DOS lugares:
+ *  2. En Code.gs, dentro de function hubGet_(e), pega esta línea JUSTO DEBAJO de  prosSessionPin_(e);
  *        var eq = equipoRouter_(e); if (eq) return eq;
- *     a) dentro de function hubGet_(e), JUSTO DEBAJO de  prosSessionPin_(e);
- *     b) dentro de function hubPost_(e) (Code.gs; doPost la llama vía adminHandle_), como PRIMERA línea (el Hub manda las acciones de Equipo por POST,
- *        porque los documentos y las firmas no caben en un GET). El router revisa el PIN por su cuenta.
  *  3. En la barra de arriba escoge la función  instalarEquipo  → ▶ Ejecutar → acepta los permisos
  *     (pide Drive para las carpetas privadas). Crea las hojas, la carpeta "MirComm · Equipo (privado)" y llena las fichas.
  *  4. Deploy → Manage deployments → ✏️ → Version: New version → Deploy.
@@ -119,7 +116,7 @@ function instalarEquipo() {
 }
 
 // ─── ROUTER ────────────────────────────────────────────────────────
-// En Code.gs → hubGet_(e), justo debajo de prosSessionPin_(e), Y como primera línea de hubPost_(e):
+// En Code.gs → hubGet_(e), justo debajo de prosSessionPin_(e):
 //   var eq = equipoRouter_(e); if (eq) return eq;
 function equipoRouter_(e) {
   var p = {}, src = (e && e.parameter) || {};
