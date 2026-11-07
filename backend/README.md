@@ -43,3 +43,10 @@ GitHub lo sube y lo despliega solo con `clasp`.
 ## Archivos nuevos en v65
 
 - `PagosCellmart.gs` — lee los avisos de QuickBooks ("CellMart, LLC has scheduled a payment") y los correos de Cellmart que explican cada pago (residual, incentivo, SMB, spiff, comisión aplicada a factura), los guarda en la hoja `PagosCellmart` y los liga. Se revisa solo cada 15 min desde `importSpectrumOrders`; la primera vez carga desde junio 2026. Acciones: `getCellmartPayments`, `pagRescan`.
+
+## Cambios en v66 (PagosCellmart.gs)
+
+- **✉️ Pedir explicación** (`pagAskDraft`): deja en Gmail un borrador en inglés para commissions@cellmart.us con los depósitos sin explicar (no lo manda). El Hub muestra si el borrador sigue sin enviar, si ya preguntaste o si Cellmart contestó; la respuesta explica el depósito aunque no traiga el monto (filas `answer`).
+- **Alerta por correo**: el Hub guarda lo que espera en cada pago (`pagSetExpected`). Cada 15 min, si un aviso de QuickBooks se sale ±10% de lo esperado, o cae un depósito sin explicar, llega un correo a mircommllc@gmail.com (una vez por depósito).
+- **Facturas de teléfonos** (`bill` / `billpaid`): lee los correos "IVC… - MirComm LLC"; el total se saca del PDF (se convierte un momento a Google Doc y se borra). Si no se puede, se escribe una vez en el Hub (`pagBillSet`). Se cierran solas con "Commission Applied to IVC…" o cuando contestas "paid".
+- La hoja `PagosCellmart` gana la columna `Ref` al final (se agrega sola).
